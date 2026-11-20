@@ -1,0 +1,19 @@
+[package]
+name = "lfx-retro-fx"
+description = "UI-freie Teile der LENZ//84-Effekte: Klang-Synthesizer, Boot-Zeitplan, Glitch, Cheat-Code, Terminal, Code-Regen"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
+
+[features]
+default = ["audio"]
+# Ausgabe über das Audiogerät (cpal). Ohne das Feature bleibt der reine Synthesizer.
+audio = ["dep:cpal"]
+
+[dependencies]
+cpal = { version = "0.18", optional = true }
