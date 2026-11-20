@@ -1,0 +1,253 @@
+// Spike G2: eigene Titelleiste + Startseiten-Attrappe (Zeilen mit synthetischen Covern).
+import { Theme, Design } from "lib.slint";
+export { Theme, Design }
+import "../../../assets/fonts/inter/Inter-Variable.ttf";
+
+export struct CardData {
+    idx: int,
+    x: length,
+    art: image,
+    loaded: bool,
+}
+
+export struct RowData {
+    title: string,
+    wide: bool,
+    row-h: length,
+    cards: [CardData],
+}
+
+// Tastaturfokus (Zeile/Spalte); `kbd` zeigt den Ring nur nach Tastenbedienung.
+export global Nav {
+    in-out property <int> frow: 0;
+    in-out property <int> fcol: 0;
+    in-out property <bool> kbd: false;
+    in-out property <bool> shadows: true;
+}
+
+component Card inherits Rectangle {
+    in property <CardData> d;
+    in property <bool> wide;
+    in property <bool> focused;
+    callback clicked();
+
+    property <bool> zoomed: ta.has-hover || root.focused;
+    property <float> zoom: root.zoomed ? 1.08 : 1.0;
+    animate zoom {
+        duration: Theme.t.dur;
+        easing: Theme.t.ease;
+    }
+
+    width: root.wide ? 240px : 150px;
+    height: root.wide ? 135px : 225px;
+    border-radius: Theme.t.card-radius;
+    background: Theme.t.surface-2;
+    clip: true;
+    transform-scale: root.zoom;
+    drop-shadow-color: (root.zoomed && Nav.shadows) ? Theme.t.shadow-card.color : #00000000;
+    drop-shadow-blur: (root.zoomed && Nav.shadows) ? Theme.t.shadow-card.blur : 0px;
+    drop-shadow-offset-y: Theme.t.shadow-card.y;
+    animate drop-shadow-color, drop-shadow-blur {
+        duration: Theme.t.dur;
+        easing: Theme.t.ease;
+    }
+
+    if root.d.loaded: Image {
+        source: root.d.art;
+        width: 100%;
+        height: 100%;
+        image-fit: cover;
+    }
+    ta := TouchArea {
+        clicked => { root.clicked(); }
+    }
+    if root.focused && Nav.kbd: Rectangle {
+        border-width: 2px;
+        border-color: Theme.t.text;
+        border-radius: Theme.t.card-radius;
+    }
+}
+
+component RowView inherits Rectangle {
+    in property <RowData> r;
+    in property <int> ri;
+    in property <length> scroll-x;
+    callback card-clicked(int);
+    callback wheel(length, length);
+
+    height: root.r.row-h;
+
+    TouchArea {
+        scroll-event(e) => {
+            root.wheel(e.delta-x, e.delta-y);
+            EventResult.accept
+        }
+    }
+    Text {
+        x: Theme.t.gutter;
+        y: 10px;
+        text: root.r.title;
+        color: Theme.t.text;
+        font-size: Theme.t.fs-row-title;
+        font-weight: Theme.t.fw-row-title;
+    }
+    for c in root.r.cards: Card {
+        x: c.x - root.scroll-x;
+        y: 44px;
+        d: c;
+        wide: root.r.wide;
+        focused: Nav.frow == root.ri && Nav.fcol == c.idx;
+        clicked => { root.card-clicked(c.idx); }
+    }
+}
+
+component WinButton inherits Rectangle {
+    in property <bool> danger;
+    callback clicked();
+    width: 46px;
+    background: ta.has-hover ? (root.danger ? #e81123 : #ffffff22) : transparent;
+    ta := TouchArea { clicked => { root.clicked(); } }
+    @children
+}
+
+component Edge inherits TouchArea {
+    in property <int> dir;
+    in property <MouseCursor> cursor-kind: MouseCursor.default;
+    callback start(int);
+    mouse-cursor: root.cursor-kind;
+    pointer-event(e) => {
+        if e.kind == PointerEventKind.down && e.button == PointerEventButton.left {
+            root.start(root.dir);
+        }
+    }
+}
+
+export component App inherits Window {
+    no-frame: true;
+    title: "LENZFLIX";
+    default-font-family: "Inter";
+    preferred-width: 1280px;
+    preferred-height: 800px;
+    min-width: 640px;
+    min-height: 420px;
+    background: Theme.t.bg;
+
+    in property <[RowData]> rows;
+    in property <[length]> row-scrolls;
+    in property <length> scroll-y;
+    in property <bool> is-max;
+    in property <string> renderer-label;
+    callback drag();
+    callback minimize();
+    callback toggle-max();
+    callback close-window();
+    callback resize(int);
+    callback nav(int, int);
+    callback card-clicked(int, int);
+    callback wheel(int, length, length);
+
+    // Inhalt
+    Rectangle {
+        y: 40px;
+        height: parent.height - 40px;
+        clip: true;
+        Rectangle {
+            y: -root.scroll-y;
+            VerticalLayout {
+                for r[ri] in root.rows: RowView {
+                    r: r;
+                    ri: ri;
+                    scroll-x: root.row-scrolls[ri];
+                    card-clicked(idx) => { root.card-clicked(ri, idx); }
+                    wheel(dx, dy) => { root.wheel(ri, dx, dy); }
+                }
+            }
+        }
+    }
+
+    // Tastaturfokus
+    fs := FocusScope {
+        y: 40px;
+        height: parent.height - 40px;
+        key-pressed(e) => {
+            if e.text == Key.LeftArrow { root.nav(-1, 0); return accept; }
+            if e.text == Key.RightArrow { root.nav(1, 0); return accept; }
+            if e.text == Key.UpArrow { root.nav(0, -1); return accept; }
+            if e.text == Key.DownArrow { root.nav(0, 1); return accept; }
+            reject
+        }
+    }
+
+    // Titelleiste
+    Rectangle {
+        y: 0px;
+        width: parent.width;
+        height: 40px;
+        background: Theme.t.bg-deep;
+        TouchArea {
+            width: parent.width - 3 * 46px;
+            pointer-event(e) => {
+                if e.kind == PointerEventKind.down && e.button == PointerEventButton.left {
+                    root.drag();
+                }
+            }
+        }
+        HorizontalLayout {
+            padding-left: 16px;
+            spacing: 16px;
+            alignment: start;
+            Text {
+                text: "LENZFLIX";
+                color: Theme.t.red;
+                font-weight: 800;
+                font-size: 18px;
+                vertical-alignment: center;
+            }
+            // Schriftgewichte der variablen Inter (Test 400 bis 800)
+            Text { text: "Aa 400"; font-weight: 400; color: Theme.t.text-muted; font-size: 13px; vertical-alignment: center; }
+            Text { text: "Aa 500"; font-weight: 500; color: Theme.t.text-muted; font-size: 13px; vertical-alignment: center; }
+            Text { text: "Aa 600"; font-weight: 600; color: Theme.t.text-muted; font-size: 13px; vertical-alignment: center; }
+            Text { text: "Aa 700"; font-weight: 700; color: Theme.t.text-muted; font-size: 13px; vertical-alignment: center; }
+            Text { text: "Aa 800"; font-weight: 800; color: Theme.t.text-muted; font-size: 13px; vertical-alignment: center; }
+            Text { text: root.renderer-label; color: Theme.t.text-soft; font-size: 12px; vertical-alignment: center; }
+        }
+        HorizontalLayout {
+            alignment: end;
+            WinButton {
+                clicked => { root.minimize(); }
+                Rectangle { width: 10px; height: 1px; background: Theme.t.text; }
+            }
+            WinButton {
+                clicked => { root.toggle-max(); }
+                Rectangle {
+                    width: 10px; height: 10px;
+                    border-width: 1px; border-color: Theme.t.text;
+                }
+            }
+            WinButton {
+                danger: true;
+                clicked => { root.close-window(); }
+                Path {
+                    width: 10px; height: 10px;
+                    commands: "M 0 0 L 10 10 M 10 0 L 0 10";
+                    stroke: Theme.t.text;
+                    stroke-width: 1px;
+                }
+            }
+        }
+    }
+
+    // Größenänderung am Rand (ohne Systemrahmen)
+    if !root.is-max: Rectangle {
+        Edge { dir: 0; y: 0; height: 4px; x: 10px; width: parent.width - 20px; cursor-kind: MouseCursor.ns-resize; start(d) => { root.resize(d); } }
+        Edge { dir: 1; y: parent.height - 4px; height: 4px; x: 10px; width: parent.width - 20px; cursor-kind: MouseCursor.ns-resize; start(d) => { root.resize(d); } }
+        Edge { dir: 2; x: parent.width - 4px; width: 4px; y: 10px; height: parent.height - 20px; cursor-kind: MouseCursor.ew-resize; start(d) => { root.resize(d); } }
+        Edge { dir: 3; x: 0; width: 4px; y: 10px; height: parent.height - 20px; cursor-kind: MouseCursor.ew-resize; start(d) => { root.resize(d); } }
+        Edge { dir: 4; x: parent.width - 10px; y: 0; width: 10px; height: 10px; cursor-kind: MouseCursor.nesw-resize; start(d) => { root.resize(d); } }
+        Edge { dir: 5; x: 0; y: 0; width: 10px; height: 10px; cursor-kind: MouseCursor.nwse-resize; start(d) => { root.resize(d); } }
+        Edge { dir: 6; x: parent.width - 10px; y: parent.height - 10px; width: 10px; height: 10px; cursor-kind: MouseCursor.nwse-resize; start(d) => { root.resize(d); } }
+        Edge { dir: 7; x: 0; y: parent.height - 10px; width: 10px; height: 10px; cursor-kind: MouseCursor.nesw-resize; start(d) => { root.resize(d); } }
+    }
+
+    init => { fs.focus(); }
+}

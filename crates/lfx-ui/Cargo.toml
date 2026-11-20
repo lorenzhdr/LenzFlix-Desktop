@@ -5,8 +5,17 @@ version.workspace = true
 edition.workspace = true
 license.workspace = true
 publish.workspace = true
+build = "build.rs"
 
 [dependencies]
+# Renderer und Backend wählt das Binary (Features dort); hier nur der Kern.
+slint = { version = "1.19", default-features = false, features = ["std", "compat-1-2"] }
+
+[build-dependencies]
+slint-build = "1.19"
+
+[dev-dependencies]
+i-slint-backend-testing = "1.19"
 
 [lints]
 workspace = true

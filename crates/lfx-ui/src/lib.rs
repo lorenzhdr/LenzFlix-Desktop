@@ -1,1 +1,3 @@
-//! Slint-Oberfläche. Aufbau folgt (Gate G2).
+//! Slint-Oberfläche von LENZFLIX Desktop (Theme-Global, Komponenten).
+
+slint::include_modules!();
