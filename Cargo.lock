@@ -2930,6 +2930,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "lfx-core"
+version = "0.1.0"
+dependencies = [
+ "indexmap",
+ "lfx-api",
+ "lfx-mock-jellyfin",
+ "lfx-tv-schedule",
+ "serde",
+ "serde_json",
+ "tokio",
+ "unicode-normalization",
+]
+
+[[package]]
 name = "lfx-devcli"
 version = "0.1.0"
 dependencies = [
