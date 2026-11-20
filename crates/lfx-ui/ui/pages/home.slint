@@ -278,28 +278,28 @@ export component HomePage inherits Rectangle {
     }
 
     // Ecken des Trailer-Lochs
-    if root.ui.trailer-on: Corner {
+    if root.ui.trailer-on || Theme.design != Design.retro: Corner { // W5-polish: Ecken auch ohne Trailer füllen
         x: root.bb-x;
         y: root.hole-y;
         r: Theme.t.billboard-radius;
         which: 0;
         fill: Theme.t.bg.mix(root.amb, 0.62);
     }
-    if root.ui.trailer-on: Corner {
+    if root.ui.trailer-on || Theme.design != Design.retro: Corner { // W5-polish: Ecken auch ohne Trailer füllen
         x: root.bb-x + root.bb-w - Theme.t.billboard-radius;
         y: root.hole-y;
         r: Theme.t.billboard-radius;
         which: 1;
         fill: Theme.t.bg.mix(root.amb, 0.62);
     }
-    if root.ui.trailer-on: Corner {
+    if root.ui.trailer-on || Theme.design != Design.retro: Corner { // W5-polish: Ecken auch ohne Trailer füllen
         x: root.bb-x;
         y: root.hole-y + root.bb-h - Theme.t.billboard-radius;
         r: Theme.t.billboard-radius;
         which: 2;
         fill: Theme.t.bg.mix(root.amb, 0.3);
     }
-    if root.ui.trailer-on: Corner {
+    if root.ui.trailer-on || Theme.design != Design.retro: Corner { // W5-polish: Ecken auch ohne Trailer füllen
         x: root.bb-x + root.bb-w - Theme.t.billboard-radius;
         y: root.hole-y + root.bb-h - Theme.t.billboard-radius;
         r: Theme.t.billboard-radius;

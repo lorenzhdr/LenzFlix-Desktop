@@ -102,3 +102,7 @@ required-features = ["dev-automation"]
 [[test]] # W4-account
 name = "account_e2e"
 required-features = ["dev-automation"]
+
+[[test]] # W5-polish
+name = "w5_polish"
+required-features = ["dev-automation"]

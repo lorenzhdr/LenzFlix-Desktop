@@ -51,6 +51,7 @@ export component RetroHero inherits Rectangle {
     callback dot(int);
 
     property <length> hz: root.height * 0.34;
+    property <length> title-h: root.hero.title.character-count > 20 ? 48px : 64px; // W5-polish
     background: Theme.t.retro-bg;
     clip: true;
     ta-bb := TouchArea { }
@@ -126,7 +127,7 @@ export component RetroHero inherits Rectangle {
         x: 28px;
         width: min(660px, root.width - 56px);
         y: root.height - Theme.t.btn-h - 27px - self.height - 22px;
-        height: 26px + body.preferred-height + 14px;
+        height: 26px + 12px + root.title-h + (root.hero.meta != "" ? 6px + 30px : 0px) + (root.hero.overview != "" ? 6px + 36px : 0px) + 8px; // W5-polish: feste Maße statt Layout-Schätzung (Beschreibung ragte über den Rahmen)
         background: #0e0803db;
         border-width: 1px;
         border-color: RetroFx.amber;
@@ -153,15 +154,16 @@ export component RetroHero inherits Rectangle {
             padding-left: 24px;
             padding-right: 24px;
             padding-top: 12px;
-            padding-bottom: 6px;
+            padding-bottom: 0px;
             spacing: 6px;
+            alignment: start;
             Text {
                 text: RetroFx.hero-file != "" ? RetroFx.hero-file : root.hero.title;
                 color: RetroFx.amber-hi;
                 font-family: Theme.t.retro-font-pixel;
                 font-size: root.hero.title.character-count > 20 ? 40px : 54px;
                 letter-spacing: 1.5px;
-                wrap: word-wrap;
+                height: root.title-h;
                 overflow: elide;
             }
             if root.hero.meta != "": Text {
@@ -170,6 +172,7 @@ export component RetroHero inherits Rectangle {
                 font-family: Theme.t.retro-font-pixel;
                 font-size: 24px;
                 letter-spacing: 2px;
+                height: 30px;
             }
             if root.hero.overview != "": Text {
                 text: root.hero.overview;
@@ -178,7 +181,7 @@ export component RetroHero inherits Rectangle {
                 font-size: 13px;
                 wrap: word-wrap;
                 overflow: elide;
-                max-height: 66px;
+                height: 36px;
             }
         }
     }
