@@ -7,6 +7,12 @@
 //! - Daten sind komplett erfunden (siehe [`catalog`]).
 
 pub mod catalog;
+mod extra;
+
+pub use extra::{
+    VIEW_BOOKS, VIEW_LIVETV, VIEW_MUSIC, VIEW_PHOTOS, album_id, artist_id, book_id, channel_id,
+    make_png, recording_id, track_id,
+};
 
 use axum::extract::{Path, Query, Request, State};
 use axum::http::{HeaderMap, StatusCode, header};
@@ -122,6 +128,8 @@ struct Dyn {
     charts_enabled: bool,
     /// Verhalten von PlaybackInfo.
     playback_mode: PlaybackMode,
+    /// Zustand der erweiterten Endpunkte (`extra.rs`).
+    extra: extra::ExtraState,
 }
 
 struct Qc {
@@ -334,6 +342,7 @@ fn router(shared: Arc<Shared>) -> Router {
         .route("/Sessions/Playing", post(playing))
         .route("/Sessions/Playing/Progress", post(progress))
         .route("/Sessions/Playing/Stopped", post(stopped))
+        .merge(extra::routes())
         .layer(middleware::from_fn_with_state(shared.clone(), gate))
         .with_state(shared)
 }
@@ -642,7 +651,7 @@ async fn cw_charts(State(shared): S, headers: HeaderMap) -> Response {
         return StatusCode::UNAUTHORIZED.into_response();
     }
     let movies: Vec<Value> = (0..3)
-        .map(|n| json!({ "id": catalog::movie_id(n), "type": "Movie", "viewers": 3 - n, "plays": 4 - n }))
+        .map(|n| json!({ "id": catalog::movie_id(n), "type": "Movie", "viewers": 3 - n, "plays": 4 - n, "seconds": 3600 * (3 - n) }))
         .collect();
     jv(
         json!({ "version": 1, "generatedAt": "2026-01-01T00:00:00Z", "windowDays": 30,
@@ -650,14 +659,22 @@ async fn cw_charts(State(shared): S, headers: HeaderMap) -> Response {
     )
 }
 
-async fn cw_me_stats(State(shared): S, headers: HeaderMap) -> Response {
+async fn cw_me_stats(State(shared): S, headers: HeaderMap, Query(params): Params) -> Response {
     if !shared.lock().charts_enabled {
         return StatusCode::NOT_FOUND.into_response();
     }
     if !cw_authorized(&shared, &headers) {
         return StatusCode::UNAUTHORIZED.into_response();
     }
-    jv(json!({ "range": "30d", "totalSeconds": 3600, "plays": 2 }))
+    let range = params.get("range").map_or("30d", String::as_str);
+    match extra::stats_json(range) {
+        Some(v) => jv(v),
+        None => (
+            StatusCode::BAD_REQUEST,
+            Json(json!({ "error": "bad-range" })),
+        )
+            .into_response(),
+    }
 }
 
 async fn me(State(shared): S, headers: HeaderMap) -> Response {
@@ -673,7 +690,9 @@ async fn me(State(shared): S, headers: HeaderMap) -> Response {
         .get(&token)
         .copied()
         .unwrap_or(false);
-    jv(user_json_for(guest))
+    let mut user = user_json_for(guest);
+    extra::overlay_me(&shared, &mut user, guest);
+    jv(user)
 }
 
 async fn ping() -> Response {
@@ -698,7 +717,7 @@ async fn views(State(shared): S) -> Response {
         .filter(|i| i.kind == "CollectionFolder")
         .collect();
     let n = v.len();
-    list(&shared, &v, &HashMap::new(), n, 0)
+    extra::extend_views(&shared, list(&shared, &v, &HashMap::new(), n, 0))
 }
 
 fn name_key(i: &Item) -> String {
@@ -707,6 +726,9 @@ fn name_key(i: &Item) -> String {
 
 async fn items(State(shared): S, Query(params): Params) -> Response {
     let params = lower(params);
+    if let Some(response) = extra::try_items(&shared, &params) {
+        return response;
+    }
     let include = csv(&params, "includeitemtypes");
     let exclude = csv(&params, "excludeitemtypes");
     let ids = csv(&params, "ids");
@@ -830,7 +852,9 @@ async fn item(State(shared): S, Path(id): Path<String>, Query(params): Params) -
             i,
             params.get("fields").map(String::as_str).unwrap_or(""),
         )),
-        None => StatusCode::NOT_FOUND.into_response(),
+        None => {
+            extra::try_item(&shared, &id).unwrap_or_else(|| StatusCode::NOT_FOUND.into_response())
+        }
     }
 }
 
@@ -1015,6 +1039,9 @@ async fn playback_info(
     Path(id): Path<String>,
     Json(body): Json<Value>,
 ) -> Response {
+    if let Some(response) = extra::try_playback_info(&shared, &id) {
+        return response;
+    }
     let Some(it) = find(&shared, &id) else {
         return StatusCode::NOT_FOUND.into_response();
     };
@@ -1136,20 +1163,15 @@ async fn stopped(State(shared): S, Json(body): Json<Value>) -> Response {
     StatusCode::NO_CONTENT.into_response()
 }
 
-/// 1×1-PNG als Bildersatz.
-const PNG_1X1: &[u8] = &[
-    0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00, 0x00, 0x00, 0x0D, 0x49, 0x48, 0x44, 0x52,
-    0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x08, 0x06, 0x00, 0x00, 0x00, 0x1F, 0x15, 0xC4,
-    0x89, 0x00, 0x00, 0x00, 0x0D, 0x49, 0x44, 0x41, 0x54, 0x78, 0x9C, 0x63, 0x00, 0x01, 0x00, 0x00,
-    0x05, 0x00, 0x01, 0x0D, 0x0A, 0x2D, 0xB4, 0x00, 0x00, 0x00, 0x00, 0x49, 0x45, 0x4E, 0x44, 0xAE,
-    0x42, 0x60, 0x82,
-];
-
 async fn image(State(shared): S, Path((id, _kind)): Path<(String, String)>) -> Response {
-    if find(&shared, &id).is_none() {
+    if find(&shared, &id).is_none() && !extra::has_image(&shared, &id) {
         return StatusCode::NOT_FOUND.into_response();
     }
-    ([(header::CONTENT_TYPE, "image/png")], PNG_1X1).into_response()
+    (
+        [(header::CONTENT_TYPE, "image/png")],
+        extra::placeholder_png().to_vec(),
+    )
+        .into_response()
 }
 
 async fn stream(State(shared): S, Path(id): Path<String>) -> Response {

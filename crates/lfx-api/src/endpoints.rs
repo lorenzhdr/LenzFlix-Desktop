@@ -8,16 +8,16 @@ use reqwest::Method;
 use serde::Serialize;
 
 /// Kein Body.
-const NO_BODY: Option<&()> = None;
+pub(crate) const NO_BODY: Option<&()> = None;
 
-fn q(pairs: &[(&str, String)]) -> Vec<(String, String)> {
+pub(crate) fn q(pairs: &[(&str, String)]) -> Vec<(String, String)> {
     pairs
         .iter()
         .map(|(k, v)| ((*k).to_owned(), v.clone()))
         .collect()
 }
 
-fn opt(list: &mut Vec<(String, String)>, key: &str, value: Option<String>) {
+pub(crate) fn opt(list: &mut Vec<(String, String)>, key: &str, value: Option<String>) {
     if let Some(v) = value.filter(|v| !v.is_empty()) {
         list.push((key.to_owned(), v));
     }
@@ -141,7 +141,7 @@ impl Client {
 
     // ------------------------------------------------------------ Bibliothek
 
-    fn with_user(&self, extra: &[(String, String)]) -> Result<Vec<(String, String)>> {
+    pub(crate) fn with_user(&self, extra: &[(String, String)]) -> Result<Vec<(String, String)>> {
         let mut out = vec![("userId".to_owned(), self.user_id()?)];
         out.extend_from_slice(extra);
         Ok(out)

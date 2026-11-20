@@ -396,13 +396,12 @@ async fn api_fetcher_uses_header_auth_without_token_in_url() {
     let request = ImageRequest::new(lfx_mock_jellyfin::sample_movie_id(0), ImageType::Primary)
         .tag("t1")
         .max_size(100, 100);
-    // Das 1x1-PNG des Mock-Servers hat eine falsche CRC: der Abruf gelingt, das Dekodieren
-    // meldet einen Decode-Fehler (beweist, dass Bytes ankamen).
-    let err = loader
+    // Der Mock liefert ein gültiges PNG (24x36): der Abruf und das Dekodieren gelingen.
+    let image = loader
         .request(request, Priority::Visible)
         .await
-        .unwrap_err();
-    assert!(matches!(err, ImageError::Decode(_)), "{err:?}");
+        .expect("Bild laden");
+    assert_eq!((image.width, image.height), (24, 36));
     // Auth läuft über den Header; im Anfrageprotokoll steht kein Token und kein ApiKey.
     let header = mock.last_auth_header().unwrap();
     assert!(header.contains(token.expose()));
