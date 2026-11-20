@@ -13,6 +13,11 @@ pub mod capture;
 pub mod cli;
 pub mod focus;
 pub mod home;
+#[cfg(feature = "dev-automation")]
+pub mod home_automation; // W2-home
+pub mod home_focus; // W2-home
+pub mod home_trailer; // W2-home
+pub mod home_ui; // W2-home
 pub mod keys;
 pub mod logging;
 pub mod play;
@@ -219,6 +224,15 @@ fn wire(app: &Rc<App>, ui: &MainWindow, shell: &Shell) {
     ui.on_card_clicked(move |r, i| a.card_clicked(r, i));
     let a = app.clone();
     ui.on_home_geometry(move |g| a.on_home_geometry(g));
+    // W2-home
+    let a = app.clone();
+    ui.on_home_event(move |k, v| a.on_home_event(&k, v));
+    let a = app.clone();
+    ui.on_home_event_f(move |k, v| a.on_home_event_f(&k, v));
+    let a = app.clone();
+    ui.on_home_layout(move |l| a.on_home_layout(l));
+    let a = app.clone();
+    ui.on_home_trailer_rect(move |x, y, w, h| a.on_trailer_rect(x, y, w, h));
 
     let a = app.clone();
     ui.on_toggle_pause(move || a.toggle_pause());

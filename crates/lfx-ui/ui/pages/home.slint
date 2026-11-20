@@ -1,180 +1,239 @@
 import { Theme, Design } from "../theme/theme.slint";
-import { ButtonKind } from "../components/types.slint";
 import { LfxText } from "../components/text.slint";
-import { LfxButton } from "../components/button.slint";
-import { LfxRow } from "../components/row.slint";
-import { LfxTabs } from "../components/controls.slint";
 import { LfxSkeleton, LfxSpinner } from "../components/feedback.slint";
-import { Icons } from "../icons.slint";
-import { HeroData, RowData, HomeGeometry } from "types.slint";
+import { HeroData } from "types.slint";
+import { HRow, HomeLayout, HomeUi } from "home-types.slint";
+import { HomeHeader } from "../components/home-header.slint";
+import { HomeBillboard } from "../components/home-billboard.slint";
+import { HomeRow } from "../components/home-row.slint";
+import { ProfileMenu, DsPanel, SecretPanel } from "../components/home-menus.slint";
 
-// LENZFLIX-Startseite: Navigationsleiste, Billboard und Zeilen.
-// Fokus (von lfx-nav): focus-row -2 = Navigationsleiste, -1 = Billboard-Knöpfe (index 0 Abspielen, 1 Mehr Infos),
-// >= 0 = Zeile mit Kartenindex focus-index.
+// Ambient-Verlauf (Web: `#lfx-ambient`): oben 35 %, bei 170 px 85 %, bei 55 % 70 %, unten transparent.
+component AmbientFill inherits Rectangle {
+    in property <color> c;
+    background: @linear-gradient(180deg, root.c.with-alpha(0.35) 0%, root.c.with-alpha(0.85) 21%, root.c.with-alpha(0.7) 55%, root.c.with-alpha(0.0) 100%);
+}
+
+// Ein Stück des Seitenhintergrunds (Grundfarbe plus der passende Ausschnitt des Ambient-Verlaufs). Der
+// Hintergrund besteht aus vier Stücken um das Billboard, damit dort die Video-Ebene (Trailer) durchscheint.
+component BgPiece inherits Rectangle {
+    in property <color> ambient;
+    in property <length> page-w;
+    in property <length> amb-y;
+    in property <length> amb-h;
+    clip: true;
+    background: Theme.design == Design.retro ? Theme.t.retro-bg : Theme.t.bg;
+    AmbientFill {
+        x: -root.x;
+        y: root.amb-y - root.y;
+        width: root.page-w;
+        height: root.amb-h;
+        c: root.ambient;
+    }
+}
+
+// Ecke, die der Radius des Billboards beim Trailer freigibt (Füllung nahe am Hintergrund).
+component Corner inherits Path {
+    in property <length> r;
+    in property <int> which;
+    width: root.r;
+    height: root.r;
+    viewbox-width: 18;
+    viewbox-height: 18;
+    commands: root.which == 0 ? "M 0 0 L 18 0 A 18 18 0 0 0 0 18 Z"
+        : (root.which == 1 ? "M 18 0 L 18 18 A 18 18 0 0 0 0 0 Z"
+        : (root.which == 2 ? "M 0 18 L 0 0 A 18 18 0 0 0 18 18 Z"
+        : "M 18 18 L 0 18 A 18 18 0 0 0 18 0 Z"));
+}
+
+// LENZFLIX-Startseite. Fokus (von lfx-nav): focus-row -2 = Kopfleiste, -1 = Billboard-Knöpfe (0 Abspielen,
+// 1 Weitere Infos), >= 0 = Zeile mit Kartenindex focus-index.
 export component HomePage inherits Rectangle {
     in property <HeroData> hero;
-    in property <[RowData]> rows;
+    in property <[HRow]> rows;
     in property <bool> loading: false;
     in property <string> error;
     in property <int> focus-row: -1;
     in property <int> focus-index: 0;
-    in property <[string]> nav-labels;
-    in property <int> nav-current: 0;
-    callback nav-selected(int);
-    callback hero-play();
-    callback hero-info();
+    in property <HomeUi> ui;
+    in property <string> version;
+    callback event(string, int);
+    callback event-f(string, float);
     callback card-clicked(int, int);
-    callback geometry-changed(HomeGeometry);
+    callback layout-changed(HomeLayout);
+    callback trailer-rect(length, length, length, length);
 
     property <length> gutter: Theme.gutter-at(root.width);
     property <int> n: Theme.cards-visible-at(root.width);
     property <length> gap: Theme.t.card-gap;
-    property <length> wide-w: (root.width - root.gutter - root.n * root.gap - Theme.t.card-peek) / root.n;
-    property <length> card-h: root.wide-w * 9 / 16;
-    property <length> row-h: 24px + Theme.t.row-title-gap + root.card-h + 28px;
-    property <length> nav-h: 52px;
-    property <length> hero-h: max(300px, min(root.width * 0.36, 520px));
+    property <length> card-w: (root.width - root.gutter - root.n * root.gap - Theme.t.card-peek) / root.n;
+    property <length> card-h: root.card-w * 9 / 16;
+    property <length> top-h: root.card-w * 0.7;
+    property <length> head-h: 19px;
+    property <length> row-h: root.head-h + Theme.t.row-title-gap + root.card-h + Theme.t.row-gap;
+    property <length> top-extra: root.top-h - root.card-h;
+    property <length> header-h: Theme.t.header-h;
+    property <length> bb-x: root.gutter;
+    property <length> bb-y: root.header-h + 6px;
+    property <length> bb-w: root.width - 2 * root.gutter;
+    property <length> bb-h: min(root.bb-w / Theme.t.billboard-ratio, root.height * 0.8);
+    property <length> rows-top: root.bb-y + root.bb-h + 24px;
     property <length> btn-h: Theme.t.btn-h;
-    property <length> play-w: 170px;
-    property <length> info-w: 190px;
-    property <length> btn-y: root.hero-h - root.btn-h - 36px;
+    property <length> play-y: root.bb-y + root.bb-h - root.btn-h - 27px;
+    property <int> tall-total: root.rows.length > 0 ? root.rows[root.rows.length - 1].tall-before + (root.rows[root.rows.length - 1].top10 ? 1 : 0) : 0;
+    property <length> scroll: -flick.content-y;
+    property <bool> scrolled: root.scroll > 8px;
+    property <color> amb: root.ui.ambient;
+    animate amb { duration: 600ms; easing: Theme.t.ease; }
 
-    out property <HomeGeometry> geometry: {
+    out property <HomeLayout> layout: {
         width: root.width,
-        nav-h: root.nav-h,
-        hero-h: root.hero-h,
-        row-h: root.row-h,
+        header-h: root.header-h,
         gutter: root.gutter,
-        pitch: root.wide-w + root.gap,
-        card-w: root.wide-w,
-        card-h: root.card-h,
-        play-x: root.gutter,
-        play-y: root.nav-h + root.btn-y,
-        play-w: root.play-w,
-        info-x: root.gutter + root.play-w + 14px,
-        info-w: root.info-w,
+        bb-x: root.bb-x,
+        bb-y: root.bb-y,
+        bb-w: root.bb-w,
+        bb-h: root.bb-h,
+        play-x: root.bb-x + 28px,
+        play-y: root.play-y,
+        play-w: 178px,
+        info-x: root.bb-x + 28px + 178px + Theme.t.btn-gap,
+        info-w: 184px,
         btn-h: root.btn-h,
+        rows-top: root.rows-top,
+        row-h: root.row-h,
+        top-extra: root.top-extra,
+        pitch: root.card-w + root.gap,
+        card-w: root.card-w,
+        card-h: root.card-h,
+        top-card-h: root.top-h,
+        head-h: root.head-h + Theme.t.row-title-gap,
     };
-    changed geometry => { root.geometry-changed(root.geometry); }
+    changed layout => { root.layout-changed(root.layout); }
+    init => { root.layout-changed(root.layout); }
 
-    // Hält die fokussierte Zeile im sichtbaren Bereich (Ziel-Scrollwert, positiv nach unten).
-    pure function target-scroll(row: int, cur: length, view-h: length) -> length {
-        if (row < 0) { return 0px; }
-        return (root.hero-h + row * root.row-h - 30px < cur)
-            ? max(0px, root.hero-h + row * root.row-h - 30px)
-            : ((root.hero-h + (row + 1) * root.row-h + 20px > cur + view-h)
-                ? root.hero-h + (row + 1) * root.row-h + 20px - view-h
-                : cur);
+    // Video-Rechteck des Billboards in Fensterkoordinaten (folgt dem Scrollen)
+    property <length> bb-ax: bb.absolute-position.x;
+    property <length> bb-ay: bb.absolute-position.y;
+    function emit-rect() { root.trailer-rect(root.bb-ax, root.bb-ay, root.bb-w, root.bb-h); }
+    changed bb-ax => { root.emit-rect(); }
+    changed bb-ay => { root.emit-rect(); }
+    changed bb-w => { root.emit-rect(); }
+    changed bb-h => { root.emit-rect(); }
+
+    function row-y(r: int) -> length {
+        return root.rows-top + r * root.row-h + root.rows[r].tall-before * root.top-extra;
     }
     function scroll-to-focus() {
-        flick.content-y = -root.target-scroll(root.focus-row, -flick.content-y, flick.height);
-    }
-    changed focus-row => { root.scroll-to-focus(); }
-    init => { root.geometry-changed(root.geometry); }
-
-    flick := Flickable {
-        y: root.nav-h;
-        width: parent.width;
-        height: parent.height - root.nav-h;
-        content-width: self.width;
-        content-height: root.hero-h + max(1, root.rows.length) * root.row-h + 60px;
-        animate content-y { duration: Theme.t.dur * 2; easing: Theme.t.ease-out; }
-
-        // Billboard
-        Rectangle {
-            x: 0px;
-            y: 0px;
-            width: root.width;
-            height: root.hero-h;
-            clip: true;
-            background: @linear-gradient(135deg, Theme.t.surface-2 0%, Theme.t.bg 100%);
-            if root.hero.has-backdrop: Image {
-                width: 100%;
-                height: 100%;
-                source: root.hero.backdrop;
-                image-fit: cover;
-            }
-            Rectangle {
-                background: @linear-gradient(90deg, #000000d9 0%, #00000099 38%, #00000000 75%);
-            }
-            Rectangle {
-                background: @linear-gradient(180deg, #00000000 55%, Theme.t.bg 100%);
-            }
-            VerticalLayout {
-                x: root.gutter;
-                y: 20px;
-                width: min(620px, root.width * 0.55);
-                height: root.btn-y - 36px;
-                alignment: end;
-                spacing: 10px;
-                if root.hero.has-logo: Image {
-                    source: root.hero.logo;
-                    height: min(120px, root.hero-h * 0.28);
-                    image-fit: contain;
-                    horizontal-alignment: left;
-                }
-                if !root.hero.has-logo && root.hero.has-item: LfxText {
-                    text: root.hero.title;
-                    font-size: 42px;
-                    font-weight: 800;
-                    wrap: word-wrap;
-                    overflow: elide;
-                    max-height: 110px;
-                }
-                if root.hero.meta != "": LfxText {
-                    text: root.hero.meta;
-                    font-size: Theme.t.fs-meta;
-                    font-weight: 600;
-                    color: Theme.t.text-body;
-                }
-                if root.hero.genres != "": LfxText {
-                    text: root.hero.genres;
-                    font-size: Theme.t.fs-meta;
-                    color: Theme.t.text-muted;
-                }
-            }
-            if root.hero.has-item: LfxButton {
-                x: root.gutter;
-                y: root.btn-y;
-                width: root.play-w;
-                kind: ButtonKind.primary;
-                text: "Abspielen";
-                icon: Icons.play;
-                has-icon: true;
-                focused: root.focus-row == -1 && root.focus-index == 0;
-                clicked => { root.hero-play(); }
-            }
-            if root.hero.has-item: LfxButton {
-                x: root.gutter + root.play-w + 14px;
-                y: root.btn-y;
-                width: root.info-w;
-                kind: ButtonKind.secondary;
-                text: "Mehr Infos";
-                icon: Icons.info;
-                has-icon: true;
-                focused: root.focus-row == -1 && root.focus-index == 1;
-                clicked => { root.hero-info(); }
-            }
-            if !root.hero.has-item && root.loading: LfxSpinner {
-                x: (parent.width - self.width) / 2;
-                y: (parent.height - self.height) / 2;
+        if (root.focus-row < 0 || root.focus-row >= root.rows.length) {
+            flick.content-y = 0px;
+        } else {
+            if (root.row-y(root.focus-row) - 40px < root.scroll) {
+                flick.content-y = -max(0px, root.row-y(root.focus-row) - 40px);
+            } else if (root.row-y(root.focus-row) + root.row-h + (root.rows[root.focus-row].top10 ? root.top-extra : 0px) > root.scroll + flick.height) {
+                flick.content-y = -(root.row-y(root.focus-row) + root.row-h + (root.rows[root.focus-row].top10 ? root.top-extra : 0px) - flick.height + 10px);
             }
         }
+    }
+    changed focus-row => { root.scroll-to-focus(); }
 
-        for row[r] in root.rows: LfxRow {
+    // Hintergrund in vier Stücken um das Billboard (Loch für den Trailer)
+    property <length> hole-y: root.bb-y - root.scroll;
+    BgPiece {
+        x: 0px;
+        y: 0px;
+        width: root.width;
+        height: max(0px, min(root.height, root.hole-y));
+        page-w: root.width;
+        amb-y: -root.scroll;
+        amb-h: min(820px, root.height);
+        ambient: root.amb;
+    }
+    BgPiece {
+        x: 0px;
+        y: max(0px, root.hole-y + root.bb-h);
+        width: root.width;
+        height: max(0px, root.height - self.y);
+        page-w: root.width;
+        amb-y: -root.scroll;
+        amb-h: min(820px, root.height);
+        ambient: root.amb;
+    }
+    BgPiece {
+        x: 0px;
+        y: max(0px, root.hole-y);
+        width: root.bb-x;
+        height: max(0px, min(root.height, root.hole-y + root.bb-h) - self.y);
+        page-w: root.width;
+        amb-y: -root.scroll;
+        amb-h: min(820px, root.height);
+        ambient: root.amb;
+    }
+    BgPiece {
+        x: root.bb-x + root.bb-w;
+        y: max(0px, root.hole-y);
+        width: root.width - self.x;
+        height: max(0px, min(root.height, root.hole-y + root.bb-h) - self.y);
+        page-w: root.width;
+        amb-y: -root.scroll;
+        amb-h: min(820px, root.height);
+        ambient: root.amb;
+    }
+
+    flick := Flickable {
+        x: 0px;
+        y: 0px;
+        width: root.width;
+        height: root.height;
+        content-width: root.width;
+        content-height: root.rows-top + max(1, root.rows.length) * root.row-h + root.tall-total * root.top-extra + 80px;
+        animate content-y { duration: Theme.t.dur * 2; easing: Theme.t.ease-out; }
+
+        bb := HomeBillboard {
+            x: root.bb-x;
+            y: root.bb-y;
+            width: root.bb-w;
+            height: root.bb-h;
+            hero: root.hero;
+            ui: root.ui;
+            badge: root.ui.badge;
+            primary-text: root.ui.primary;
+            focus-index: root.focus-row == -1 ? root.focus-index : -1;
+            play => { root.event("hero-play", 0); }
+            info => { root.event("hero-info", 0); }
+            mute => { root.event("mute", 0); }
+            dot(d) => { root.event("dot", d); }
+        }
+        if root.hero.has-item && !root.hero.has-backdrop && !root.ui.trailer-on: LfxSpinner {
+            x: root.bb-x + (root.bb-w - self.width) / 2;
+            y: root.bb-y + (root.bb-h - self.height) / 2;
+            running: root.loading;
+        }
+        if !root.hero.has-item && root.loading: LfxSpinner {
+            x: root.bb-x + (root.bb-w - self.width) / 2;
+            y: root.bb-y + (root.bb-h - self.height) / 2;
+        }
+
+        for row[r] in root.rows: HomeRow {
             x: 0px;
-            y: root.hero-h + r * root.row-h;
+            y: root.rows-top + r * root.row-h + row.tall-before * root.top-extra;
             width: root.width;
-            height: root.row-h;
+            height: root.row-h + (row.top10 ? root.top-extra : 0px);
             title: row.title;
             items: row.items;
-            aspect: row.aspect;
+            top10: row.top10;
+            gutter: root.gutter;
+            n: root.n;
+            gap: root.gap;
+            card-w: root.card-w;
+            card-h: row.top10 ? root.top-h : root.card-h;
             focused-index: r == root.focus-row ? root.focus-index : -1;
             card-clicked(i) => { root.card-clicked(r, i); }
+            visible-changed(f) => { root.event("row-view", r * 1000 + f); }
         }
 
         if root.rows.length == 0 && root.loading: Rectangle {
-            y: root.hero-h;
+            y: root.rows-top;
             width: root.width;
             height: 3 * root.row-h;
             for s in 3: Rectangle {
@@ -182,15 +241,15 @@ export component HomePage inherits Rectangle {
                 height: root.row-h;
                 LfxSkeleton {
                     x: root.gutter;
-                    y: 40px;
-                    width: root.wide-w * 3;
+                    y: root.head-h + Theme.t.row-title-gap;
+                    width: root.card-w * 4 + 3 * root.gap;
                     height: root.card-h;
                     radius: Theme.t.card-radius;
                 }
             }
         }
         if root.rows.length == 0 && !root.loading && root.error != "": LfxText {
-            y: root.hero-h + 24px;
+            y: root.rows-top + 8px;
             x: root.gutter;
             width: root.width - 2 * root.gutter;
             text: root.error;
@@ -199,20 +258,83 @@ export component HomePage inherits Rectangle {
         }
     }
 
-    // Navigationsleiste (fest)
-    Rectangle {
+    // Ecken des Trailer-Lochs
+    if root.ui.trailer-on: Corner {
+        x: root.bb-x;
+        y: root.hole-y;
+        r: Theme.t.billboard-radius;
+        which: 0;
+        fill: Theme.t.bg.mix(root.amb, 0.62);
+    }
+    if root.ui.trailer-on: Corner {
+        x: root.bb-x + root.bb-w - Theme.t.billboard-radius;
+        y: root.hole-y;
+        r: Theme.t.billboard-radius;
+        which: 1;
+        fill: Theme.t.bg.mix(root.amb, 0.62);
+    }
+    if root.ui.trailer-on: Corner {
+        x: root.bb-x;
+        y: root.hole-y + root.bb-h - Theme.t.billboard-radius;
+        r: Theme.t.billboard-radius;
+        which: 2;
+        fill: Theme.t.bg.mix(root.amb, 0.3);
+    }
+    if root.ui.trailer-on: Corner {
+        x: root.bb-x + root.bb-w - Theme.t.billboard-radius;
+        y: root.hole-y + root.bb-h - Theme.t.billboard-radius;
+        r: Theme.t.billboard-radius;
+        which: 3;
+        fill: Theme.t.bg.mix(root.amb, 0.3);
+    }
+
+    if root.ui.menu == 1 || root.ui.menu == 2: TouchArea {
+        clicked => { root.event("menu-close", 0); }
+    }
+
+    HomeHeader {
         x: 0px;
         y: 0px;
-        width: parent.width;
-        height: root.nav-h;
-        background: Theme.design == Design.retro ? Theme.t.retro-bg : Theme.t.bg;
-        LfxTabs {
-            x: root.gutter;
-            y: (parent.height - self.height) / 2;
-            labels: root.nav-labels;
-            current: root.nav-current;
-            focused-index: root.focus-row == -2 ? root.focus-index : -1;
-            selected(i) => { root.nav-selected(i); }
-        }
+        width: root.width;
+        gutter: root.gutter;
+        scrolled: root.scrolled;
+        focus-index: root.focus-row == -2 ? root.focus-index : -1;
+        ds-on: root.ui.ds-on;
+        initial: root.ui.user-initial;
+        narrow: root.width < 900px;
+        pick(i) => { root.event("nav", i); }
+        logo-clicked => { root.event("logo", 0); }
+    }
+
+    if root.ui.menu == 1: ProfileMenu {
+        x: root.width - root.gutter - self.width + 8px;
+        y: root.header-h - 18px;
+        user-name: root.ui.user-name;
+        index: root.ui.menu-index;
+        pick(i) => { root.event("profile-item", i); }
+    }
+    if root.ui.menu == 2: DsPanel {
+        x: root.width - root.gutter - self.width - 52px;
+        y: root.header-h - 18px;
+        on: root.ui.ds-on;
+        parts: root.ui.ds-parts;
+        labels: root.ui.ds-labels;
+        index: root.ui.menu-index;
+        main-toggled => { root.event("ds-main", 0); }
+        part-toggled(i) => { root.event("ds-part", i); }
+        reset => { root.event("ds-reset", 0); }
+    }
+    if root.ui.menu == 3: SecretPanel {
+        x: 0px;
+        y: 0px;
+        width: root.width;
+        height: root.height;
+        ui: root.ui;
+        version: root.version;
+        close => { root.event("menu-close", 0); }
+        scale(k, v) => { root.event-f(k, v); }
+        ds-part(i) => { root.event("ds-part", i); }
+        ds-reset => { root.event("ds-reset", 0); }
+        clear-cache => { root.event("clear-cache", 0); }
     }
 }

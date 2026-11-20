@@ -9,6 +9,7 @@
 pub mod catalog;
 mod extra;
 pub mod media;
+pub mod w2_home; // W2-home
 
 pub use extra::{
     VIEW_BOOKS, VIEW_LIVETV, VIEW_MUSIC, VIEW_PHOTOS, album_id, artist_id, book_id, channel_id,
@@ -270,8 +271,11 @@ pub async fn start_with(config: MockConfig) -> (SocketAddr, MockHandle) {
         charts_enabled: true,
         ..Dyn::default()
     };
+    let catalog = catalog::build();
+    let mut dynamic = dynamic;
+    w2_home::seed_state(&mut dynamic.users, &catalog); // W2-home
     let shared = Arc::new(Shared {
-        catalog: catalog::build(),
+        catalog,
         dynamic: Mutex::new(dynamic),
     });
     let app = router(shared.clone());
@@ -321,6 +325,7 @@ fn router(shared: Arc<Shared>) -> Router {
         .route("/Items/{id}/PlaybackInfo", post(playback_info))
         .route("/Items/{id}/Images/{kind}", get(image))
         .route("/Videos/{id}/stream", get(media::stream))
+        .route("/Videos/{id}/stream.mp4", get(media::stream)) // W2-home
         .route(
             "/Videos/{id}/{source}/Subtitles/{index}/0/{file}",
             get(subtitle_file),
@@ -650,6 +655,9 @@ async fn cw_charts(State(shared): S, headers: HeaderMap) -> Response {
     }
     if !cw_authorized(&shared, &headers) {
         return StatusCode::UNAUTHORIZED.into_response();
+    }
+    if let Some(v) = w2_home::charts_json(&shared.catalog) {
+        return jv(v); // W2-home
     }
     let movies: Vec<Value> = (0..3)
         .map(|n| json!({ "id": catalog::movie_id(n), "type": "Movie", "viewers": 3 - n, "plays": 4 - n, "seconds": 3600 * (3 - n) }))
@@ -1164,9 +1172,16 @@ async fn stopped(State(shared): S, Json(body): Json<Value>) -> Response {
     StatusCode::NO_CONTENT.into_response()
 }
 
-async fn image(State(shared): S, Path((id, _kind)): Path<(String, String)>) -> Response {
+async fn image(
+    State(shared): S,
+    Path((id, kind)): Path<(String, String)>,
+    Query(params): Params,
+) -> Response {
     if find(&shared, &id).is_none() && !extra::has_image(&shared, &id) {
         return StatusCode::NOT_FOUND.into_response();
+    }
+    if let Some(png) = w2_home::cover(&id, &kind, &params) {
+        return ([(header::CONTENT_TYPE, "image/png")], png).into_response(); // W2-home
     }
     (
         [(header::CONTENT_TYPE, "image/png")],

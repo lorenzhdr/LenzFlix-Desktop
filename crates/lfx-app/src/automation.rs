@@ -243,6 +243,7 @@ impl App {
                 ok(json!({}));
                 self.shell.close();
             }
+            c if c.starts_with("home_") => self.home_command(c, msg, reply), // W2-home
             _ => fail("unbekannter Befehl"),
         }
     }
@@ -304,6 +305,7 @@ impl App {
             "hero": {"title": hero.title.to_string(), "has_item": hero.has_item,
                      "has_backdrop": hero.has_backdrop, "has_logo": hero.has_logo,
                      "pool": st.home.pool.len()},
+            "home": self.home_state_json(), // W2-home
             "home_loading": ui.get_home_loading(),
             "home_error": ui.get_home_error().to_string(),
             "qc_code": ui.get_qc_code().to_string(),

@@ -1,0 +1,119 @@
+import { Theme } from "../theme/theme.slint";
+import { LfxText } from "text.slint";
+import { LfxFocusRing } from "focus-ring.slint";
+import { HCard } from "../pages/home-types.slint";
+
+// Karte der Startseiten-Zeilen (Web: `rows/card.js`, `rows.css`).
+// Breitbild: Bild, Titel mit Verlauf, Marke unten mittig 5 px über der Unterkante; Weiterschauen: Fortschritt unter
+// der Karte (60 % Breite, 4 px). Top 10: große Ziffer links, Poster (2:3) rechts.
+export component HomeCard inherits Rectangle {
+    in property <HCard> data;
+    in property <bool> top10;
+    in property <bool> focused;
+    callback clicked();
+    callback hover(bool);
+
+    property <length> poster-w: root.height * 2 / 3;
+    property <length> img-x: root.top10 ? root.width - root.poster-w : 0px;
+    property <length> img-w: root.top10 ? root.poster-w : root.width;
+    property <bool> wide-rank: root.data.rank >= 10;
+
+    // Ziffer (Web: Schriftgröße card-h*1.28, Gewicht 900, Füllung = Seitenhintergrund, Kontur grau)
+    if root.top10 && root.data.rank > 0: Text {
+        x: 0px;
+        y: 0px;
+        width: root.img-x + root.height * 0.1;
+        height: root.height;
+        text: root.data.rank;
+        font-family: Theme.t.font-family;
+        font-size: root.wide-rank ? root.height * 1.05 : root.height * 1.28;
+        font-weight: 900;
+        color: Theme.t.bg;
+        stroke: #595959;
+        stroke-width: 4px;
+        horizontal-alignment: right;
+        vertical-alignment: center;
+    }
+
+    img := Rectangle {
+        x: root.img-x;
+        width: root.img-w;
+        height: root.height;
+        border-radius: Theme.t.card-radius;
+        background: Theme.t.surface-2;
+        clip: true;
+        if root.data.has-image: Image {
+            width: 100%;
+            height: 100%;
+            source: root.data.image;
+            image-fit: cover;
+        }
+        if root.data.has-image && !root.top10: Rectangle {
+            y: parent.height * 0.45;
+            height: parent.height * 0.55;
+            background: @linear-gradient(180deg, #00000000 0%, #000000b3 100%);
+        }
+        if (!root.data.has-image || !root.top10) && root.data.title != "": LfxText {
+            x: parent.width * 0.08;
+            width: parent.width * 0.84;
+            y: root.data.has-image ? parent.height * 0.92 - self.height - (root.data.badge != "" ? Theme.t.badge-h + 4px : 0px) : (parent.height - self.height) / 2;
+            height: min(self.preferred-height, parent.height * 0.5);
+            text: root.data.title;
+            wrap: word-wrap;
+            overflow: elide;
+            font-size: 16px;
+            font-weight: 800;
+            horizontal-alignment: root.data.has-image ? left : center;
+            color: root.data.has-image ? #ffffff : Theme.t.text-muted;
+        }
+        if ta.has-hover: Rectangle {
+            background: #ffffff14;
+        }
+        if root.data.badge != "": Rectangle {
+            width: badge-text.preferred-width + 12px;
+            height: Theme.t.badge-h;
+            x: (parent.width - self.width) / 2;
+            y: parent.height - self.height - 5px;
+            border-radius: 3px;
+            background: Theme.t.red;
+            badge-text := LfxText {
+                width: 100%;
+                height: 100%;
+                text: root.data.badge;
+                font-size: Theme.t.fs-badge;
+                font-weight: 700;
+                horizontal-alignment: center;
+                vertical-alignment: center;
+            }
+        }
+    }
+    if root.data.progress > 0: Rectangle {
+        x: root.width * 0.2;
+        y: root.height + 6px;
+        width: root.width * 0.6;
+        height: 4px;
+        border-radius: 2px;
+        background: Theme.t.progress-rail;
+        clip: true;
+        Rectangle {
+            x: 0px;
+            width: parent.width * min(1.0, root.data.progress);
+            background: Theme.t.red;
+        }
+    }
+    ta := TouchArea {
+        x: root.img-x;
+        width: root.img-w;
+        height: root.height;
+        clicked => { root.clicked(); }
+        changed has-hover => { root.hover(self.has-hover); }
+    }
+    Rectangle {
+        x: root.img-x;
+        width: root.img-w;
+        height: root.height;
+        LfxFocusRing {
+            active: root.focused;
+        }
+    }
+}

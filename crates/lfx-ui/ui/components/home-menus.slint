@@ -1,0 +1,254 @@
+import { Theme, Design } from "../theme/theme.slint";
+import { LfxText } from "text.slint";
+import { LfxIcon } from "icon.slint";
+import { LfxSlider } from "controls.slint";
+import { Icons } from "../icons.slint";
+import { HomeUi } from "../pages/home-types.slint";
+
+// Eintrag eines Popup-Menüs (Hover weiß 10 %, Tastaturfokus gleich).
+component MenuItem inherits Rectangle {
+    in property <string> text;
+    in property <bool> hot;
+    in property <color> ink: Theme.t.text-body;
+    callback clicked();
+    height: 40px;
+    background: (root.hot || ta.has-hover) ? #ffffff1a : transparent;
+    LfxText {
+        x: 20px;
+        width: parent.width - 40px;
+        height: 100%;
+        text: root.text;
+        color: (root.hot || ta.has-hover) ? Theme.t.text : root.ink;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+    ta := TouchArea { clicked => { root.clicked(); } }
+}
+
+// Kleiner Schalter (Web: `switchButton`): Beschriftung links, Pille rechts.
+component SwitchRow inherits Rectangle {
+    in property <string> text;
+    in property <bool> checked;
+    in property <bool> hot;
+    in property <bool> enabled: true;
+    callback toggled();
+    height: 40px;
+    opacity: root.enabled ? 1.0 : 0.5;
+    background: (root.hot || ta.has-hover) ? #ffffff14 : transparent;
+    LfxText {
+        x: 20px;
+        width: parent.width - 100px;
+        height: 100%;
+        text: root.text;
+        color: Theme.t.text-body;
+        font-size: 15px;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+    Rectangle {
+        x: parent.width - 64px;
+        y: (parent.height - 20px) / 2;
+        width: 40px;
+        height: 20px;
+        border-radius: 10px;
+        background: root.checked ? Theme.t.green : #ffffff33;
+        animate background { duration: Theme.t.dur-fast; }
+        Rectangle {
+            x: root.checked ? parent.width - self.width - 2px : 2px;
+            y: 2px;
+            width: 16px;
+            height: 16px;
+            border-radius: 8px;
+            background: #ffffff;
+            animate x { duration: Theme.t.dur-fast; easing: Theme.t.ease; }
+        }
+    }
+    ta := TouchArea { clicked => { root.toggled(); } }
+}
+
+// Popup-Fläche (Web: `lfx-nav__menu`): dunkel, Rand weiß 15 %, Radius 8.
+component Popup inherits Rectangle {
+    background: #141414f5;
+    border-width: 1px;
+    border-color: #ffffff26;
+    border-radius: Theme.t.popup-radius;
+    drop-shadow-color: #000000bf;
+    drop-shadow-blur: 24px;
+    drop-shadow-offset-y: 10px;
+    @children
+}
+
+// Profilmenü unter dem Avatar. Einträge: 0 Profil wechseln, 1 Einstellungen, 2 Statistik, 3 Über, 4 Abmelden.
+export component ProfileMenu inherits Popup {
+    in property <string> user-name;
+    in property <int> index: -1;
+    callback pick(int);
+    width: 230px;
+    height: 56px + 5 * 40px + 8px;
+    LfxText {
+        x: 20px;
+        y: 10px;
+        width: parent.width - 40px;
+        height: 36px;
+        text: root.user-name;
+        font-weight: 700;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+    Rectangle {
+        y: 48px;
+        height: 1px;
+        background: #ffffff1f;
+    }
+    VerticalLayout {
+        y: 56px;
+        height: 5 * 40px;
+        MenuItem { text: "Profil wechseln"; hot: root.index == 0; clicked => { root.pick(0); } }
+        MenuItem { text: "Einstellungen"; hot: root.index == 1; clicked => { root.pick(1); } }
+        MenuItem { text: "Statistik"; ink: Theme.t.gold; hot: root.index == 2; clicked => { root.pick(2); } }
+        MenuItem { text: "Über"; hot: root.index == 3; clicked => { root.pick(3); } }
+        MenuItem { text: "Abmelden"; hot: root.index == 4; clicked => { root.pick(4); } }
+    }
+}
+
+// Datensparmodus-Panel (Schalter plus Teile). Index 0 = Hauptschalter, 1..6 = Teile, 7 = „Alle wieder an“.
+export component DsPanel inherits Popup {
+    in property <bool> on;
+    in property <[bool]> parts;
+    in property <[string]> labels;
+    in property <int> index: -1;
+    callback main-toggled();
+    callback part-toggled(int);
+    callback reset();
+    width: 340px;
+    height: 52px + 40px + 8px + labels.length * 40px + 48px;
+    LfxText {
+        x: 20px;
+        y: 8px;
+        height: 36px;
+        text: "Datensparmodus";
+        font-weight: 700;
+        vertical-alignment: center;
+    }
+    SwitchRow {
+        y: 48px;
+        width: parent.width;
+        text: root.on ? "Der Datensparmodus ist an" : "Der Datensparmodus ist aus";
+        checked: root.on;
+        hot: root.index == 0;
+        toggled => { root.main-toggled(); }
+    }
+    Rectangle {
+        y: 92px;
+        height: 1px;
+        background: #ffffff1f;
+    }
+    for l[i] in root.labels: SwitchRow {
+        y: 100px + i * 40px;
+        width: parent.width;
+        text: l;
+        checked: root.parts[i];
+        enabled: root.on;
+        hot: root.index == i + 1;
+        toggled => { root.part-toggled(i); }
+    }
+    MenuItem {
+        y: 100px + root.labels.length * 40px + 4px;
+        width: parent.width;
+        text: "Alle wieder an";
+        hot: root.index == 7;
+        clicked => { root.reset(); }
+    }
+}
+
+// Geheimmenü (fünf Klicks auf das Logo): Bildgrößen, Datensparmodus im Detail, Info.
+export component SecretPanel inherits Rectangle {
+    in property <HomeUi> ui;
+    in property <string> version;
+    callback close();
+    callback scale(string, float);
+    callback ds-part(int);
+    callback ds-reset();
+    callback clear-cache();
+
+    background: #000000a6;
+    TouchArea { clicked => { root.close(); } }
+    Popup {
+        width: min(460px, parent.width - 40px);
+        height: min(parent.height - 40px, 640px);
+        x: (parent.width - self.width) / 2;
+        y: (parent.height - self.height) / 2;
+        background: #181818;
+        border-radius: Theme.t.modal-radius;
+        TouchArea { }
+        LfxText {
+            x: 24px;
+            y: 16px;
+            height: 32px;
+            text: "Geheimmenü";
+            font-size: 22px;
+            font-weight: 800;
+            vertical-alignment: center;
+        }
+        Rectangle {
+            x: parent.width - 56px;
+            y: 14px;
+            width: 36px;
+            height: 36px;
+            border-radius: 18px;
+            background: ca.has-hover ? #ffffff1f : transparent;
+            LfxIcon {
+                x: 6px;
+                y: 6px;
+                source: Icons.close;
+                size: 24px;
+            }
+            ca := TouchArea { clicked => { root.close(); } }
+        }
+        Flickable {
+            y: 60px;
+            height: parent.height - 68px;
+            width: parent.width;
+            content-height: content.preferred-height + 16px;
+            content := VerticalLayout {
+                x: 24px;
+                width: parent.width - 48px;
+                spacing: 6px;
+                LfxText { text: "Bildgrößen"; font-weight: 700; color: Theme.t.gold; }
+                LfxText { text: "Normal: " + root.ui.scale-normal + " %"; font-size: 14px; }
+                LfxSlider {
+                    value: (root.ui.scale-normal - 50) / 150.0;
+                    seeked(v) => { root.scale("normal", 50 + v * 150); }
+                }
+                LfxText { text: "Datensparmodus: " + root.ui.scale-saver + " %"; font-size: 14px; }
+                LfxSlider {
+                    value: (root.ui.scale-saver - 25) / 75.0;
+                    seeked(v) => { root.scale("saver", 25 + v * 75); }
+                }
+                LfxText {
+                    text: "Gilt für neu geladene Bilder.";
+                    font-size: 13px;
+                    color: Theme.t.text-muted;
+                }
+                Rectangle { height: 8px; }
+                LfxText { text: "Datensparmodus im Detail"; font-weight: 700; color: Theme.t.gold; }
+                LfxText {
+                    text: root.ui.ds-on ? "Der Datensparmodus ist gerade an." : "Der Datensparmodus ist gerade aus.";
+                    font-size: 13px;
+                    color: Theme.t.text-muted;
+                }
+                for l[i] in root.ui.ds-labels: SwitchRow {
+                    text: l;
+                    checked: root.ui.ds-parts[i];
+                    toggled => { root.ds-part(i); }
+                }
+                MenuItem { text: "Alle wieder an"; clicked => { root.ds-reset(); } }
+                Rectangle { height: 8px; }
+                LfxText { text: "Info"; font-weight: 700; color: Theme.t.gold; }
+                LfxText { text: "LENZFLIX-Version: " + root.version; font-size: 14px; }
+                LfxText { text: root.ui.info-text; font-size: 14px; wrap: word-wrap; }
+                MenuItem { text: "Bild-Cache leeren"; clicked => { root.clear-cache(); } }
+            }
+        }
+    }
+}
