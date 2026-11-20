@@ -354,7 +354,8 @@ export component TvPage inherits Rectangle {
     property <bool> epg-tab: TvState.tab == 1;
     property <bool> fs: TvState.fullscreen;
     property <length> pad-x: 36px;
-    property <length> top: 12px;
+    in property <length> head: 0px; // W5-polish: Platz für die Kopfleiste des Designs
+    property <length> top: 12px + root.head;
     property <length> area-top: root.top + 40px + 12px;
     property <length> side-w: clamp(320px, root.width * 0.30, 440px);
     property <length> gap: 24px;

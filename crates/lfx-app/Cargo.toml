@@ -130,3 +130,7 @@ winresource = "0.1.34" # W5-tray: Symbol und Versionsangaben in der exe
 [[test]] # W5-tray
 name = "w5_tray"
 required-features = ["dev-automation"]
+
+[[test]] # W5-polish
+name = "w5_polish"
+required-features = ["dev-automation"]

@@ -524,7 +524,7 @@ export component PlayerPage inherits Rectangle {
     }
 
     // Überspringen (Intro, Abspann, Rückblick)
-    if root.pv.skip-label != "" && !root.pv.up-next-visible && root.pv.note == "" && !root.pv.loading: Rectangle {
+    if root.pv.skip-label != "" && !root.pv.up-next-visible && root.pv.note == "" && !root.pv.loading && !root.pv.menu-open && !root.pv.resume-open: Rectangle { // W5-polish: bei offenem Menü ausblenden
         width: skip-txt.preferred-width + 48px;
         height: 48px;
         x: parent.width - self.width - root.pad;

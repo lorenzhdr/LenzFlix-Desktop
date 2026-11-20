@@ -132,7 +132,7 @@ export component RetroHeader inherits Rectangle {
             letter-spacing: 1.5px;
             vertical-alignment: center;
         }
-        RSwitch { source: Icons.tvmode; on: RetroFx.crt-on; lit-icon: false; clicked => { RetroFx.switch("crt"); } }
+        RSwitch { source: @image-url("../../../../assets/icons/crt.svg"); on: RetroFx.crt-on; clicked => { RetroFx.switch("crt"); } } // W5-polish: Monitor mit Zeilen (Web: CRT-Schalter), nicht das TV-Symbol
         RSwitch { source: Icons.volume; on: RetroFx.sound-on; clicked => { RetroFx.switch("sound"); } }
         RSwitch { source: Icons.search; on: false; lit-icon: false; focused: root.focus-index == 5; clicked => { root.pick(5); } }
         RSwitch { source: Icons.tvmode; on: false; lit-icon: false; focused: root.focus-index == 6; clicked => { root.pick(6); } }
