@@ -27,6 +27,7 @@ lfx-api = { path = "../lfx-api" }
 lfx-core = { path = "../lfx-core" }
 lfx-images = { path = "../lfx-images" }
 lfx-nav = { path = "../lfx-nav", features = ["gamepad"] }
+lfx-offline = { path = "../lfx-offline" } # W5-downloads
 lfx-platform = { path = "../lfx-platform" }
 lfx-player = { path = "../lfx-player" }
 lfx-retro-fx = { path = "../lfx-retro-fx" } # W3-retro
@@ -101,4 +102,8 @@ required-features = ["dev-automation"]
 
 [[test]] # W4-account
 name = "account_e2e"
+required-features = ["dev-automation"]
+
+[[test]] # W5-downloads
+name = "w5_downloads"
 required-features = ["dev-automation"]

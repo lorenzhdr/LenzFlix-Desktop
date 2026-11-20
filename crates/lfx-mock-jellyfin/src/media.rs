@@ -24,7 +24,8 @@ pub fn set_video_file(path: Option<PathBuf>) {
     *VIDEO_FILE.lock().unwrap_or_else(|e| e.into_inner()) = path;
 }
 
-fn video_file() -> Option<PathBuf> {
+pub(crate) fn video_file() -> Option<PathBuf> {
+    // W5-downloads: pub(crate)
     let set = VIDEO_FILE.lock().unwrap_or_else(|e| e.into_inner()).clone();
     set.or_else(|| {
         std::env::var_os(VIDEO_ENV)

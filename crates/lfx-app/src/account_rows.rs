@@ -212,6 +212,7 @@ impl App {
                 Row::info("Alt + Links", "Zurück"),
                 Row::info("F11", "Vollbild"),
             ],
+            SetSec::Downloads => self.rows_downloads(ctl), // W5-downloads
             SetSec::Profile => self.rows_profile(ctl, cx),
             SetSec::QuickConnect => self.rows_qc(ctl),
             SetSec::Servers => self.rows_servers(ctl, cx),
@@ -223,6 +224,57 @@ impl App {
             )],
             SetSec::SignOut => vec![Row::note("Eingabe meldet dich von diesem Server ab.")],
         }
+    }
+
+    /// W5-downloads: Einstellungen des Offline-Modus.
+    fn rows_downloads(&self, ctl: &AccountCtl) -> Vec<Row> {
+        let auto = self.dl_library().is_some_and(|l| l.auto_delete());
+        let par = self
+            .local_get(crate::downloads::KEY_PARALLEL)
+            .and_then(|v| v.as_u64())
+            .unwrap_or(2)
+            .clamp(1, 4);
+        let q = self
+            .local_get(crate::downloads::KEY_QUALITY)
+            .and_then(|v| v.as_u64())
+            .unwrap_or(0);
+        let q_name = ["Original", "Mittel (720p)", "Klein (480p)"][(q as usize).min(2)];
+        let used = self
+            .dl_library()
+            .and_then(|l| l.usage().ok())
+            .map_or(0, |u| u.completed_bytes + u.partial_bytes);
+        let has_any = !self.dl_records().is_empty();
+        let root = ctl.fields.get("dl_root").cloned().unwrap_or_else(|| {
+            self.local_get(crate::downloads::KEY_ROOT)
+                .and_then(|v| v.as_str().map(str::to_owned))
+                .unwrap_or_default()
+        });
+        let mut set_root = Row::button("Speicherort übernehmen", Act::DlRoot);
+        if has_any {
+            set_root = set_root.off();
+        }
+        vec![
+            Row::heading("Offline-Downloads"),
+            Row::toggle("Gesehene Titel automatisch löschen", auto, Act::DlAuto),
+            Row::choice("Gleichzeitige Downloads", par.to_string(), Act::DlParallel),
+            Row::choice("Standard-Qualität", q_name, Act::DlQuality),
+            Row::info("Belegt", crate::downloads_page::format_bytes(used)),
+            Row::button("Downloads öffnen", Act::DlOpenPage),
+            Row::heading("Speicherort"),
+            Row::field(
+                "Ordner",
+                "dl_root",
+                root,
+                "Standard (Datenordner der App)",
+                false,
+            ),
+            set_root,
+            Row::note(if has_any {
+                "Der Speicherort lässt sich nur ändern, solange nichts heruntergeladen ist. Zum Wechseln zuerst alle Downloads löschen."
+            } else {
+                "Leer lassen für den Standardordner. Neue Downloads landen im gewählten Ordner."
+            }),
+        ]
     }
 
     fn rows_profile(&self, ctl: &AccountCtl, cx: &Ctx) -> Vec<Row> {

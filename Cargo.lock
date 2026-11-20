@@ -3223,6 +3223,7 @@ dependencies = [
  "lfx-images",
  "lfx-mock-jellyfin",
  "lfx-nav",
+ "lfx-offline",
  "lfx-platform",
  "lfx-player",
  "lfx-retro-fx",

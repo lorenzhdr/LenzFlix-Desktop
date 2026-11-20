@@ -21,6 +21,11 @@ pub mod detail; // W2-detail
 #[cfg(feature = "dev-automation")]
 pub mod detail_automation; // W2-detail
 pub mod detail_logic; // W2-detail
+pub mod downloads; // W5-downloads
+#[cfg(feature = "dev-automation")]
+pub mod downloads_automation; // W5-downloads
+pub mod downloads_dialog; // W5-downloads
+pub mod downloads_page; // W5-downloads
 pub mod focus;
 pub mod home;
 #[cfg(feature = "dev-automation")]
@@ -161,6 +166,7 @@ pub fn run(opts: Options) -> Result<(), String> {
             couch: picker_couch::CouchCtl::default(), // W3-picker
             media: media::MediaCtl::default(),        // W4-media
             account: account::AccountCtl::default(),  // W4-account
+            downloads: downloads::DlCtl::default(),   // W5-downloads
         }),
         timers: Timers::default(),
         gamepad: RefCell::new(None),
@@ -168,6 +174,7 @@ pub fn run(opts: Options) -> Result<(), String> {
     });
     app::install(app.clone());
     wire(&app, &ui, &shell);
+    app.dl_start(); // W5-downloads
     App::tv_wire(&app, &ui); // W2-tvui
     App::picker_wire(&app, &ui); // W3-picker
     app.start();
@@ -291,6 +298,12 @@ fn wire(app: &Rc<App>, ui: &MainWindow, shell: &Shell) {
     }
 
     detail::wire(app, ui); // W2-detail
+    {
+        // W5-downloads
+        let a = app.clone();
+        ui.global::<lfx_ui::DlState>()
+            .on_event(move |k, x, y| a.dl_event(&k, x, y));
+    }
     retro::wire(app, ui); // W3-retro
     {
         // W4-media
