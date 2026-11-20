@@ -105,11 +105,10 @@ impl App {
                 Row::note(
                     "Gilt für diesen Benutzer auf diesem Gerät. Die Web-Einstellungen bleiben unberührt.",
                 ),
-                Row::heading("Updates"),
-                self.local_row(lg::KEY_UPD_AUTO),
-                self.local_row(lg::KEY_UPD_CHANNEL),
-                Row::info("Installierte Version", env!("CARGO_PKG_VERSION")),
-            ],
+            ]
+            .into_iter()
+            .chain(self.update_rows()) // W5-tray: Abschnitte „Updates“ und „Fenster“
+            .collect(),
             SetSec::Home => {
                 if let Some(r) = Self::loading_rows(ctl, ctl.cfg.is_some()) {
                     return r;

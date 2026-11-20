@@ -38,8 +38,10 @@ lfx-shell = { path = "../lfx-shell" }
 lfx-store = { path = "../lfx-store" }
 lfx-tv = { path = "../lfx-tv" } # W2-tvui
 lfx-tv-schedule = { path = "../lfx-tv-schedule" } # W2-tvui
+lfx-update = { path = "../lfx-update" } # W5-tray
 lfx-ui = { path = "../lfx-ui" }
 png = "0.17"
+serde = { version = "1", features = ["derive"] } # W5-tray
 serde_json = "1"
 slint = { version = "1.19", default-features = false, features = ["std", "compat-1-2"] }
 tokio = { version = "1", features = ["rt-multi-thread", "sync", "time", "macros", "net", "io-util"] }
@@ -54,9 +56,14 @@ features = [
     "Win32_UI_WindowsAndMessaging",
 ]
 
+[target.'cfg(any(windows, target_os = "macos"))'.dependencies]
+# W5-tray: Infobereich-Symbol (ohne Linux-Standardfeature libappindicator, damit GTK nicht in den Baum kommt)
+tray-icon = { version = "0.26.1", default-features = false }
+
 [dev-dependencies]
 lfx-app = { path = ".", features = ["dev-automation"] }
 lfx-mock-jellyfin = { path = "../lfx-mock-jellyfin" }
+minisign = "0.10" # W5-tray: Testpaket für den Update-E2E signieren
 tempfile = "3"
 tokio = { version = "1", features = ["rt-multi-thread", "sync", "time", "macros", "net", "io-util"] }
 
@@ -115,4 +122,11 @@ required-features = ["dev-automation"]
 
 [[test]] # W5-stats
 name = "w5_stats"
+required-features = ["dev-automation"]
+
+[build-dependencies]
+winresource = "0.1.34" # W5-tray: Symbol und Versionsangaben in der exe
+
+[[test]] # W5-tray
+name = "w5_tray"
 required-features = ["dev-automation"]

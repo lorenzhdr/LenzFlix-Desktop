@@ -39,6 +39,7 @@ pub enum Act {
     Design,
     DataSaver,
     Local(&'static str),
+    Upd(crate::updater::UpdAct), // W5-tray
     CfgToggle(crate::account_logic::CfgToggle),
     CfgChoice(crate::account_logic::CfgChoice),
     Field(&'static str),

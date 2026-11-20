@@ -628,6 +628,25 @@ impl ShellHandle {
         w.set_maximized(!w.is_maximized());
     }
 
+    /// W5-tray: Fenster verstecken (Infobereich), ohne die Ereignisschleife zu beenden.
+    pub fn hide_window(&self) {
+        self.core.window.set_visible(false);
+    }
+
+    /// W5-tray: Fenster wieder zeigen, aus der Minimierung holen und in den Vordergrund bringen.
+    pub fn show_window(&self) {
+        let w = &self.core.window;
+        w.set_visible(true);
+        w.set_minimized(false);
+        w.focus_window();
+        self.core.request_redraw();
+    }
+
+    /// W5-tray: ist das Fenster sichtbar (nicht im Infobereich versteckt)?
+    pub fn is_window_visible(&self) -> bool {
+        self.core.window.is_visible().unwrap_or(true)
+    }
+
     /// Löst die normale Schließanfrage von Slint aus (`close-requested`).
     pub fn close(&self) {
         if let Some(a) = self.adapter.upgrade() {

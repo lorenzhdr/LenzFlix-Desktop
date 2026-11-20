@@ -77,6 +77,7 @@ impl App {
                 self.choose_design(DesignId::from_index(n));
             }
             Act::DataSaver => self.ds_toggle_main(),
+            Act::Upd(u) => self.update_adjust(u, dir), // W5-tray
             Act::Local(key) => {
                 if let Some(def) = lg::local_def(key) {
                     let stored = self.local_get(key);
@@ -217,6 +218,7 @@ impl App {
                 .unwrap_or_default()
         };
         match act {
+            Act::Upd(u) => self.update_adjust(u, 1), // W5-tray
             Act::None | Act::Design | Act::DataSaver | Act::Local(_) => {}
             // W5-downloads
             Act::DlAuto | Act::DlParallel | Act::DlQuality => {}

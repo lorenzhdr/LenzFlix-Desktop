@@ -152,6 +152,27 @@ impl ShellHandle {
         let _ = slint::quit_event_loop();
     }
 
+    /// W5-tray: Fenster verstecken (Menüleiste), ohne die Ereignisschleife zu beenden.
+    pub fn hide_window(&self) {
+        self.with_window(|w| w.set_visible(false));
+    }
+
+    /// W5-tray: Fenster wieder zeigen, aus der Minimierung holen und in den Vordergrund bringen.
+    pub fn show_window(&self) {
+        self.with_window(|w| {
+            w.set_visible(true);
+            w.set_minimized(false);
+            w.focus_window();
+        });
+    }
+
+    /// W5-tray: ist das Fenster sichtbar?
+    pub fn is_window_visible(&self) -> bool {
+        let mut r = true;
+        self.with_window(|w| r = w.is_visible().unwrap_or(true));
+        r
+    }
+
     /// Wird hier nur gespeichert (kein Snap-Flyout außerhalb von Windows).
     pub fn set_hit_regions(&self, regions: HitRegions) {
         *self.inner.regions.borrow_mut() = regions;

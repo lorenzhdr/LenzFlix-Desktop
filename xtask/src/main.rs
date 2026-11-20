@@ -1,7 +1,7 @@
 //! Build-Hilfsbefehle für LENZFLIX Desktop.
 //!
 //! Aufruf: `cargo run -p xtask -- <befehl>`.
-//! Befehle: `fetch-mpv`, `mpv-info`, `package`, `sign`, `manifest`.
+//! Befehle: `fetch-mpv`, `mpv-info`, `package`, `sign`, `manifest`, `icons`.
 
 mod icons;
 mod mpv;
@@ -17,6 +17,7 @@ const USAGE: &str = "Verwendung: xtask <befehl>
 
   package   [--target <triple>] [--package <crate> --bin <name>] [--skip-build] [--stage-only]
             Release bauen, libmpv holen, Installer (NSIS) bzw. DMG nach target/dist/ erzeugen
+  icons     App-Icons (assets/app/lenzflix.ico, lenzflix-tray.png) aus dem Logo erzeugen
   sign      --dir <ordner>   Release-Dateien mit Minisign signieren (MINISIGN_SECRET_KEY, MINISIGN_PASSWORD)
   manifest  --dir <ordner> --tag <vX.Y.Z> --base-url <url> [--notes-file <datei>] [--pub-date <iso>]
             SHA256SUMS.txt und latest.json schreiben
@@ -29,6 +30,7 @@ fn main() -> ExitCode {
         Some("fetch-mpv") => mpv::fetch(&args[1..]),
         Some("mpv-info") => mpv::info(&args[1..]),
         Some("package") => package::package(&args[1..]),
+        Some("icons") => icons::write_assets(),
         Some("sign") => release::sign(&args[1..]),
         Some("manifest") => release::manifest(&args[1..]),
         _ => {

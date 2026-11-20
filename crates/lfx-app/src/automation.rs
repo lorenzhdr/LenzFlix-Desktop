@@ -248,7 +248,14 @@ impl App {
             }
             "quit" => {
                 ok(json!({}));
-                self.shell.close();
+                self.quit_app(); // W5-tray: am Verstecken im Infobereich vorbei
+            }
+            // W5-tray
+            c if c.starts_with("tray_") || c.starts_with("update_") => {
+                match self.tray_automation(c, msg) {
+                    Ok(v) => ok(v),
+                    Err(e) => fail(&e),
+                }
             }
             // W3-picker
             c if c.starts_with("picker_") || c == "couch" || c == "input" => {
