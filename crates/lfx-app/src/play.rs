@@ -211,6 +211,7 @@ impl App {
             }
             gen_next
         };
+        self.audio_stop(); // W4-media: Musik endet, wenn ein Video startet
         if replace {
             self.go_replace(Route::Player {
                 id: item.id.clone(),

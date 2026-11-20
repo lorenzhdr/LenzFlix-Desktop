@@ -960,6 +960,20 @@ impl App {
         if self.st.borrow().lib.epoch != epoch {
             return;
         }
+        {
+            // W4-media: Musik, Bücher, Fotos und Live-TV haben eigene Seiten
+            let (id, name) = {
+                let st = self.st.borrow();
+                let name = match st.router.current() {
+                    Route::Collection { name, .. } => name.clone(),
+                    _ => String::new(),
+                };
+                (st.lib.coll_id.clone(), name)
+            };
+            if self.media_open_view(&id, &name, ctype) {
+                return;
+            }
+        }
         if collection_soon(ctype) {
             self.with_lib(|g| {
                 g.set_loading(false);

@@ -29,6 +29,12 @@ mod library_impl; // W2-library
 pub mod library_np; // W2-library
 pub mod library_search; // W2-library
 pub mod logging;
+pub mod media; // W4-media
+pub mod media_audio; // W4-media
+#[cfg(feature = "dev-automation")]
+pub mod media_auto; // W4-media
+pub mod media_extra; // W4-media
+pub mod media_model; // W4-media
 pub mod play;
 #[cfg(feature = "dev-automation")]
 pub mod play_auto; // W2-player
@@ -133,6 +139,7 @@ pub fn run(opts: Options) -> Result<(), String> {
             toast_gen: 0,
             tv: tvui::TvUi::default(),            // W2-tvui
             lib: library::LibState::default(),    // W2-library
+            media: media::MediaCtl::default(),    // W4-media
             detail: detail::DetailCtl::default(), // W2-detail
         }),
         timers: Timers::default(),
@@ -155,6 +162,7 @@ pub fn run(opts: Options) -> Result<(), String> {
     // Aufräumen: Wiedergabe beenden (Stopped melden), Videoausgabe vor dem Player freigeben.
     app.tv_leave(); // W2-tvui
     app.stop_playback();
+    app.audio_stop(); // W4-media
     {
         let mut st = app.st.borrow_mut();
         st.play.reporter = None;
@@ -261,6 +269,14 @@ fn wire(app: &Rc<App>, ui: &MainWindow, shell: &Shell) {
     }
 
     detail::wire(app, ui); // W2-detail
+    {
+        // W4-media
+        let m = ui.global::<lfx_ui::MediaUi>();
+        let a1 = app.clone();
+        m.on_event(move |k, x, y| a1.media_event(&k, x, y));
+        let a2 = app.clone();
+        m.on_event_f(move |k, v| a2.media_event_f(&k, v));
+    }
     // W2-home
     let a = app.clone();
     ui.on_home_event(move |k, v| a.on_home_event(&k, v));

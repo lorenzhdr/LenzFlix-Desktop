@@ -44,6 +44,8 @@ pub enum Route {
         id: String,
         name: String,
     },
+    /// W4-media: Musik, Bücher, Fotos, Live-TV.
+    Media(crate::media_model::MediaRoute), // W4-media
     TvMode,
     Settings,
     Admin,
@@ -65,6 +67,7 @@ impl Route {
             Self::MyList => "mylist",
             Self::NewPopular => "newpopular",
             Self::Collection { .. } => "collection", // W2-library
+            Self::Media(_) => "media",               // W4-media
             Self::TvMode => "tvmode",
             Self::Settings => "settings",
             Self::Admin => "admin",

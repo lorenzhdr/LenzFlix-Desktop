@@ -17,6 +17,7 @@ pub mod w2_home;
 pub mod w2_player; // W2-player // W2-home
 pub mod w35_offline;
 mod w35_remote;
+mod w4_media; // W4-media
 
 pub use extra::{
     VIEW_BOOKS, VIEW_LIVETV, VIEW_MUSIC, VIEW_PHOTOS, album_id, artist_id, book_id, channel_id,

@@ -12,6 +12,7 @@ import { LibraryPage } from "library.slint"; // W2-library
 import { PlayerView } from "player-types.slint"; // W2-player
 import { SoonPage, SettingsPage, AboutPage } from "misc.slint";
 import { DetailPage, DetailOverlays } from "detail-layer.slint"; // W2-detail
+import { MediaPage, MediaBar, MediaOverlays, MediaUi } from "media.slint"; // W4-media
 
 // Hauptfenster von LENZFLIX Desktop. Rust (lfx-app) hält Router, Zustand und Fokus und setzt die Properties;
 // die Oberfläche meldet nur Ereignisse. Durchsichtiger Fensterhintergrund: das Video liegt in einer Ebene darunter.
@@ -187,6 +188,7 @@ export component MainWindow inherits Window {
                 back => { root.simple-back(); }
             }
             if root.page == Page.detail: DetailPage { } // W2-detail
+            if root.page == Page.media: MediaPage { } // W4-media
             if root.page == Page.about: AboutPage {
                 version: root.version;
                 notices: root.notices;
@@ -201,6 +203,20 @@ export component MainWindow inherits Window {
             y: 0px;
             width: parent.width;
             height: parent.height;
+        }
+
+        // W4-media: Mini-Player-Leiste über allen Seiten (außer Player und TV) und Overlays der Medienseiten
+        if MediaUi.np-active && root.page != Page.player && root.page != Page.tvmode && root.page != Page.add-server && root.page != Page.login && root.page != Page.profiles: MediaBar {
+            x: 0px;
+            y: parent.height - self.height;
+            width: parent.width;
+            visible: MediaUi.bar-visible;
+        }
+        if root.page == Page.media || MediaUi.np-full: MediaOverlays {
+            x: 0px;
+            y: bar.height;
+            width: parent.width;
+            height: parent.height - bar.height;
         }
 
         bar := LfxTitleBar {

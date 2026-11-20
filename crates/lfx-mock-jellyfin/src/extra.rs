@@ -1202,9 +1202,10 @@ async fn audio_universal(
     {
         return StatusCode::NOT_FOUND.into_response();
     }
+    // W4-media: echte, kurze WAV-Daten statt Platzhalterbytes
     (
-        [(header::CONTENT_TYPE, "audio/flac")],
-        b"FAKE-AUDIO-BYTES".as_slice(),
+        [(header::CONTENT_TYPE, "audio/wav")],
+        crate::w4_media::track_wav(&id),
     )
         .into_response()
 }
