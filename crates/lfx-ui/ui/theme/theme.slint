@@ -21,6 +21,9 @@ export global Theme {
         : design == Design.retro ? TokensRetro.v
         : TokensFlix.v;
     out property <bool> is-retro: design == Design.retro;
+    // W3-picker: Couch-Look (immer LENZFLIX-TV-Stil). Rust setzt `couch` und stellt `design` dabei auf flix.
+    in-out property <bool> couch: false;
+    out property <float> zoom: couch ? 1.25 : 1.0;
     // Breitenabhängige Maße (Breakpoints der Web-Media-Queries) je Design.
     pure public function cards-visible-at(w: length) -> int {
         return design == Design.plus ? TokensPlus.cards-visible-at(w)

@@ -1,0 +1,89 @@
+import { Theme } from "../theme/theme.slint";
+import { LfxText } from "../components/text.slint";
+import { PickerCard } from "../components/picker-card.slint";
+import { PickerState } from "picker-state.slint";
+
+// W3-picker: Design-Auswahl (Dialog über der Seite, wie der Web-Picker). Fokus und Aktivierung kommen aus Rust
+// (Tastatur/Gamepad über `PickerState.index`), Mausklicks melden `PickerState.choose`.
+export component PickerOverlay inherits Rectangle {
+    visible: PickerState.open;
+    property <length> dw: min(1000px, root.width - 32px);
+    property <length> dh: min(root.height - 24px, 800px);
+    property <int> cols: root.dw >= 760px ? 3 : (root.dw >= 520px ? 2 : 1);
+    property <length> gap: 16px;
+    property <length> cw: (root.dw - 64px - (root.cols - 1) * root.gap) / root.cols;
+    property <length> ch: (root.cw - 24px) * 0.58 + 126px;
+    property <int> rows: ceil(5.0 / root.cols);
+    property <int> focus-row: floor(PickerState.index / root.cols);
+    property <length> view-h: root.dh - 96px - 20px;
+    property <length> content-h: root.rows * root.ch + (root.rows - 1) * root.gap;
+
+    // Abdunklung, Klick daneben schließt
+    Rectangle {
+        background: #000000b8;
+        TouchArea { clicked => { PickerState.close(); } }
+    }
+
+    Rectangle {
+        x: (parent.width - self.width) / 2;
+        y: (parent.height - self.height) / 2;
+        width: root.dw;
+        height: root.dh;
+        background: Theme.t.surface;
+        border-radius: 18px;
+        border-width: 1px;
+        border-color: #ffffff1a;
+        drop-shadow-blur: 40px;
+        drop-shadow-color: #000000b0;
+        TouchArea { } // Klicks im Dialog nicht an den Hintergrund weitergeben
+
+        LfxText { x: 32px; y: 24px; height: 36px; text: "Design"; font-size: 28px; font-weight: 700; }
+        LfxText { x: 32px; y: 62px; height: 24px; text: "Wähle, wie deine Mediathek aussieht."; font-size: Theme.t.fs-body; color: Theme.t.text-muted; }
+        Rectangle {
+            x: parent.width - 60px;
+            y: 20px;
+            width: 40px;
+            height: 40px;
+            border-radius: 20px;
+            background: closer.has-hover ? #ffffff24 : #ffffff14;
+            LfxText { text: "×"; font-size: 26px; horizontal-alignment: center; vertical-alignment: center; }
+            closer := TouchArea { clicked => { PickerState.close(); } }
+        }
+
+        Flickable {
+            x: 32px;
+            y: 96px;
+            width: parent.width - 64px;
+            height: root.view-h;
+            content-width: self.width;
+            content-height: root.content-h;
+            content-y: -max(0px, min(root.content-h - root.view-h, (root.focus-row + 1) * (root.ch + root.gap) - root.gap - root.view-h));
+            for i in 5: PickerCard {
+                x: mod(i, root.cols) * (root.cw + root.gap);
+                y: floor(i / root.cols) * (root.ch + root.gap);
+                width: root.cw;
+                height: root.ch;
+                id: i;
+                tagline: [
+                    "Klassisch: rote Akzente, Querformat-Karten",
+                    "Karussell, Poster und Marken-Hubs",
+                    "Vollbild-Hero, Badges und Trailer",
+                    "Bernstein-Terminal, Kassetten und Neon-Gitter",
+                    "Begehbare 3D-Videothek (kommt später)"
+                ][i];
+                palette: [
+                    [#141414, #e50914, #ffffff, #808080],
+                    [#10131f, #050507, #1bb3e8, #f5f5f7],
+                    [#0a0e17, #1a98ff, #ffffff, #3a3d45],
+                    [#0a0603, #ffb000, #ff5a1f, #ffe2a8],
+                    [#0d1330, #ffd23f, #ff3d7f, #2446a8]
+                ][i];
+                active: PickerState.active == i;
+                hot: PickerState.index == i;
+                disabled: i == 4;
+                covers: PickerState.covers;
+                clicked => { PickerState.choose(i); }
+            }
+        }
+    }
+}

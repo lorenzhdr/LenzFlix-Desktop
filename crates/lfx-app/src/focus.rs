@@ -175,8 +175,8 @@ pub fn settings_graph() -> FocusGraph {
     ));
     g.register_zone(Zone::vertical(
         ZoneId(1),
-        Rect::new(0.0, 160.0, 400.0, 200.0),
-        3,
+        Rect::new(0.0, 160.0, 400.0, 300.0),
+        5, // W3-picker: Design-Auswahl, Couch-Modus, Über, Abmelden, Zurück
     ));
     g
 }

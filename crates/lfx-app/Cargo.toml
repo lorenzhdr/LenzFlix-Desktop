@@ -90,3 +90,7 @@ required-features = ["dev-automation"]
 [[test]] # W3-retro
 name = "e2e_retro"
 required-features = ["dev-automation"]
+
+[[test]] # W3-picker
+name = "w3_picker"
+required-features = ["dev-automation"]

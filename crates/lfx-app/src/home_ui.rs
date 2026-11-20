@@ -61,7 +61,7 @@ impl Default for HomeExtra {
 /// Einträge je Menü (für die Tastatursteuerung).
 fn menu_len(menu: i32) -> i32 {
     match menu {
-        1 => 5,
+        1 => 6, // W3-picker: sechster Eintrag „Design wählen“
         2 => 8,
         _ => 0,
     }
@@ -294,6 +294,7 @@ impl App {
             ),
             3 => self.go(Route::About),
             4 => self.sign_out(),
+            5 => self.picker_open(), // W3-picker
             _ => {}
         }
     }

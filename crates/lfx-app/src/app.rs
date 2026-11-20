@@ -57,6 +57,8 @@ pub struct State {
     pub detail: crate::detail::DetailCtl, // W2-detail
     /// W3-retro: LENZ//84 Effekte.
     pub retro: crate::retro::RetroState, // W3-retro
+    pub picker: crate::picker::PickerCtl, // W3-picker
+    pub couch: crate::picker_couch::CouchCtl, // W3-picker
 }
 
 /// Zeitgeber, die leben müssen, solange die App läuft.
@@ -66,6 +68,7 @@ pub struct Timers {
     pub hero: Timer,
     pub toast: Timer,
     pub pad: Timer,
+    pub couch: Timer, // W3-picker
 }
 
 /// Die App.
@@ -111,7 +114,7 @@ pub fn post(f: impl FnOnce(&Rc<App>) + Send + 'static) {
     });
 }
 
-fn design_to_slint(d: DesignId) -> Design {
+pub(crate) fn design_to_slint(d: DesignId) -> Design {
     match d {
         DesignId::Flix => Design::Flix,
         DesignId::Plus => Design::Plus,
@@ -171,7 +174,13 @@ impl App {
 
     pub fn apply_design(&self, d: DesignId) {
         self.st.borrow_mut().design = d;
-        self.win().global::<Theme>().set_design(design_to_slint(d));
+        // W3-picker: im Couch-Look bleibt LENZFLIX aktiv, die Wahl gilt danach
+        let shown = if self.st.borrow().couch.active {
+            Design::Flix
+        } else {
+            design_to_slint(d)
+        };
+        self.win().global::<Theme>().set_design(shown);
         self.win().set_design(d.index());
         if let Some(a) = current() {
             a.retro_sync(); // W3-retro
@@ -354,6 +363,9 @@ impl App {
     /// Eine Navigationsaktion (Tastatur, Gamepad, Automation).
     pub fn apply_action(self: &Rc<Self>, action: NavAction) {
         self.player_activity();
+        if self.picker_action(action) {
+            return; // W3-picker: offener Design-Dialog nimmt die Taste
+        }
         if self.home_menu_action(action) {
             return; // W2-home: offenes Menü der Startseite nimmt die Taste
         }
@@ -479,8 +491,10 @@ impl App {
                 let slot = focus::slot_of(Some(t), 4);
                 match slot {
                     0..=3 => self.choose_design(DesignId::from_index(slot)),
-                    4 => self.go(Route::About),
-                    5 => self.sign_out(),
+                    4 => self.picker_open(), // W3-picker
+                    5 => self.couch_cycle(), // W3-picker
+                    6 => self.go(Route::About),
+                    7 => self.sign_out(),
                     _ => self.go_back(),
                 }
             }
@@ -497,6 +511,7 @@ impl App {
         let Some(key) = crate::keys::from_slint(text) else {
             return;
         };
+        self.note_input(lfx_nav::InputKind::Keyboard); // W3-picker
         let ctx = self.st.borrow().ctx;
         // W2-player: Tab öffnet im Player den Bedienfokus.
         if ctx == InputContext::Player && key == lfx_nav::keyboard::Key::Tab {
@@ -550,6 +565,9 @@ impl App {
             if let Some(i) = mapper.poll(now) {
                 actions.push(i.action);
             }
+        }
+        if !actions.is_empty() {
+            self.note_input(lfx_nav::InputKind::Gamepad); // W3-picker
         }
         for a in actions {
             self.apply_action(a);
@@ -615,6 +633,7 @@ impl App {
         if let Some(a) = self.session.active() {
             self.win().set_user_name(a.user_name.as_str().into());
         }
+        self.couch_load(&server_id, &user_id); // W3-picker
         self.session.start_heartbeat();
     }
 

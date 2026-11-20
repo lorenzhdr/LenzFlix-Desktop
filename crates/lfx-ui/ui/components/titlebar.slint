@@ -27,6 +27,8 @@ export component LfxTitleBar inherits Rectangle {
     in property <bool> maximized: false;
     in property <string> title;
     in property <bool> force-hot: false;
+    // W3-picker: Logo und Titel entfallen, wenn die Seite eine eigene Kopfleiste mit Logo zeigt.
+    in property <bool> show-logo: true;
     callback minimize();
     callback toggle-maximize();
     callback close-window();
@@ -55,6 +57,7 @@ export component LfxTitleBar inherits Rectangle {
     }
 
     logo := LfxIcon {
+        visible: root.show-logo;
         x: root.mac ? 84px : 14px;
         y: (parent.height - self.height) / 2;
         width: 132px;
@@ -66,7 +69,7 @@ export component LfxTitleBar inherits Rectangle {
             : (Theme.design == Design.retro ? @image-url("../../../../assets/logo/lenz84.svg")
             : @image-url("../../../../assets/logo/lenzflix.svg")));
     }
-    if root.title != "": LfxText {
+    if root.title != "" && root.show-logo: LfxText {
         x: logo.x + logo.width + 14px;
         height: parent.height;
         text: root.title;

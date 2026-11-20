@@ -522,6 +522,10 @@ impl App {
         }
         let ui = self.win();
         let mut h = ui.get_hero();
+        // W3-picker: ein Logo nur, wenn es wie eine Wortmarke aussieht (breiter als hoch); sonst bleibt der Titeltext
+        if logo && img.size().width <= img.size().height {
+            return;
+        }
         if logo {
             h.logo = img;
             h.has_logo = true;

@@ -17,6 +17,9 @@ import { DetailPage, DetailOverlays } from "detail-layer.slint"; // W2-detail
 import { PlusHomePage } from "plus-home.slint"; // W3-plus
 import { PlusTitlePage } from "plus-title.slint"; // W3-plus
 import { PlusBrand } from "../components/plus-parts.slint"; // W3-plus
+import { PickerOverlay } from "picker.slint"; // W3-picker
+import { PickerState } from "picker-state.slint"; // W3-picker
+import { HomeChrome } from "../components/home-chrome.slint"; // W3-picker: Kopfleiste auch auf der Detailseite
 
 // Hauptfenster von LENZFLIX Desktop. Rust (lfx-app) hält Router, Zustand und Fokus und setzt die Properties;
 // die Oberfläche meldet nur Ereignisse. Durchsichtiger Fensterhintergrund: das Video liegt in einer Ebene darunter.
@@ -108,6 +111,9 @@ export component MainWindow inherits Window {
     callback about();
     callback sign-out();
 
+    // W3-picker: Couch-Zoom (TV-Stil, 125 %), nicht im Player und im TV-Modus (eigene große Oberfläche)
+    property <float> zf: (Theme.couch && root.page != Page.player && root.page != Page.tvmode) ? 1.25 : 1.0;
+
     public function focus-root() { fs.focus(); }
     // Zähler, den Rust erhöht, um den Textcursor in das Feld des aktuellen Slots zu setzen.
     in property <int> field-focus-tick;
@@ -118,10 +124,24 @@ export component MainWindow inherits Window {
             accept
         }
 
+        // W3-picker: Mausbewegung auf freien Flächen (Couch-Modus kehrt zur Maus zurück)
+        TouchArea {
+            pointer-event(e) => {
+                if (e.kind == PointerEventKind.move) { PickerState.pointer-moved(self.mouse-x, self.mouse-y); }
+            }
+        }
+
+        zoomwrap := Rectangle { // W3-picker
+        width: parent.width / root.zf;
+        height: parent.height / root.zf;
+        x: (parent.width - self.width) / 2; // Skalierung um die Mitte, daher so versetzen, dass das Fenster gefüllt bleibt
+        y: (parent.height - self.height) / 2;
+        transform-scale: root.zf;
+
         // Seitenhintergrund (im Player durchsichtig)
         Rectangle {
-            y: bar.height;
-            height: parent.height - bar.height;
+            y: bar.height / root.zf;
+            height: parent.height - bar.height / root.zf;
             background: (root.page == Page.player || root.page == Page.tvmode || root.page == Page.home) ? transparent : Theme.t.bg;  // W2-tvui, W2-home: Startseite malt den Hintergrund selbst (Trailer-Loch)
 
             if root.page == Page.add-server: AddServerPage {
@@ -240,6 +260,24 @@ export component MainWindow inherits Window {
             height: parent.height;
         }
 
+        // W3-picker: Kopfleiste auch auf der Detailseite (gleiche Komponente und Ereignisse wie auf der Startseite)
+        if root.page == Page.detail: HomeChrome {
+            x: 0px;
+            y: bar.height / root.zf;
+            width: parent.width;
+            height: parent.height - bar.height / root.zf;
+            ui: root.home-ui;
+            version: root.version;
+            gutter: Theme.gutter-at(self.width);
+            header-h: Theme.t.header-h;
+            scrolled: false;
+            current: -1;
+            focus-index: -1;
+            event(k, v) => { root.home-event(k, v); }
+            event-f(k, v) => { root.home-event-f(k, v); }
+        }
+        } // zoomwrap
+
         // W3-retro: CRT, Boot, Terminal, Code-Regen (unter der Titelleiste)
         RetroFxLayer {
             x: 0px;
@@ -248,7 +286,17 @@ export component MainWindow inherits Window {
             height: parent.height - bar.height;
         }
 
+
+        // W3-picker: Design-Auswahl über der Seite, unter der Titelleiste
+        PickerOverlay {
+            x: 0px;
+            y: bar.height;
+            width: parent.width;
+            height: parent.height - bar.height;
+        }
+
         bar := LfxTitleBar {
+            show-logo: !(root.page == Page.home || root.page == Page.library || root.page == Page.detail); // W3-picker
             x: 0px;
             y: 0px;
             width: parent.width;

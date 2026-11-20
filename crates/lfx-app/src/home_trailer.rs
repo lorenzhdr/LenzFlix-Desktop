@@ -270,6 +270,9 @@ impl App {
 
     /// Das Billboard hat ein neues Rechteck (Fensterkoordinaten): Video-Ebene nachführen, bei Wegscrollen stoppen.
     pub fn on_trailer_rect(self: &Rc<Self>, x: f32, y: f32, w: f32, h: f32) {
+        // W3-picker: im Couch-Look zeichnet die Oberfläche mit Zoom, Fensterkoordinaten sind größer
+        let z = self.couch_zoom();
+        let (x, y, w, h) = (x * z, y * z, w * z, h * z);
         let (active, suppressed) = {
             let mut st = self.st.borrow_mut();
             st.home.x.trailer.rect = Some((x, y, w, h));
