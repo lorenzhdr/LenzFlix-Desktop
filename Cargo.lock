@@ -2985,6 +2985,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "lfx-player"
+version = "0.1.0"
+dependencies = [
+ "lfx-api",
+ "lfx-mock-jellyfin",
+ "lfx-mpv-sys",
+ "serde_json",
+ "thiserror 2.0.21",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
 name = "lfx-session"
 version = "0.1.0"
 dependencies = [
