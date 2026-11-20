@@ -27,6 +27,12 @@ use tokio::task::JoinHandle;
 pub const DEMO_USER: &str = "demo";
 /// Passwort des Testkontos.
 pub const DEMO_PASSWORD: &str = "demo-passwort";
+/// Benutzername des zweiten Testkontos (für Benutzerwechsel).
+pub const GUEST_USER: &str = "gast";
+/// Passwort des zweiten Testkontos.
+pub const GUEST_PASSWORD: &str = "gast-passwort";
+/// Benutzer-Id des zweiten Testkontos.
+pub const GUEST_ID: &str = "00000000000000000000000000a00002";
 
 /// Standard-Branding-CSS des Mocks: zeigt mit `{BASE}/cw` auf den eingebauten Charts-Worker-Nachbau.
 pub const DEFAULT_BRANDING: &str = "/* Mock-Branding */
@@ -88,6 +94,8 @@ struct Dyn {
     qc_enabled: bool,
     qc_auto_after: Option<u32>,
     tokens: Vec<String>,
+    /// Zu welchem Konto ein Token gehört (`true` = zweites Konto).
+    token_guest: HashMap<String, bool>,
     qc: HashMap<String, Qc>,
     next_token: u32,
     next_qc: u32,
@@ -166,6 +174,12 @@ impl MockHandle {
             .filter(|q| !q.authorized)
             .map(|q| q.authorized = true)
             .count()
+    }
+    /// Macht alle ausgegebenen Tokens ungültig (Server antwortet danach mit 401, wie nach Ablauf).
+    pub fn revoke_tokens(&self) {
+        let mut d = self.shared.lock();
+        d.tokens.clear();
+        d.token_guest.clear();
     }
     /// Branding-CSS ersetzen (`{BASE}` = Adresse des Mocks); `None` = leere Antwort.
     pub fn set_branding_css(&self, css: Option<&str>) {
@@ -254,6 +268,8 @@ pub async fn start_with(config: MockConfig) -> (SocketAddr, MockHandle) {
 fn router(shared: Arc<Shared>) -> Router {
     Router::new()
         .route("/System/Info/Public", get(public_info))
+        .route("/System/Ping", get(ping).post(ping))
+        .route("/Users/Public", get(users_public))
         .route("/Users/AuthenticateByName", post(auth_by_name))
         .route(
             "/Users/AuthenticateWithQuickConnect",
@@ -316,6 +332,8 @@ fn is_public(method: &str, path: &str) -> bool {
     matches!(
         (method, path),
         ("GET", "/System/Info/Public")
+            | ("GET" | "POST", "/System/Ping")
+            | ("GET", "/Users/Public")
             | ("POST", "/Users/AuthenticateByName")
             | ("POST", "/Users/AuthenticateWithQuickConnect")
             | ("GET", "/QuickConnect/Enabled")
@@ -391,21 +409,28 @@ fn lower(params: HashMap<String, String>) -> HashMap<String, String> {
         .collect()
 }
 
-fn user_json() -> Value {
+fn user_json_for(guest: bool) -> Value {
+    let (id, name) = if guest {
+        (GUEST_ID, GUEST_USER)
+    } else {
+        (USER_ID, DEMO_USER)
+    };
     json!({
-        "Id": USER_ID, "Name": DEMO_USER, "ServerId": SERVER_ID, "HasPassword": true,
+        "Id": id, "Name": name, "ServerId": SERVER_ID, "HasPassword": true,
         "Policy": { "IsAdministrator": false, "EnableMediaPlayback": true, "EnableVideoPlaybackTranscoding": false },
         "Configuration": { "PlayDefaultAudioTrack": true, "SubtitleMode": "Default" }
     })
 }
 
-fn auth_result(shared: &Shared) -> Value {
+fn auth_result(shared: &Shared, guest: bool) -> Value {
     let mut d = shared.lock();
     d.next_token += 1;
     let token = format!("mock-token-{:04}-{}", d.next_token, "x7Kq9Zp2Lm4Rt8Vw");
     d.tokens.push(token.clone());
-    json!({ "User": user_json(), "AccessToken": token, "ServerId": SERVER_ID,
-            "SessionInfo": { "UserId": USER_ID, "UserName": DEMO_USER } })
+    d.token_guest.insert(token.clone(), guest);
+    let user = user_json_for(guest);
+    json!({ "User": user, "AccessToken": token, "ServerId": SERVER_ID,
+            "SessionInfo": { "UserId": user["Id"], "UserName": user["Name"] } })
 }
 
 fn find<'a>(shared: &'a Shared, id: &str) -> Option<&'a Item> {
@@ -477,7 +502,9 @@ async fn auth_by_name(State(shared): S, Json(body): Json<Value>) -> Response {
     let user = body.get("Username").and_then(Value::as_str).unwrap_or("");
     let pw = body.get("Pw").and_then(Value::as_str).unwrap_or("");
     if user == DEMO_USER && pw == DEMO_PASSWORD {
-        jv(auth_result(&shared))
+        jv(auth_result(&shared, false))
+    } else if user == GUEST_USER && pw == GUEST_PASSWORD {
+        jv(auth_result(&shared, true))
     } else {
         StatusCode::UNAUTHORIZED.into_response()
     }
@@ -542,7 +569,7 @@ async fn auth_quick_connect(State(shared): S, Json(body): Json<Value>) -> Respon
     let secret = body.get("Secret").and_then(Value::as_str).unwrap_or("");
     let ok = shared.lock().qc.get(secret).is_some_and(|q| q.authorized);
     if ok {
-        jv(auth_result(&shared))
+        jv(auth_result(&shared, false))
     } else {
         StatusCode::UNAUTHORIZED.into_response()
     }
@@ -610,8 +637,33 @@ async fn cw_me_stats(State(shared): S, headers: HeaderMap) -> Response {
     jv(json!({ "range": "30d", "totalSeconds": 3600, "plays": 2 }))
 }
 
-async fn me() -> Response {
-    jv(user_json())
+async fn me(State(shared): S, headers: HeaderMap) -> Response {
+    let token = headers
+        .get(header::AUTHORIZATION)
+        .and_then(|v| v.to_str().ok())
+        .and_then(parse_auth)
+        .and_then(|f| f.get("Token").cloned())
+        .unwrap_or_default();
+    let guest = shared
+        .lock()
+        .token_guest
+        .get(&token)
+        .copied()
+        .unwrap_or(false);
+    jv(user_json_for(guest))
+}
+
+async fn ping() -> Response {
+    jv(json!("Jellyfin Server"))
+}
+
+/// Öffentliche Benutzerliste („Wer schaut?“). Das Demo-Konto hat ein Profilbild-Tag, das zweite nicht.
+async fn users_public() -> Response {
+    jv(json!([
+        { "Id": USER_ID, "Name": DEMO_USER, "ServerId": SERVER_ID, "HasPassword": true,
+          "PrimaryImageTag": "mock-avatar-tag" },
+        { "Id": GUEST_ID, "Name": GUEST_USER, "ServerId": SERVER_ID, "HasPassword": true }
+    ]))
 }
 
 // ---------------------------------------------------------------- Bibliothek
