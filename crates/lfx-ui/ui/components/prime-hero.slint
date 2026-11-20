@@ -1,0 +1,192 @@
+// W3-prime: Hero von LENZPRIME (Web: `prime/hero.js`, `themes/prime/hero.css`): randloses Bild, Verläufe,
+// Text links unten, weißer Abspielen-Knopf, runder Info-Knopf, Punkte und Ton-Knopf. Läuft der Trailer
+// (`ui.trailer-on`), wird das Bild ausgeblendet: die Video-Ebene scheint durch.
+import { Theme } from "../theme/theme.slint";
+import { LfxText } from "text.slint";
+import { LfxIcon } from "icon.slint";
+import { LfxFocusRing } from "focus-ring.slint";
+import { Icons } from "../icons.slint";
+import { HeroData } from "../pages/types.slint";
+import { HomeUi } from "../pages/home-types.slint";
+
+export component PrimeHero inherits Rectangle {
+    in property <HeroData> hero;
+    in property <HomeUi> ui;
+    in property <string> badge;
+    in property <string> primary-text: "Abspielen";
+    in property <int> focus-index: -1;
+    in property <length> pad;
+    in property <length> btn-h;
+    callback play();
+    callback info();
+    callback mute();
+    callback dot(int);
+
+    property <bool> hole: root.ui.trailer-on;
+    clip: true;
+    background: root.hole ? transparent : Theme.t.bg;
+
+    TouchArea { }
+    if root.hero.has-backdrop: Image {
+        width: 100%;
+        height: 100%;
+        source: root.hero.backdrop;
+        image-fit: cover;
+        opacity: root.hole ? 0.0 : 1.0;
+        animate opacity { duration: 800ms; easing: Theme.t.ease; }
+    }
+    // Verläufe (Notizen C): links, oben, unten, rechter Rand
+    Rectangle { background: @linear-gradient(90deg, #00050db8 0%, #00050d00 52%); }
+    Rectangle { background: @linear-gradient(180deg, #00050dcc 0%, #00050d00 22%); }
+    Rectangle { background: @linear-gradient(0deg, #00050d 0%, #00050d59 15%, #00050d0d 24%, #00050d00 28%); }
+    Rectangle { background: @linear-gradient(270deg, #00050d66 0%, #00050d00 30%); }
+
+    // Text links unten
+    VerticalLayout {
+        x: root.pad;
+        y: parent.height - self.height - max(36px, min(70px, root.width * 0.036));
+        width: min(root.width * 0.46, 760px);
+        spacing: max(10px, min(18px, root.width * 0.01));
+        alignment: end;
+        if root.hero.has-logo: Image {
+            source: root.hero.logo;
+            height: max(70px, min(140px, root.width * 0.073));
+            width: min(root.width * 0.23, 440px);
+            image-fit: contain;
+            horizontal-alignment: left;
+            vertical-alignment: bottom;
+        }
+        if !root.hero.has-logo && root.hero.has-item: LfxText {
+            text: root.hero.title;
+            font-size: max(28px, min(44px, root.width * 0.023));
+            font-weight: 700;
+            wrap: word-wrap;
+            overflow: elide;
+        }
+        if root.hero.meta != "": HorizontalLayout {
+            spacing: 10px;
+            alignment: start;
+            height: 20px;
+            if root.badge != "": Rectangle {
+                width: bt.preferred-width + 14px;
+                height: 20px;
+                background: #ffffff;
+                border-radius: 3px;
+                bt := LfxText {
+                    x: 7px;
+                    height: 100%;
+                    text: root.badge;
+                    color: Theme.t.bg;
+                    font-size: 12px;
+                    font-weight: 700;
+                    vertical-alignment: center;
+                }
+            }
+            LfxText {
+                text: root.hero.meta;
+                font-size: Theme.t.fs-meta;
+                font-weight: 600;
+                color: Theme.t.text-body;
+                vertical-alignment: center;
+            }
+        }
+        if root.hero.has-item: HorizontalLayout {
+            height: root.btn-h;
+            spacing: 28px;
+            alignment: start;
+            Rectangle {
+                width: 190px;
+                height: root.btn-h;
+                border-radius: 8px;
+                background: pl.has-hover ? Theme.t.prime-hover-bg : #ffffff;
+                transform-scale: pl.has-hover ? 1.04 : 1.0;
+                animate background { duration: 200ms; }
+                animate transform-scale { duration: 200ms; easing: ease-out; }
+                HorizontalLayout {
+                    alignment: center;
+                    spacing: 10px;
+                    LfxIcon {
+                        source: Icons.play;
+                        size: 26px;
+                        tint: Theme.t.bg;
+                        y: (parent.height - self.height) / 2;
+                    }
+                    LfxText {
+                        text: root.primary-text;
+                        color: Theme.t.bg;
+                        font-size: max(16px, min(20px, root.width * 0.0104));
+                        font-weight: 500;
+                        vertical-alignment: center;
+                    }
+                }
+                pl := TouchArea {
+                    mouse-cursor: pointer;
+                    clicked => { root.play(); }
+                }
+                LfxFocusRing {
+                    active: root.focus-index == 0;
+                    radius: 8px;
+                }
+            }
+            Rectangle {
+                width: root.btn-h;
+                height: root.btn-h;
+                border-radius: root.btn-h / 2;
+                background: inf.has-hover ? #ffffff52 : Theme.t.pill-active;
+                transform-scale: inf.has-hover ? 1.06 : 1.0;
+                animate background { duration: 300ms; }
+                animate transform-scale { duration: 300ms; easing: ease-in-out; }
+                LfxIcon {
+                    x: (parent.width - self.width) / 2;
+                    y: (parent.height - self.height) / 2;
+                    source: Icons.info;
+                    size: parent.width * 0.6;
+                }
+                inf := TouchArea {
+                    mouse-cursor: pointer;
+                    clicked => { root.info(); }
+                }
+                LfxFocusRing {
+                    active: root.focus-index == 1;
+                    radius: root.btn-h / 2;
+                }
+            }
+        }
+    }
+
+    // Ton-Knopf rechts oben
+    if root.ui.trailer-btn: Rectangle {
+        x: parent.width - self.width - max(20px, min(36px, root.width * 0.019));
+        y: max(72px, min(100px, root.width * 0.052));
+        width: 48px;
+        height: 48px;
+        border-radius: 24px;
+        border-width: 3px;
+        border-color: #ffffff59;
+        background: mt.has-hover ? #00050db3 : #00050d66;
+        LfxIcon {
+            x: (parent.width - self.width) / 2 - 3px;
+            y: (parent.height - self.height) / 2 - 3px;
+            source: root.ui.trailer-muted ? Icons.mute : Icons.volume;
+            size: 22px;
+        }
+        mt := TouchArea { clicked => { root.mute(); } }
+    }
+
+    // Punkte (6 px, aktiv 20 px)
+    if root.ui.hero-count > 1: Rectangle {
+        x: (parent.width - self.width) / 2;
+        y: parent.height * 0.803 - 6px;
+        width: (root.ui.hero-count - 1) * 14px + 20px;
+        height: 6px;
+        for d in root.ui.hero-count: Rectangle {
+            x: d * 14px + (d > root.ui.hero-index ? 14px : 0px);
+            width: d == root.ui.hero-index ? 20px : 6px;
+            height: 6px;
+            border-radius: 3px;
+            background: d == root.ui.hero-index ? #ffffff : #ffffff66;
+            animate width { duration: 300ms; }
+            TouchArea { clicked => { root.dot(d); } }
+        }
+    }
+}

@@ -5,6 +5,7 @@ import { LfxToast } from "../components/feedback.slint";
 import { Page, RowData, HeroData, HomeGeometry } from "types.slint";
 import { AddServerPage, ProfilesPage, LoginPage } from "auth.slint";
 import { HomePage } from "home.slint";
+import { PrimeHomePage } from "prime-home.slint"; // W3-prime
 import { HRow, HomeLayout, HomeUi } from "home-types.slint"; // W2-home
 import { PlayerPage } from "player.slint";
 import { TvPage } from "tvui.slint";  // W2-tvui
@@ -151,7 +152,22 @@ export component MainWindow inherits Window {
                 back => { root.login-back(); }
                 field-accepted(s) => { root.login-field-accepted(s); }
             }
-            if root.page == Page.home: HomePage { // W2-home
+            if root.page == Page.home && Theme.design != Design.prime: HomePage { // W2-home
+                hero: root.hero;
+                rows: root.home-rows;
+                loading: root.home-loading;
+                error: root.home-error;
+                focus-row: root.focus-row;
+                focus-index: root.focus-index;
+                ui: root.home-ui;
+                version: root.version;
+                event(k, v) => { root.home-event(k, v); }
+                event-f(k, v) => { root.home-event-f(k, v); }
+                card-clicked(r, i) => { root.card-clicked(r, i); }
+                layout-changed(l) => { root.home-layout(l); }
+                trailer-rect(x, y, w, h) => { root.home-trailer-rect(x, y, w, h); }
+            }
+            if root.page == Page.home && Theme.design == Design.prime: PrimeHomePage { // W3-prime
                 hero: root.hero;
                 rows: root.home-rows;
                 loading: root.home-loading;

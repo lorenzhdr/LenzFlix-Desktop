@@ -1,0 +1,115 @@
+// W3-prime: Karte der LENZPRIME-Zeilen (Web: `prime/card.js`, `themes/prime/rows.css`).
+// 16:9, Radius 12, Fußverlauf, Marke weiß oben rechts bündig, Karten-Zeichen unten rechts, Fortschritt als
+// dünner weißer Balken am unteren Rand, Top 10 mit hohler Rangziffer (hier über der linken Kartenkante).
+import { Theme } from "../theme/theme.slint";
+import { LfxText } from "text.slint";
+import { LfxFocusRing } from "focus-ring.slint";
+import { HCard } from "../pages/home-types.slint";
+
+export component PrimeCard inherits Rectangle {
+    in property <HCard> data;
+    in property <bool> top10;
+    in property <bool> focused;
+    callback clicked();
+    callback hover(bool);
+    callback context-requested(length, length);
+
+    property <bool> wide-rank: root.data.rank >= 10;
+
+    img := Rectangle {
+        border-radius: 12px;
+        background: Theme.t.prime-chip;
+        clip: true;
+        if root.data.has-image: Image {
+            width: 100%;
+            height: 100%;
+            source: root.data.image;
+            image-fit: cover;
+        }
+        Rectangle {
+            background: @linear-gradient(0deg, #00050db3 0%, #00050d00 38%);
+        }
+        if !root.data.has-image && root.data.title != "": LfxText {
+            x: 12px;
+            width: parent.width - 24px;
+            height: parent.height;
+            text: root.data.title;
+            wrap: word-wrap;
+            overflow: elide;
+            font-size: 16px;
+            font-weight: 700;
+            horizontal-alignment: center;
+            vertical-alignment: center;
+        }
+        if ta.has-hover: Rectangle {
+            background: #ffffff0f;
+        }
+        if root.data.badge != "": Rectangle {
+            x: parent.width - self.width;
+            y: 0px;
+            width: badge-text.preferred-width + 14px;
+            height: 22px;
+            background: #ffffff;
+            border-radius: 0px;
+            badge-text := LfxText {
+                x: 7px;
+                height: 100%;
+                text: root.data.badge;
+                color: Theme.t.bg;
+                font-size: 13px;
+                font-weight: 700;
+                vertical-alignment: center;
+            }
+        }
+        Image {
+            x: parent.width - self.width - 10px;
+            y: parent.height - self.height - 8px;
+            width: 27px;
+            height: 15px;
+            source: @image-url("../../../../assets/logo/lenzprime-cardmark.svg");
+            image-fit: contain;
+            opacity: 0.9;
+        }
+        if root.data.progress > 0: Rectangle {
+            y: parent.height - 4px;
+            height: 4px;
+            background: #ffffff4d;
+            Rectangle {
+                x: 0px;
+                width: parent.width * min(1.0, root.data.progress);
+                background: #ffffff;
+            }
+        }
+    }
+    // Rangziffer: hohl mit Kontur, links an der Karte
+    if root.top10 && root.data.rank > 0: Text {
+        x: 6px;
+        y: 0px;
+        width: root.width * 0.5;
+        height: root.height;
+        text: root.data.rank;
+        font-family: Theme.t.font-family;
+        font-size: root.width * (root.wide-rank ? 0.46 : 0.56);
+        font-weight: 900;
+        letter-spacing: root.wide-rank ? -0.12 * root.width * 0.46 : -0.04 * root.width * 0.56;
+        color: Theme.t.bg.with-alpha(0.55);
+        stroke: #ffffff80;
+        stroke-width: 3px;
+        horizontal-alignment: left;
+        vertical-alignment: center;
+    }
+    ta := TouchArea {
+        mouse-cursor: pointer;
+        clicked => { root.clicked(); }
+        changed has-hover => { root.hover(self.has-hover); }
+        pointer-event(e) => {
+            if (e.button == PointerEventButton.right && e.kind == PointerEventKind.up) {
+                root.context-requested(self.absolute-position.x + self.mouse-x, self.absolute-position.y + self.mouse-y);
+            }
+        }
+    }
+    LfxFocusRing {
+        active: root.focused;
+        radius: 12px;
+    }
+}

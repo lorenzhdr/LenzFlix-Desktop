@@ -179,7 +179,17 @@ impl App {
             return;
         };
         let (vw, vh) = self.window_logical();
-        let r = popup_rect(card, vw, vh);
+        let r = if self.is_prime() {
+            logic::popup_rect_with(
+                card,
+                vw,
+                vh,
+                logic::PRIME_HC_SCALE,
+                logic::PRIME_HC_MIN_WIDTH,
+            ) // W3-prime
+        } else {
+            popup_rect(card, vw, vh)
+        };
         let token = {
             let mut st = self.st.borrow_mut();
             let h = &mut st.detail.hover;
@@ -206,6 +216,7 @@ impl App {
             ui.set_hc_open(false);
             ui.set_hc_visible(true);
         });
+        self.prime_preview_hold(true); // W3-prime: Hero-Video pausiert
         // Beim nächsten Takt auf das Zielrechteck wachsen (Slint animiert den Wechsel).
         let weak = Rc::downgrade(self);
         self.st.borrow_mut().detail.hover.anim.start(
@@ -382,6 +393,7 @@ impl App {
                 ui.set_hc_visible(false);
                 ui.set_hc_open(false);
             });
+            self.prime_preview_hold(false); // W3-prime
         }
     }
 
@@ -450,7 +462,11 @@ pub fn wire(app: &Rc<App>, g: &Ui<'_>) {
     let a = app.clone();
     g.on_hc_more(move || {
         if let Some(item) = a.hover_item() {
-            a.open_modal(&item.id.clone(), Some(item));
+            if a.is_prime() {
+                a.open_detail_page(&item.id.clone()); // W3-prime: Titelseite statt Info-Fenster
+            } else {
+                a.open_modal(&item.id.clone(), Some(item));
+            }
         }
     });
 }

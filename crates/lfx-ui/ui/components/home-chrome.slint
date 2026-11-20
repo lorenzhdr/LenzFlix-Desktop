@@ -1,3 +1,6 @@
+import { Theme, Design } from "../theme/theme.slint";
+import { PrimeHeader } from "prime-header.slint"; // W3-prime
+import { PrimeProfileMenu } from "prime-menus.slint"; // W3-prime
 import { HomeUi } from "../pages/home-types.slint";
 import { HomeHeader } from "home-header.slint";
 import { ProfileMenu, DsPanel, SecretPanel } from "home-menus.slint";
@@ -20,7 +23,7 @@ export component HomeChrome inherits Rectangle {
         clicked => { root.event("menu-close", 0); }
     }
 
-    HomeHeader {
+    if Theme.design != Design.prime: HomeHeader {
         x: 0px;
         y: 0px;
         width: root.width;
@@ -35,7 +38,32 @@ export component HomeChrome inherits Rectangle {
         logo-clicked => { root.event("logo", 0); }
     }
 
-    if root.ui.menu == 1: ProfileMenu {
+    if Theme.design == Design.prime: PrimeHeader { // W3-prime
+        x: 0px;
+        y: 0px;
+        width: root.width;
+        gutter: root.gutter;
+        scrolled: root.scrolled;
+        focus-index: root.focus-index;
+        current: root.current;
+        ds-on: root.ui.ds-on;
+        initial: root.ui.user-initial;
+        narrow: root.width < 800px;
+        pick(i) => { root.event("nav", i); }
+        logo-clicked => { root.event("logo", 0); }
+    }
+
+    if root.ui.menu == 1 && Theme.design == Design.prime: PrimeProfileMenu { // W3-prime
+        sheet: root.width < 800px;
+        sheet-w: root.width;
+        initial: root.ui.user-initial;
+        x: root.width < 800px ? 0px : root.width - root.gutter - self.width + 8px;
+        y: root.width < 800px ? root.height - self.height : root.header-h - 8px;
+        user-name: root.ui.user-name;
+        index: root.ui.menu-index;
+        pick(i) => { root.event("profile-item", i); }
+    }
+    if root.ui.menu == 1 && Theme.design != Design.prime: ProfileMenu {
         x: root.width - root.gutter - self.width + 8px;
         y: root.header-h - 18px;
         user-name: root.ui.user-name;

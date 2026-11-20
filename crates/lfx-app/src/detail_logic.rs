@@ -40,8 +40,23 @@ pub const HC_CLOSE_ANIM_MS: u64 = 200;
 /// Popup-Rechteck aus dem Kartenrechteck (`computePopupRect`): Breite = max(Karte × Skala, Mindestbreite), das
 /// Bild sitzt vertikal mittig auf der Karte; horizontal zentriert, am Rand bündig mit der Karte, zuletzt hart geklemmt.
 pub fn popup_rect(card: RectF, viewport_w: f32, viewport_h: f32) -> PopupRect {
-    let width = (card.w * HC_SCALE)
-        .max(HC_MIN_WIDTH)
+    popup_rect_with(card, viewport_w, viewport_h, HC_SCALE, HC_MIN_WIDTH)
+}
+
+/// W3-prime: Hovercard-Maße von LENZPRIME (Web: `SCALE`, `MIN_WIDTH` in `prime/hover.js`).
+pub const PRIME_HC_SCALE: f32 = 1.56;
+pub const PRIME_HC_MIN_WIDTH: f32 = 340.0;
+
+/// Wie [`popup_rect`] mit frei wählbarer Skala und Mindestbreite.
+pub fn popup_rect_with(
+    card: RectF,
+    viewport_w: f32,
+    viewport_h: f32,
+    scale: f32,
+    min_width: f32,
+) -> PopupRect {
+    let width = (card.w * scale)
+        .max(min_width)
         .min((viewport_w - 2.0 * HC_PAD).max(0.0));
     let image_h = width * 9.0 / 16.0;
     let mut left = card.x + card.w / 2.0 - width / 2.0;

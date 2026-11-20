@@ -1,0 +1,94 @@
+// W3-prime: Profilmenü von LENZPRIME (Web: Popover am Avatar; am Handy `prime/profile-sheet.js` als Bottom-Sheet).
+// Glasfläche mit Doppelschatten, Radius 12. Schmal (< 800 px) als Blatt unten mit Griff.
+import { Theme } from "../theme/theme.slint";
+import { LfxText } from "text.slint";
+
+component PrimeItem inherits Rectangle {
+    in property <string> text;
+    in property <bool> hot;
+    in property <color> ink: Theme.t.text;
+    callback clicked();
+    height: 44px;
+    border-radius: 8px;
+    background: (root.hot || ta.has-hover) ? Theme.t.prime-hover-bg : transparent;
+    LfxText {
+        x: 16px;
+        width: parent.width - 32px;
+        height: 100%;
+        text: root.text;
+        font-size: 16px;
+        font-weight: 500;
+        color: (root.hot || ta.has-hover) ? Theme.t.prime-ink : root.ink;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+    ta := TouchArea {
+        mouse-cursor: pointer;
+        clicked => { root.clicked(); }
+    }
+}
+
+// Einträge: 0 Profil wechseln, 1 Einstellungen, 2 Statistik, 3 Über, 4 Abmelden.
+export component PrimeProfileMenu inherits Rectangle {
+    in property <string> user-name;
+    in property <int> index: -1;
+    in property <bool> sheet: false;
+    in property <length> sheet-w;
+    in property <string> initial;
+    callback pick(int);
+    width: root.sheet ? root.sheet-w : 260px;
+    height: 76px + 5 * 44px + 20px;
+    background: Theme.t.prime-glass.with-alpha(0.96);
+    border-radius: root.sheet ? 16px : 12px;
+    drop-shadow-color: #0000004d;
+    drop-shadow-blur: 24px;
+    drop-shadow-offset-y: 8px;
+    TouchArea { }
+    if root.sheet: Rectangle {
+        x: (parent.width - self.width) / 2;
+        y: 8px;
+        width: 40px;
+        height: 4px;
+        border-radius: 2px;
+        background: #ffffff59;
+    }
+    Rectangle {
+        x: 16px;
+        y: 20px;
+        width: 40px;
+        height: 40px;
+        border-radius: 20px;
+        background: Theme.t.prime-chip;
+        LfxText {
+            width: 100%;
+            height: 100%;
+            text: root.initial;
+            font-size: 18px;
+            font-weight: 700;
+            horizontal-alignment: center;
+            vertical-alignment: center;
+        }
+    }
+    LfxText {
+        x: 68px;
+        y: 20px;
+        width: parent.width - 84px;
+        height: 40px;
+        text: root.user-name;
+        font-size: 18px;
+        font-weight: 700;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+    VerticalLayout {
+        x: 10px;
+        y: 76px;
+        width: parent.width - 20px;
+        height: 5 * 44px;
+        PrimeItem { text: "Profil wechseln"; hot: root.index == 0; clicked => { root.pick(0); } }
+        PrimeItem { text: "Einstellungen"; hot: root.index == 1; clicked => { root.pick(1); } }
+        PrimeItem { text: "Statistik"; ink: Theme.t.link; hot: root.index == 2; clicked => { root.pick(2); } }
+        PrimeItem { text: "Über"; hot: root.index == 3; clicked => { root.pick(3); } }
+        PrimeItem { text: "Abmelden"; hot: root.index == 4; clicked => { root.pick(4); } }
+    }
+}

@@ -36,6 +36,7 @@ pub mod play_extras; // W2-player
 pub mod play_hdr; // W2-player
 pub mod play_osd; // W2-player
 pub mod play_ui; // W2-player
+pub mod prime_gate; // W3-prime
 pub mod route;
 pub mod tvui; // W2-tvui
 pub mod tvui_host; // W2-tvui
