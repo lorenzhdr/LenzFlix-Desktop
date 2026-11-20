@@ -9,6 +9,7 @@
 pub mod catalog;
 mod extra;
 pub mod media;
+pub mod w35_offline;
 
 pub use extra::{
     VIEW_BOOKS, VIEW_LIVETV, VIEW_MUSIC, VIEW_PHOTOS, album_id, artist_id, book_id, channel_id,
@@ -131,6 +132,8 @@ struct Dyn {
     playback_mode: PlaybackMode,
     /// Zustand der erweiterten Endpunkte (`extra.rs`).
     extra: extra::ExtraState,
+    /// Zustand der Offline-Endpunkte (`w35_offline.rs`).
+    w35: w35_offline::W35State,
 }
 
 struct Qc {
@@ -344,6 +347,7 @@ fn router(shared: Arc<Shared>) -> Router {
         .route("/Sessions/Playing/Progress", post(progress))
         .route("/Sessions/Playing/Stopped", post(stopped))
         .merge(extra::routes())
+        .merge(w35_offline::routes())
         .layer(middleware::from_fn_with_state(shared.clone(), gate))
         .with_state(shared)
 }
@@ -450,7 +454,7 @@ fn user_json_for(guest: bool) -> Value {
     };
     json!({
         "Id": id, "Name": name, "ServerId": SERVER_ID, "HasPassword": true,
-        "Policy": { "IsAdministrator": false, "EnableMediaPlayback": true, "EnableVideoPlaybackTranscoding": false },
+        "Policy": { "IsAdministrator": false, "EnableMediaPlayback": true, "EnableVideoPlaybackTranscoding": false, "EnableContentDownloading": !guest },
         "Configuration": { "PlayDefaultAudioTrack": true, "SubtitleMode": "Default" }
     })
 }
@@ -471,7 +475,9 @@ fn find<'a>(shared: &'a Shared, id: &str) -> Option<&'a Item> {
 }
 
 fn render(shared: &Shared, it: &Item, fields: &str) -> Value {
-    catalog::render(&shared.catalog, it, &shared.lock().users, fields)
+    let mut v = catalog::render(&shared.catalog, it, &shared.lock().users, fields);
+    w35_offline::decorate(shared, &mut v);
+    v
 }
 
 fn list(
