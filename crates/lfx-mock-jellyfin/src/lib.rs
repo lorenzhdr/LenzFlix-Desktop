@@ -16,6 +16,7 @@ mod w2_detail; // W2-detail
 pub mod w2_home;
 pub mod w2_player; // W2-player // W2-home
 mod w35_remote;
+pub mod w35_offline;
 
 pub use extra::{
     VIEW_BOOKS, VIEW_LIVETV, VIEW_MUSIC, VIEW_PHOTOS, album_id, artist_id, book_id, channel_id,
@@ -140,6 +141,8 @@ struct Dyn {
     extra: extra::ExtraState,
     /// Zustand von Fernsteuerung und SyncPlay (`w35_remote.rs`).
     remote: w35_remote::RemoteState,
+    /// Zustand der Offline-Endpunkte (`w35_offline.rs`).
+    w35: w35_offline::W35State,
 }
 
 struct Qc {
@@ -366,6 +369,7 @@ fn router(shared: Arc<Shared>) -> Router {
         .route("/Sessions/Playing/Stopped", post(stopped))
         .merge(extra::routes())
         .merge(w35_remote::routes())
+        .merge(w35_offline::routes())
         .layer(middleware::from_fn_with_state(shared.clone(), gate))
         .with_state(shared)
 }
@@ -472,7 +476,7 @@ fn user_json_for(guest: bool) -> Value {
     };
     json!({
         "Id": id, "Name": name, "ServerId": SERVER_ID, "HasPassword": true,
-        "Policy": { "IsAdministrator": false, "EnableMediaPlayback": true, "EnableVideoPlaybackTranscoding": false },
+        "Policy": { "IsAdministrator": false, "EnableMediaPlayback": true, "EnableVideoPlaybackTranscoding": false, "EnableContentDownloading": !guest },
         "Configuration": { "PlayDefaultAudioTrack": true, "SubtitleMode": "Default", "EnableNextEpisodeAutoPlay": true }
     })
 }
@@ -493,7 +497,9 @@ fn find<'a>(shared: &'a Shared, id: &str) -> Option<&'a Item> {
 }
 
 fn render(shared: &Shared, it: &Item, fields: &str) -> Value {
-    catalog::render(&shared.catalog, it, &shared.lock().users, fields)
+    let mut v = catalog::render(&shared.catalog, it, &shared.lock().users, fields);
+    w35_offline::decorate(shared, &mut v);
+    v
 }
 
 fn list(

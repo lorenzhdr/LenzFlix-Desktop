@@ -820,7 +820,7 @@ pub(crate) fn routes() -> Router<Arc<Shared>> {
             get(|| async { jv(json!({ "Items": [], "TotalRecordCount": 0, "StartIndex": 0 })) }),
         )
         .route("/Items/{id}/InstantMix", get(instant_mix))
-        .route("/Items/{id}/Download", get(download))
+        .route("/Items/{id}/Download", get(crate::w35_offline::download))
         .route("/UserItems/{id}/UserData", post(update_user_data))
         .route("/Items/{id}", delete(delete_item))
         .route("/Videos/ActiveEncodings", delete(delete_encodings))
@@ -1089,7 +1089,7 @@ async fn instant_mix(
     jv(json!({ "Items": tracks, "TotalRecordCount": total, "StartIndex": 0 }))
 }
 
-async fn download(axum::extract::State(shared): S, Path(id): Path<String>) -> Response {
+pub(crate) async fn download(axum::extract::State(shared): S, Path(id): Path<String>) -> Response {
     let Some(m) = media().iter().find(|m| m.id == id) else {
         return StatusCode::NOT_FOUND.into_response();
     };
@@ -1122,6 +1122,7 @@ async fn update_user_data(
                 d.users.played.remove(&id);
             }
         }
+        crate::w35_offline::note_user_data(&mut d, &id, &body);
         if let Some(fav) = body.get("IsFavorite").and_then(Value::as_bool) {
             if fav {
                 d.users.favorites.insert(id.clone());
