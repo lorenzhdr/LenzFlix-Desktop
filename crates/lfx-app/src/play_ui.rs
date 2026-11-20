@@ -85,6 +85,8 @@ impl App {
                 };
                 if next && auto {
                     self.play_next();
+                } else if self.remote_queue_next() {
+                    // W5-remote: eingereihtes Video läuft weiter
                 } else {
                     self.leave_player();
                 }
@@ -345,6 +347,7 @@ impl App {
             trick_clip_h: trick.8,
             chapter_marks: ModelRc::new(VecModel::from(marks)),
             chapter_title: chapter_title.into(),
+            sync_text: self.remote_sync_text().into(), // W5-remote
         };
         drop(st);
         self.win().set_pv(view);
@@ -396,6 +399,9 @@ impl App {
 
     pub fn toggle_pause(self: &Rc<Self>) {
         self.player_activity();
+        if self.remote_intent_pause(None) {
+            return; // W5-remote
+        }
         if let Some(p) = self.st.borrow().play.player.clone() {
             p.toggle_pause();
         }
@@ -403,6 +409,9 @@ impl App {
 
     pub fn seek_by(self: &Rc<Self>, secs: f32) {
         self.player_activity();
+        if self.remote_intent_seek_by(f64::from(secs)) {
+            return; // W5-remote
+        }
         if let Some(p) = self.st.borrow().play.player.clone() {
             p.seek_by(f64::from(secs));
         }
@@ -413,7 +422,11 @@ impl App {
         if let Some(p) = self.st.borrow().play.player.clone()
             && let Some(d) = p.state().duration
         {
-            p.seek_to(d * f64::from(frac.clamp(0.0, 1.0)));
+            let target = d * f64::from(frac.clamp(0.0, 1.0));
+            if self.remote_intent_seek(target) {
+                return; // W5-remote
+            }
+            p.seek_to(target);
         }
     }
 
@@ -489,6 +502,10 @@ impl App {
             MenuKind::Subtitles => subtitle_menu(&s.tracks, st.play.sub_style),
             MenuKind::Speed => speed_menu(s.speed),
             MenuKind::Quality => quality_menu(st.play.quality),
+            MenuKind::Together => {
+                drop(st); // W5-remote
+                self.remote_menu_items()
+            }
             MenuKind::Info => {
                 let method = match st.play.request.as_ref().map(|r| r.play_method) {
                     Some(PlayMethod::DirectPlay) => "Direktwiedergabe",
@@ -512,6 +529,9 @@ impl App {
     }
 
     pub fn open_menu(self: &Rc<Self>, kind: MenuKind) {
+        if kind == MenuKind::Together {
+            self.remote_fetch_groups(); // W5-remote
+        }
         let items = self.build_menu(kind);
         let focus = items.iter().position(|i| i.selected).unwrap_or(0);
         let mut st = self.st.borrow_mut();
@@ -576,6 +596,7 @@ impl App {
                 self.set_sub_style(s);
                 keep_open = true;
             }
+            MenuAction::Together(op) => keep_open = self.remote_together_op(op), // W5-remote
             MenuAction::None => keep_open = true,
         }
         if keep_open {
@@ -718,11 +739,11 @@ impl App {
             let has_next = self.st.borrow().play.next_item.is_some();
             let moved = match action {
                 NavAction::SeekBackward | NavAction::Left if c == Control::Seek => {
-                    player.seek_by(SEEK_BACK);
+                    self.seek_by(SEEK_BACK as f32); // W5-remote
                     return;
                 }
                 NavAction::SeekForward | NavAction::Right if c == Control::Seek => {
-                    player.seek_by(10.0);
+                    self.seek_by(10.0); // W5-remote
                     return;
                 }
                 NavAction::SeekBackward | NavAction::Left => {
@@ -753,6 +774,10 @@ impl App {
                 _ => {}
             }
         }
+        if self.remote_intent_action(action) {
+            self.refresh_view(); // W5-remote
+            return;
+        }
         let s = player.state();
         match action {
             NavAction::Back | NavAction::Stop => self.leave_player(),
@@ -761,7 +786,7 @@ impl App {
                 if self.skip_visible().is_some() {
                     self.skip_segment();
                 } else {
-                    player.toggle_pause();
+                    self.toggle_pause(); // W5-remote
                 }
             }
             NavAction::Play => player.play(),
@@ -813,6 +838,7 @@ impl App {
             Control::Audio => self.toggle_menu(MenuKind::Audio),
             Control::Speed => self.toggle_menu(MenuKind::Speed),
             Control::Quality => self.toggle_menu(MenuKind::Quality),
+            Control::Together => self.toggle_menu(MenuKind::Together), // W5-remote
             Control::Fullscreen => self.toggle_fullscreen(),
         }
     }

@@ -59,6 +59,7 @@ pub mod play_osd; // W2-player
 pub mod play_ui; // W2-player
 pub mod plus; // W3-plus
 pub mod prime_gate; // W3-prime
+pub mod remote; // W5-remote
 pub mod retro; // W3-retro
 #[cfg(feature = "dev-automation")]
 pub mod retro_automation; // W3-retro
@@ -167,6 +168,7 @@ pub fn run(opts: Options) -> Result<(), String> {
             media: media::MediaCtl::default(),        // W4-media
             account: account::AccountCtl::default(),  // W4-account
             downloads: downloads::DlCtl::default(),   // W5-downloads
+            remote: remote::RemoteCtl::default(),     // W5-remote
         }),
         timers: Timers::default(),
         gamepad: RefCell::new(None),
@@ -190,6 +192,7 @@ pub fn run(opts: Options) -> Result<(), String> {
 
     // Aufräumen: Wiedergabe beenden (Stopped melden), Videoausgabe vor dem Player freigeben.
     app.tv_leave(); // W2-tvui
+    app.remote_stop(); // W5-remote
     app.stop_playback();
     app.audio_stop(); // W4-media
     {

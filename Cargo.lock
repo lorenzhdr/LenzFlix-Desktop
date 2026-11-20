@@ -3226,6 +3226,7 @@ dependencies = [
  "lfx-offline",
  "lfx-platform",
  "lfx-player",
+ "lfx-remote",
  "lfx-retro-fx",
  "lfx-session",
  "lfx-shell",
