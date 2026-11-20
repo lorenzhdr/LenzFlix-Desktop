@@ -7,10 +7,11 @@ import { LfxFocusRing } from "../components/focus-ring.slint";
 import { Icons } from "../icons.slint";
 import { DetailState } from "detail-state.slint";
 import { DetailView, RoundBtn } from "detail-view.slint";
+import { PrimeHoverCard } from "prime-hover.slint"; // W3-prime
 
 // ---------------------------------------------------------------- Detailseite (Route Detail)
 export component DetailPage inherits Rectangle {
-    background: Theme.t.surface;
+    background: Theme.design == Design.prime ? Theme.t.bg : Theme.t.surface; // W3-prime
     property <length> scroll-y: -flick.content-y;
 
     pure function scroll-target(cur: length, fy: length, fh: length, view-h: length, flick-h: length) -> length {
@@ -433,7 +434,8 @@ component ContextMenu inherits Rectangle {
 
 // Alle Überlagerungen auf einmal (in main.slint einmal eingehängt): Hovercard, Modal, Kontextmenü.
 export component DetailOverlays inherits Rectangle {
-    if DetailState.hc-visible && !DetailState.modal-open: HoverCard { }
+    if DetailState.hc-visible && !DetailState.modal-open && Theme.design != Design.prime: HoverCard { }
+    if DetailState.hc-visible && !DetailState.modal-open && Theme.design == Design.prime: PrimeHoverCard { } // W3-prime
     if DetailState.modal-open: DetailModal {
         width: parent.width;
         height: parent.height;

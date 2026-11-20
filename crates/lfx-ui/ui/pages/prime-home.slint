@@ -1,0 +1,202 @@
+// W3-prime: Startseite von LENZPRIME (Web: `prime/home.js`, `hero.js`, `home-rows.js`, `themes/prime/hero.css|rows.css`).
+// Gleiche Schnittstelle wie `HomePage` (LENZFLIX), damit Rust (Fokus, Trailer, Hovercard) unverändert arbeitet:
+// Das Hero füllt die volle Breite ab y = 0 (Kopfleiste liegt darüber), danach 16:9-Zeilen mit 6 Karten, Fußzeile.
+import { Theme } from "../theme/theme.slint";
+import { LfxText } from "../components/text.slint";
+import { LfxSkeleton, LfxSpinner } from "../components/feedback.slint";
+import { HeroData } from "types.slint";
+import { HRow, HomeLayout, HomeUi } from "home-types.slint";
+import { HomeChrome } from "../components/home-chrome.slint";
+import { PrimeHero } from "../components/prime-hero.slint";
+import { PrimeRow } from "../components/prime-row.slint";
+import { PrimeFooter } from "../components/prime-footer.slint";
+import { DetailState } from "detail-state.slint";
+
+export component PrimeHomePage inherits Rectangle {
+    in property <HeroData> hero;
+    in property <[HRow]> rows;
+    in property <bool> loading: false;
+    in property <string> error;
+    in property <int> focus-row: -1;
+    in property <int> focus-index: 0;
+    in property <HomeUi> ui;
+    in property <string> version;
+    callback event(string, int);
+    callback event-f(string, float);
+    callback card-clicked(int, int);
+    callback layout-changed(HomeLayout);
+    callback trailer-rect(length, length, length, length);
+
+    property <bool> narrow: root.width < 800px;
+    property <length> pad: max(24px, min(72px, root.width * 0.0375));
+    property <length> gap: max(12px, min(24px, root.width * 0.0125));
+    property <int> n: root.narrow ? 2 : 6;
+    property <length> card-w: root.narrow
+        ? (root.width - 2 * root.pad - 2 * root.gap) / 2.3
+        : (root.width - 2 * root.pad - 5 * root.gap) / 6;
+    property <length> card-h: root.card-w * 9 / 16;
+    property <length> hero-h: root.narrow ? 480px : max(440px, min(720px, root.width * 0.375));
+    property <length> btn-h: max(48px, min(62px, root.width * 0.0323));
+    property <length> head-h: 40px;
+    property <length> row-margin: max(28px, min(52px, root.width * 0.027));
+    property <length> row-h: root.head-h + root.card-h + root.row-margin;
+    property <length> rows-top: root.hero-h + 4px;
+    property <length> scroll: -flick.content-y;
+    property <bool> scrolled: root.scroll > 8px;
+    property <length> hole-y: -root.scroll;
+
+    out property <HomeLayout> layout: {
+        width: root.width,
+        header-h: Theme.t.header-h,
+        gutter: root.pad,
+        bb-x: 0px,
+        bb-y: 0px,
+        bb-w: root.width,
+        bb-h: root.hero-h,
+        play-x: root.pad,
+        play-y: root.hero-h - root.btn-h - max(36px, min(70px, root.width * 0.036)),
+        play-w: 190px,
+        info-x: root.pad + 190px + 28px,
+        info-w: root.btn-h,
+        btn-h: root.btn-h,
+        rows-top: root.rows-top,
+        row-h: root.row-h,
+        top-extra: 0px,
+        pitch: root.card-w + root.gap,
+        card-w: root.card-w,
+        card-h: root.card-h,
+        top-card-h: root.card-h,
+        head-h: root.head-h,
+    };
+    changed layout => { root.layout-changed(root.layout); }
+    init => { root.layout-changed(root.layout); }
+
+    property <length> bb-ay: hh.absolute-position.y;
+    property <length> bb-ax: hh.absolute-position.x;
+    function emit-rect() { root.trailer-rect(root.bb-ax, root.bb-ay, root.width, root.hero-h); }
+    changed bb-ax => { root.emit-rect(); }
+    changed bb-ay => { root.emit-rect(); }
+    changed hero-h => { root.emit-rect(); }
+    changed width => { root.emit-rect(); }
+
+    function row-y(r: int) -> length { return root.rows-top + r * root.row-h; }
+    function scroll-to-focus() {
+        if (root.focus-row < 0 || root.focus-row >= root.rows.length) {
+            flick.content-y = 0px;
+        } else {
+            if (root.row-y(root.focus-row) - 80px < root.scroll) {
+                flick.content-y = -max(0px, root.row-y(root.focus-row) - 80px);
+            } else if (root.row-y(root.focus-row) + root.row-h > root.scroll + flick.height) {
+                flick.content-y = -(root.row-y(root.focus-row) + root.row-h - flick.height + 10px);
+            }
+        }
+    }
+    changed focus-row => { root.scroll-to-focus(); }
+
+    // Seitenhintergrund ab Hero-Unterkante (das Hero malt seinen eigenen, damit der Trailer durchscheint)
+    Rectangle {
+        y: max(0px, root.hole-y + root.hero-h);
+        height: max(0px, root.height - self.y);
+        background: Theme.t.bg;
+    }
+
+    flick := Flickable {
+        x: 0px;
+        y: 0px;
+        width: root.width;
+        height: root.height;
+        content-width: root.width;
+        content-height: root.rows-top + max(1, root.rows.length) * root.row-h + 122px + 20px;
+        animate content-y { duration: Theme.t.dur * 2; easing: Theme.t.ease-out; }
+
+        hh := PrimeHero {
+            x: 0px;
+            y: 0px;
+            width: root.width;
+            height: root.hero-h;
+            hero: root.hero;
+            ui: root.ui;
+            badge: root.ui.badge;
+            primary-text: root.ui.primary;
+            pad: root.pad;
+            btn-h: root.btn-h;
+            focus-index: root.focus-row == -1 ? root.focus-index : -1;
+            play => { root.event("hero-play", 0); }
+            info => { root.event("hero-info", 0); }
+            mute => { root.event("mute", 0); }
+            dot(d) => { root.event("dot", d); }
+        }
+        if !root.hero.has-item && root.loading: LfxSpinner {
+            x: (root.width - self.width) / 2;
+            y: root.hero-h / 2;
+        }
+
+        for row[r] in root.rows: PrimeRow {
+            x: 0px;
+            y: root.rows-top + r * root.row-h;
+            width: root.width;
+            height: root.row-h;
+            title: row.title;
+            items: row.items;
+            top10: row.top10;
+            gutter: root.pad;
+            n: root.n;
+            gap: root.gap;
+            card-w: root.card-w;
+            card-h: root.card-h;
+            focused-index: r == root.focus-row ? root.focus-index : -1;
+            card-clicked(i) => { root.card-clicked(r, i); }
+            card-hover(i, h, x, y, w, ch) => { DetailState.card-hover(r, i, h, x, y, w, ch); }
+            card-context(i, x, y) => { DetailState.card-context(r, i, x, y); }
+            visible-changed(f) => { root.event("row-view", r * 1000 + f); }
+        }
+
+        if root.rows.length == 0 && root.loading: Rectangle {
+            y: root.rows-top;
+            width: root.width;
+            height: 3 * root.row-h;
+            for s in 3: Rectangle {
+                y: s * root.row-h;
+                height: root.row-h;
+                LfxSkeleton {
+                    x: root.pad;
+                    y: root.head-h;
+                    width: root.card-w * 4 + 3 * root.gap;
+                    height: root.card-h;
+                    radius: 12px;
+                }
+            }
+        }
+        if root.rows.length == 0 && !root.loading && root.error != "": LfxText {
+            y: root.rows-top + 8px;
+            x: root.pad;
+            width: root.width - 2 * root.pad;
+            text: root.error;
+            color: Theme.t.text-muted;
+            wrap: word-wrap;
+        }
+
+        PrimeFooter {
+            x: 0px;
+            y: root.rows-top + max(1, root.rows.length) * root.row-h;
+            width: root.width;
+            stats => { root.event("profile-item", 2); }
+            design => { root.event("profile-item", 1); }
+        }
+    }
+
+    HomeChrome {
+        x: 0px;
+        y: 0px;
+        width: root.width;
+        height: root.height;
+        ui: root.ui;
+        version: root.version;
+        gutter: root.pad;
+        header-h: Theme.t.header-h;
+        scrolled: root.scrolled;
+        focus-index: root.focus-row == -2 ? root.focus-index : -1;
+        event(k, v) => { root.event(k, v); }
+        event-f(k, v) => { root.event-f(k, v); }
+    }
+}

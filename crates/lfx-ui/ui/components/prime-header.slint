@@ -1,0 +1,171 @@
+// W3-prime: Kopfleiste von LENZPRIME (Web: `features/prime/header.js`, `themes/prime/header.css`).
+// Oben bündig und transparent, nach dem Scrollen eingerückt mit Glas und Doppelschatten (unten 12 px Radius).
+// Fokus-Index wie `HomeHeader` (lfx-nav): 0 Start, 1 Serien, 2 Filme, 3 Neu und beliebt, 4 Meine Liste,
+// 5 Suche, 6 TV, 7 Datensparmodus, 8 Profil.
+import { Theme } from "../theme/theme.slint";
+import { LfxText } from "text.slint";
+import { LfxIcon } from "icon.slint";
+import { LfxFocusRing } from "focus-ring.slint";
+import { Icons } from "../icons.slint";
+
+// Textlink: Pille 42 px, Radius 8; aktiv = weiß 20 %, Hover = fast weiß mit dunkler Schrift.
+component PrimeLink inherits Rectangle {
+    in property <string> text;
+    in property <bool> active;
+    in property <bool> focused;
+    in property <length> pad: 14px;
+    callback clicked();
+    height: Theme.t.nav-pill-h;
+    width: label.preferred-width + 2 * root.pad;
+    border-radius: 8px;
+    background: ta.has-hover ? Theme.t.prime-hover-bg : (root.active ? Theme.t.pill-active : transparent);
+    animate background { duration: 100ms; easing: ease-in-out; }
+    label := LfxText {
+        x: root.pad;
+        height: parent.height;
+        text: root.text;
+        font-size: Theme.t.fs-nav;
+        font-weight: Theme.t.fw-nav;
+        letter-spacing: 0.64px;
+        color: ta.has-hover ? Theme.t.prime-ink : Theme.t.text;
+        vertical-alignment: center;
+    }
+    ta := TouchArea {
+        mouse-cursor: pointer;
+        clicked => { root.clicked(); }
+    }
+    LfxFocusRing {
+        active: root.focused;
+        radius: 8px;
+    }
+}
+
+// Rundes Symbol (39 px). Hover = weißer Kreis mit dunklem Symbol.
+component PrimeIcon inherits Rectangle {
+    in property <image> source;
+    in property <bool> focused;
+    in property <bool> lit;
+    callback clicked();
+    width: 39px;
+    height: 39px;
+    border-radius: 20px;
+    background: ta.has-hover ? Theme.t.text : (root.lit ? Theme.t.pill-active : transparent);
+    animate background { duration: 100ms; easing: ease-in-out; }
+    LfxIcon {
+        x: 7.5px;
+        y: 7.5px;
+        source: root.source;
+        size: 24px;
+        tint: ta.has-hover ? Theme.t.prime-ink : (root.lit ? Theme.t.red : Theme.t.text);
+    }
+    ta := TouchArea {
+        mouse-cursor: pointer;
+        clicked => { root.clicked(); }
+    }
+    LfxFocusRing {
+        active: root.focused;
+        radius: 20px;
+    }
+}
+
+export component PrimeHeader inherits Rectangle {
+    in property <length> gutter;
+    in property <bool> scrolled;
+    in property <int> focus-index: -1;
+    in property <int> current: 0;
+    in property <bool> ds-on;
+    in property <string> initial;
+    in property <bool> narrow: false;
+    callback pick(int);
+    callback logo-clicked();
+
+    // Eingerückte Glasleiste nach dem Scrollen (Web: clamp(12px, 2.66vw, 51px))
+    property <length> inset: root.scrolled ? max(12px, min(51px, root.width * 0.0266)) : 0px;
+    animate inset { duration: 300ms; easing: Theme.t.ease; }
+    height: Theme.t.header-h;
+
+    bar := Rectangle {
+        x: root.inset;
+        width: parent.width - 2 * root.inset;
+        height: parent.height;
+        border-radius: 0px;
+        background: root.scrolled ? Theme.t.prime-glass.with-alpha(0.94) : transparent;
+        drop-shadow-color: root.scrolled ? Theme.t.prime-shadow.color : transparent;
+        drop-shadow-blur: Theme.t.prime-shadow.blur * 2;
+        drop-shadow-offset-y: Theme.t.prime-shadow.y;
+        animate background { duration: 300ms; easing: Theme.t.ease; }
+        // Untere Ecken (12 px) über eine zweite, abgerundete Fläche
+        Rectangle {
+            y: -12px;
+            height: parent.height + 12px;
+            border-radius: 12px;
+            background: root.scrolled ? Theme.t.prime-glass.with-alpha(0.94) : transparent;
+            animate background { duration: 300ms; easing: Theme.t.ease; }
+        }
+
+        Image {
+            x: root.gutter - root.inset;
+            y: (parent.height - self.height) / 2;
+            width: 68px;
+            height: 22px;
+            source: @image-url("../../../../assets/logo/lenzprime.svg");
+            image-fit: contain;
+            horizontal-alignment: left;
+            TouchArea {
+                mouse-cursor: pointer;
+                clicked => { root.logo-clicked(); }
+            }
+        }
+
+        if !root.narrow: HorizontalLayout {
+            x: root.gutter - root.inset + 68px + max(16px, min(28px, root.width * 0.026));
+            y: (parent.height - Theme.t.nav-pill-h) / 2;
+            height: Theme.t.nav-pill-h;
+            spacing: 0px;
+            PrimeLink { text: "Startseite"; pad: root.width < 1100px ? 9px : 14px; active: root.current == 0; focused: root.focus-index == 0; clicked => { root.pick(0); } }
+            PrimeLink { text: "Serien"; pad: root.width < 1100px ? 9px : 14px; active: root.current == 1; focused: root.focus-index == 1; clicked => { root.pick(1); } }
+            PrimeLink { text: "Filme"; pad: root.width < 1100px ? 9px : 14px; active: root.current == 2; focused: root.focus-index == 2; clicked => { root.pick(2); } }
+            PrimeLink { text: "Neu & beliebt"; pad: root.width < 1100px ? 9px : 14px; active: root.current == 3; focused: root.focus-index == 3; clicked => { root.pick(3); } }
+        }
+
+        HorizontalLayout {
+            x: parent.width - (root.gutter - root.inset) - self.preferred-width;
+            y: (parent.height - 39px) / 2;
+            height: 39px;
+            spacing: 2px;
+            PrimeIcon { source: Icons.search; focused: root.focus-index == 5; clicked => { root.pick(5); } }
+            PrimeIcon { source: Icons.plus; lit: root.current == 4; focused: root.focus-index == 4; clicked => { root.pick(4); } }
+            PrimeIcon { source: Icons.tvmode; focused: root.focus-index == 6; clicked => { root.pick(6); } }
+            if root.ds-on: PrimeIcon { source: Icons.datasaver; lit: true; focused: root.focus-index == 7; clicked => { root.pick(7); } }
+            Rectangle {
+                width: 40px;
+                height: 39px;
+                Rectangle {
+                    x: 6px;
+                    y: 2.5px;
+                    width: 34px;
+                    height: 34px;
+                    border-radius: 17px;
+                    background: Theme.t.prime-chip;
+                    LfxText {
+                        width: 100%;
+                        height: 100%;
+                        text: root.initial;
+                        font-size: 15px;
+                        font-weight: 700;
+                        horizontal-alignment: center;
+                        vertical-alignment: center;
+                    }
+                    LfxFocusRing {
+                        active: root.focus-index == 8;
+                        radius: 17px;
+                    }
+                }
+                TouchArea {
+                    mouse-cursor: pointer;
+                    clicked => { root.pick(8); }
+                }
+            }
+        }
+    }
+}

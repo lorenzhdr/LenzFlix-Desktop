@@ -1,0 +1,212 @@
+// W3-prime: Vorschau-Karte beim Überfahren (Web: `prime/hover.js`, `hover-content.js`, `themes/prime/hover.css`).
+// 16:9-Bild, darunter schwarze Infofläche: Titel, weißer Abspielen-Knopf, runde Knöpfe (Liste, Gesehen, Mehr),
+// Metazeile mit Alterschip, Genres. Keine Trailer-Vorschau (das Vorschau-Gate hält Videos sparsam, `prime_gate.rs`).
+import { Theme } from "../theme/theme.slint";
+import { LfxText } from "../components/text.slint";
+import { LfxIcon } from "../components/icon.slint";
+import { Icons } from "../icons.slint";
+import { DetailState } from "detail-state.slint";
+
+component PrimeRound inherits Rectangle {
+    in property <image> icon;
+    in property <bool> on: false;
+    callback clicked();
+    callback hover-changed(bool);
+    width: 50px;
+    height: 50px;
+    border-radius: 25px;
+    background: ta.has-hover ? #ffffff59 : #ffffff33;
+    transform-scale: ta.has-hover ? 1.06 : 1.0;
+    animate background { duration: 200ms; }
+    animate transform-scale { duration: 300ms; easing: ease-in-out; }
+    property <bool> hot: ta.has-hover;
+    changed hot => { root.hover-changed(root.hot); }
+    LfxIcon {
+        x: 13px;
+        y: 13px;
+        source: root.icon;
+        size: 24px;
+        tint: root.on ? Theme.t.green : #ffffff;
+    }
+    ta := TouchArea {
+        mouse-cursor: pointer;
+        clicked => { root.clicked(); }
+    }
+}
+
+export component PrimeHoverCard inherits Rectangle {
+    property <length> w: DetailState.hc-open ? DetailState.hc-to-w : DetailState.hc-from-w;
+    property <bool> open: DetailState.hc-open;
+    x: DetailState.hc-open ? DetailState.hc-to-x : DetailState.hc-from-x;
+    y: DetailState.hc-open ? DetailState.hc-to-y : DetailState.hc-from-y;
+    width: root.w;
+    height: root.w * 9 / 16 + info.preferred-height;
+    background: #000000;
+    border-radius: 12px;
+    drop-shadow-color: #0000004d;
+    drop-shadow-blur: 12px;
+    drop-shadow-offset-y: 8px;
+    animate x { duration: 300ms; easing: cubic-bezier(0.2, 0.45, 0, 1); }
+    animate y { duration: 300ms; easing: cubic-bezier(0.2, 0.45, 0, 1); }
+    animate width { duration: 300ms; easing: cubic-bezier(0.2, 0.45, 0, 1); }
+
+    hover-ta := TouchArea {
+        changed has-hover => { DetailState.hc-hovered(self.has-hover); }
+    }
+
+    Rectangle {
+        x: 0px;
+        y: 0px;
+        width: parent.width;
+        height: root.w * 9 / 16;
+        background: Theme.t.prime-chip;
+        border-radius: 12px;
+        clip: true;
+        if DetailState.hc.has-image: Image {
+            width: 100%;
+            height: 100%;
+            source: DetailState.hc.image;
+            image-fit: cover;
+        }
+        TouchArea {
+            mouse-cursor: pointer;
+            clicked => { DetailState.hc-more(); }
+            changed has-hover => { DetailState.hc-hovered(self.has-hover); }
+        }
+    }
+
+    info := VerticalLayout {
+        x: 0px;
+        width: parent.width;
+        y: root.w * 9 / 16;
+        padding: 20px;
+        spacing: 12px;
+        opacity: root.open ? 1.0 : 0.0;
+        animate opacity { duration: 200ms; delay: root.open ? 250ms : 0ms; easing: Theme.t.ease; }
+        LfxText {
+            text: DetailState.hc.title;
+            font-size: 24px;
+            font-weight: 700;
+            letter-spacing: 0.96px;
+            overflow: elide;
+        }
+        HorizontalLayout {
+            height: 54px;
+            spacing: 10px;
+            alignment: start;
+            Rectangle {
+                width: pl-row.preferred-width + 40px;
+                height: 54px;
+                border-radius: 8px;
+                background: pl.has-hover ? Theme.t.prime-hover-bg : #ffffff;
+                pl-row := HorizontalLayout {
+                    padding-left: 20px;
+                    padding-right: 20px;
+                    spacing: 8px;
+                    LfxIcon {
+                        source: Icons.play;
+                        size: 24px;
+                        tint: Theme.t.bg;
+                        y: (parent.height - self.height) / 2;
+                    }
+                    LfxText {
+                        text: DetailState.hc.progress > 0 ? "Fortsetzen" : "Abspielen";
+                        color: Theme.t.bg;
+                        font-size: 18px;
+                        font-weight: 500;
+                        vertical-alignment: center;
+                    }
+                }
+                pl := TouchArea {
+                    mouse-cursor: pointer;
+                    clicked => { DetailState.hc-play(); }
+                    changed has-hover => { DetailState.hc-hovered(self.has-hover); }
+                }
+            }
+            PrimeRound {
+                icon: DetailState.hc.fav ? Icons.check : Icons.plus;
+                on: DetailState.hc.fav;
+                clicked => { DetailState.hc-fav(); }
+                hover-changed(h) => { DetailState.hc-hovered(h); }
+            }
+            if DetailState.hc.can-played: PrimeRound {
+                icon: DetailState.hc.played ? Icons.eye-check : Icons.eye;
+                on: DetailState.hc.played;
+                clicked => { DetailState.hc-played(); }
+                hover-changed(h) => { DetailState.hc-hovered(h); }
+            }
+            PrimeRound {
+                icon: Icons.more;
+                clicked => { DetailState.hc-more(); }
+                hover-changed(h) => { DetailState.hc-hovered(h); }
+            }
+        }
+        HorizontalLayout {
+            spacing: 10px;
+            alignment: start;
+            height: 20px;
+            if DetailState.hc.rating != "": Rectangle {
+                width: rt.preferred-width + 8px;
+                height: 17px;
+                y: 1.5px;
+                border-radius: 3px;
+                background: #35a9e5;
+                rt := LfxText {
+                    x: 4px;
+                    height: 100%;
+                    text: DetailState.hc.rating;
+                    color: Theme.t.bg;
+                    font-size: 11px;
+                    font-weight: 700;
+                    vertical-alignment: center;
+                }
+            }
+            if DetailState.hc.year != "": LfxText {
+                text: DetailState.hc.year;
+                color: #999999;
+                font-size: 14px;
+                font-weight: 700;
+                vertical-alignment: center;
+            }
+            if DetailState.hc.length != "": LfxText {
+                text: DetailState.hc.length;
+                color: #999999;
+                font-size: 14px;
+                font-weight: 700;
+                vertical-alignment: center;
+            }
+            if DetailState.hc.quality != "": LfxText {
+                text: DetailState.hc.quality;
+                color: #999999;
+                font-size: 14px;
+                font-weight: 700;
+                vertical-alignment: center;
+            }
+        }
+        if DetailState.hc.episode != "": LfxText {
+            text: DetailState.hc.episode;
+            color: Theme.t.text-muted;
+            font-size: 14px;
+            font-weight: 700;
+            overflow: elide;
+        }
+        if DetailState.hc.genres.length > 0: HorizontalLayout {
+            spacing: 0px;
+            alignment: start;
+            height: 20px;
+            for g[i] in DetailState.hc.genres: HorizontalLayout {
+                if i > 0: LfxText {
+                    text: " • ";
+                    color: #666666;
+                    font-size: 14px;
+                }
+                LfxText {
+                    text: g;
+                    color: Theme.t.text-muted;
+                    font-size: 14px;
+                    font-weight: 700;
+                }
+            }
+        }
+    }
+}

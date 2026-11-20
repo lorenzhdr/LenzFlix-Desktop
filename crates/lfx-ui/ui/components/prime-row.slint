@@ -1,0 +1,129 @@
+// W3-prime: Zeile der LENZPRIME-Startseite (Web: `prime/home-rows.js`, `themes/prime/rows.css`).
+// Titel 700 (17..20 px), Karten in festem Raster, Pfeile als Verlauf am Rand (nur bei Zeiger über der Zeile).
+import { Theme } from "../theme/theme.slint";
+import { LfxText } from "text.slint";
+import { LfxIcon } from "icon.slint";
+import { Icons } from "../icons.slint";
+import { HCard } from "../pages/home-types.slint";
+import { PrimeCard } from "prime-card.slint";
+
+export component PrimeRow inherits Rectangle {
+    in property <string> title;
+    in property <[HCard]> items;
+    in property <bool> top10: false;
+    in property <int> focused-index: -1;
+    in property <length> gutter;
+    in property <int> n;
+    in property <length> gap;
+    in property <length> card-w;
+    in property <length> card-h;
+    out property <length> scroll-x: 0px;
+    callback card-clicked(int);
+    callback visible-changed(int);
+    callback card-hover(int, bool, length, length, length, length);
+    callback card-context(int, length, length);
+
+    property <length> pitch: root.card-w + root.gap;
+    property <length> head-h: 28px;
+    property <length> max-scroll: max(0px, root.items.length * root.pitch - (root.width - 2 * root.gutter + root.gap));
+    property <int> first: max(0, floor(root.scroll-x / root.pitch) - 1);
+    property <int> pool: root.n + 4;
+    property <bool> hot: false;
+
+    animate scroll-x { duration: 400ms; easing: Theme.t.ease-out; }
+    changed first => { root.visible-changed(root.first); }
+    changed focused-index => {
+        if (root.focused-index >= 0) { root.reveal(root.focused-index); }
+    }
+
+    public function page-by(dir: int) {
+        root.scroll-x = min(root.max-scroll, max(0px, root.scroll-x + dir * (root.n - 1) * root.pitch));
+    }
+    public function reveal(idx: int) {
+        if (idx * root.pitch < root.scroll-x) {
+            root.scroll-x = max(0px, idx * root.pitch);
+        } else if ((idx + 1) * root.pitch - root.gap > root.scroll-x + root.width - 2 * root.gutter) {
+            root.scroll-x = min(root.max-scroll, (idx + 1) * root.pitch - (root.width - 2 * root.gutter));
+        }
+    }
+
+    LfxText {
+        x: root.gutter;
+        y: 0px;
+        height: root.head-h;
+        text: root.title;
+        font-size: max(17px, min(20px, root.width * 0.0104));
+        font-weight: 700;
+        vertical-alignment: center;
+    }
+
+    viewport := Rectangle {
+        y: root.head-h + 12px;
+        height: root.card-h + 20px;
+        TouchArea {
+            scroll-event(e) => {
+                if (e.delta-x != 0px) {
+                    root.scroll-x = min(root.max-scroll, max(0px, root.scroll-x - e.delta-x));
+                    return accept;
+                }
+                reject
+            }
+        }
+        Rectangle {
+            x: 0px;
+            width: parent.width;
+            height: root.card-h + 20px;
+            clip: true;
+            for slot in root.pool: cell := Rectangle {
+                property <int> idx: root.first + slot;
+                x: root.gutter + idx * root.pitch - root.scroll-x;
+                y: 0px;
+                width: root.card-w;
+                height: root.card-h;
+                if idx < root.items.length: PrimeCard {
+                    width: 100%;
+                    height: 100%;
+                    data: root.items[idx];
+                    top10: root.top10;
+                    focused: idx == root.focused-index;
+                    clicked => { root.card-clicked(idx); }
+                    hover(h) => {
+                        root.hot = h;
+                        root.card-hover(idx, h, cell.absolute-position.x, cell.absolute-position.y, cell.width, cell.height);
+                    }
+                    context-requested(x, y) => { root.card-context(idx, x, y); }
+                }
+            }
+        }
+        if root.scroll-x > 0px: Rectangle {
+            x: 0px;
+            width: root.gutter;
+            height: root.card-h;
+            background: @linear-gradient(90deg, #00050dd9 0%, #00050d66 100%);
+            opacity: (root.hot || a-prev.has-hover) ? 1.0 : 0.0;
+            animate opacity { duration: 250ms; easing: Theme.t.ease; }
+            LfxIcon {
+                x: (parent.width - self.width) / 2;
+                y: (parent.height - self.height) / 2;
+                source: Icons.chevron-left;
+                size: 32px;
+            }
+            a-prev := TouchArea { clicked => { root.page-by(-1); } }
+        }
+        if root.scroll-x < root.max-scroll: Rectangle {
+            x: root.width - root.gutter;
+            width: root.gutter;
+            height: root.card-h;
+            background: @linear-gradient(270deg, #00050dd9 0%, #00050d66 100%);
+            opacity: (root.hot || a-next.has-hover) ? 1.0 : 0.0;
+            animate opacity { duration: 250ms; easing: Theme.t.ease; }
+            LfxIcon {
+                x: (parent.width - self.width) / 2;
+                y: (parent.height - self.height) / 2;
+                source: Icons.chevron-right;
+                size: 32px;
+            }
+            a-next := TouchArea { clicked => { root.page-by(1); } }
+        }
+    }
+}

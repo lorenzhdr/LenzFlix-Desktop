@@ -439,6 +439,11 @@ impl App {
                 .find(|i| i.id == id)
                 .cloned()
         };
+        if self.is_prime() {
+            // W3-prime: LENZPRIME kennt kein Info-Fenster, ein Klick führt zur Titelseite.
+            self.open_detail_page(id);
+            return;
+        }
         self.open_modal(id, seed);
     }
 

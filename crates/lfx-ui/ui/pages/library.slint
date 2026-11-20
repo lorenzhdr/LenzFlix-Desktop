@@ -127,9 +127,10 @@ component LibSearchField inherits Rectangle {
     callback accepted();
     changed tick => { input.focus(); }
 
-    height: 44px;
-    background: Theme.design == Design.retro ? Theme.t.retro-panel : #000000;
-    border-width: 1px;
+    height: Theme.design == Design.prime ? 56px : 44px; // W3-prime: Such-Feld als Chip
+    background: Theme.design == Design.retro ? Theme.t.retro-panel : (Theme.design == Design.prime ? Theme.t.prime-chip : #000000);
+    border-radius: Theme.design == Design.prime ? 12px : 0px;
+    border-width: Theme.design == Design.prime ? 0px : 1px;
     border-color: Theme.design == Design.retro ? Theme.t.retro-amber : #ffffff;
 
     LfxIcon {
@@ -172,7 +173,7 @@ component LibSearchField inherits Rectangle {
         }
         TouchArea { clicked => { root.text = ""; root.edited(); } }
     }
-    LfxFocusRing { active: root.focused; radius: 0px; }
+    LfxFocusRing { active: root.focused; radius: Theme.design == Design.prime ? 12px : 0px; }
 }
 
 // Ein Eintrag der Werkzeugleiste.

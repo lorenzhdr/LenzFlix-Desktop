@@ -1,7 +1,9 @@
+import { Theme, Design } from "../theme/theme.slint";
+import { PrimeHeader } from "prime-header.slint"; // W3-prime
+import { PrimeProfileMenu } from "prime-menus.slint"; // W3-prime
 import { HomeUi } from "../pages/home-types.slint";
 import { HomeHeader } from "home-header.slint";
 import { ProfileMenu, DsPanel, SecretPanel } from "home-menus.slint";
-import { Theme, Design } from "../theme/theme.slint"; // W3-plus
 import { PlusHeader, PlusSwitcher, PlusProfileMenu } from "plus-header.slint"; // W3-plus
 
 // Kopfleiste samt Menüs (Profil, Datensparmodus, Geheimmenü): gemeinsam für Startseite und Bibliotheksseiten.
@@ -24,7 +26,7 @@ export component HomeChrome inherits Rectangle {
         clicked => { root.event("menu-close", 0); }
     }
 
-    if Theme.design != Design.plus: HomeHeader { // W3-plus
+    if Theme.design != Design.plus && Theme.design != Design.prime: HomeHeader { // W3-plus W3-prime
         x: 0px;
         y: 0px;
         width: root.width;
@@ -58,9 +60,23 @@ export component HomeChrome inherits Rectangle {
         opacity: root.scrolled ? 0.0 : 1.0;
         visible: !root.scrolled;
         animate opacity { duration: 300ms; easing: Theme.t.ease; }
-        tabs: ["Für dich", "Filme", "Serien"];
+        tabs: ["F�r dich", "Filme", "Serien"];
         current: 0;
         pick(i) => { root.event("plus-tab", i); }
+    }
+    if Theme.design == Design.prime: PrimeHeader { // W3-prime
+        x: 0px;
+        y: 0px;
+        width: root.width;
+        gutter: root.gutter;
+        scrolled: root.scrolled;
+        focus-index: root.focus-index;
+        current: root.current;
+        ds-on: root.ui.ds-on;
+        initial: root.ui.user-initial;
+        narrow: root.width < 800px;
+        pick(i) => { root.event("nav", i); }
+        logo-clicked => { root.event("logo", 0); }
     }
     if root.ui.menu == 1 && Theme.design == Design.plus: PlusProfileMenu { // W3-plus
         x: 17px + 4px + 96px + 8px;
@@ -68,7 +84,17 @@ export component HomeChrome inherits Rectangle {
         index: root.ui.menu-index;
         pick(i) => { root.event("profile-item", i); }
     }
-    if root.ui.menu == 1 && Theme.design != Design.plus: ProfileMenu {
+    if root.ui.menu == 1 && Theme.design == Design.prime: PrimeProfileMenu { // W3-prime
+        sheet: root.width < 800px;
+        sheet-w: root.width;
+        initial: root.ui.user-initial;
+        x: root.width < 800px ? 0px : root.width - root.gutter - self.width + 8px;
+        y: root.width < 800px ? root.height - self.height : root.header-h - 8px;
+        user-name: root.ui.user-name;
+        index: root.ui.menu-index;
+        pick(i) => { root.event("profile-item", i); }
+    }
+    if root.ui.menu == 1 && Theme.design != Design.plus && Theme.design != Design.prime: ProfileMenu { // W3-plus W3-prime
         x: root.width - root.gutter - self.width + 8px;
         y: root.header-h - 18px;
         user-name: root.ui.user-name;

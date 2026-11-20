@@ -1,0 +1,50 @@
+// W3-prime: Fußzeile von LENZPRIME (Web: `prime/footer.js`): Wortmarke, Links, Hinweis.
+import { Theme } from "../theme/theme.slint";
+import { LfxText } from "text.slint";
+
+component FooterLink inherits Rectangle {
+    in property <string> text;
+    callback clicked();
+    width: t.preferred-width;
+    height: 22px;
+    t := LfxText {
+        text: root.text;
+        color: ta.has-hover ? Theme.t.text : #79b8f3;
+        font-size: 15px;
+        vertical-alignment: center;
+    }
+    ta := TouchArea {
+        mouse-cursor: pointer;
+        clicked => { root.clicked(); }
+    }
+}
+
+export component PrimeFooter inherits Rectangle {
+    callback stats();
+    callback design();
+    height: 122px;
+    background: Theme.t.bg;
+    VerticalLayout {
+        alignment: center;
+        spacing: 10px;
+        padding: 16px;
+        Image {
+            source: @image-url("../../../../assets/logo/lenzprime.svg");
+            height: 22px;
+            image-fit: contain;
+        }
+        HorizontalLayout {
+            alignment: center;
+            spacing: 24px;
+            height: 22px;
+            FooterLink { text: "Statistik"; clicked => { root.stats(); } }
+            FooterLink { text: "Design-Einstellungen"; clicked => { root.design(); } }
+        }
+        LfxText {
+            text: "LENZPRIME für Jellyfin";
+            color: #999999;
+            font-size: 14px;
+            horizontal-alignment: center;
+        }
+    }
+}
