@@ -62,6 +62,7 @@ pub struct State {
     pub couch: crate::picker_couch::CouchCtl, // W3-picker
     /// W4-account: Einstellungen, Konten/Server, Verwaltung.
     pub account: crate::account::AccountCtl, // W4-account
+    pub remote: crate::remote::RemoteCtl, // W5-remote
 }
 
 /// Zeitgeber, die leben müssen, solange die App läuft.
@@ -652,9 +653,11 @@ impl App {
         }
         self.couch_load(&server_id, &user_id); // W3-picker
         self.session.start_heartbeat();
+        self.remote_start(); // W5-remote
     }
 
     pub fn sign_out(self: &Rc<Self>) {
+        self.remote_stop(); // W5-remote
         let session = self.session.clone();
         self.rt.spawn(async move {
             let _ = session.logout().await;

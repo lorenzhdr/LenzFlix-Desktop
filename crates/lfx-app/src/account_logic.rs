@@ -157,6 +157,7 @@ pub const KEY_SUB_BG: &str = "sub.bg";
 pub const KEY_PAD: &str = "ctl.gamepad";
 pub const KEY_SEEK_FWD: &str = "ctl.seek_fwd";
 pub const KEY_SEEK_BACK: &str = "ctl.seek_back";
+pub const KEY_REMOTE: &str = "remote.allow"; // W5-remote
 
 const BITRATES: &[(&str, &str)] = &[
     ("0", "Automatisch"),
@@ -241,6 +242,12 @@ pub const LOCALS: &[LocalDef] = &[
         key: KEY_SEEK_FWD,
         label: "Vorspulen um",
         kind: LocalKind::Choice(SEEK_FWD, 0),
+    },
+    LocalDef {
+        // W5-remote
+        key: KEY_REMOTE,
+        label: "Fernsteuerung erlauben",
+        kind: LocalKind::Toggle(true),
     },
     LocalDef {
         key: KEY_SEEK_BACK,

@@ -262,6 +262,11 @@ impl App {
                 Ok(v) => ok(v),
                 Err(e) => fail(&e),
             },
+            c if c.starts_with("remote_") => match self.remote_automation(c, msg) {
+                // W5-remote
+                Ok(v) => ok(v),
+                Err(e) => fail(&e),
+            },
             c if c.starts_with("retro_") => match self.retro_automation(c, msg) {
                 Ok(v) => ok(v),
                 Err(e) => fail(&e),
@@ -367,6 +372,7 @@ impl App {
             "detail": self.detail_state_json(), // W2-detail
             "retro": self.retro_state_json(), // W3-retro
             "account": self.account_state_json(), // W4-account
+            "remote": self.remote_state_json(), // W5-remote
         })
     }
 }

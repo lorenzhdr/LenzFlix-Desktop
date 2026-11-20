@@ -42,6 +42,7 @@ pub enum Control {
     Audio,
     Speed,
     Quality,
+    Together, // W5-remote
     Fullscreen,
 }
 
@@ -57,6 +58,7 @@ pub const ROWS: [&[Control]; 4] = [
         Control::Audio,
         Control::Speed,
         Control::Quality,
+        Control::Together, // W5-remote
         Control::Fullscreen,
     ],
 ];
@@ -77,6 +79,7 @@ pub fn control_slot(c: Option<Control>) -> i32 {
         Some(Control::Speed) => 9,
         Some(Control::Quality) => 10,
         Some(Control::Fullscreen) => 11,
+        Some(Control::Together) => 12, // W5-remote
     }
 }
 
@@ -138,6 +141,7 @@ pub enum MenuKind {
     Speed,
     Quality,
     Info,
+    Together, // W5-remote
 }
 
 impl MenuKind {
@@ -148,6 +152,7 @@ impl MenuKind {
             Self::Speed => "Geschwindigkeit",
             Self::Quality => "Qualität",
             Self::Info => "Wiedergabe-Info",
+            Self::Together => "Gemeinsam schauen", // W5-remote
         }
     }
 
@@ -158,6 +163,7 @@ impl MenuKind {
             "speed" => Self::Speed,
             "quality" => Self::Quality,
             "info" => Self::Info,
+            "together" => Self::Together, // W5-remote
             _ => return None,
         })
     }
@@ -168,6 +174,7 @@ impl MenuKind {
             Self::Subtitles => Control::Subtitles,
             Self::Speed => Control::Speed,
             Self::Quality | Self::Info => Control::Quality,
+            Self::Together => Control::Together, // W5-remote
         }
     }
 }
@@ -183,8 +190,23 @@ pub enum MenuAction {
     SubSize,
     /// Untertitelhintergrund umschalten.
     SubBackground,
+    /// W5-remote: Eintrag des Menüs „Gemeinsam schauen“.
+    Together(TogetherOp),
     /// Nur Anzeige.
     None,
+}
+
+/// W5-remote: Aktionen des Menüs „Gemeinsam schauen“.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TogetherOp {
+    /// Gruppe mit dem aktuellen Titel starten.
+    New,
+    /// Der n-ten Gruppe der Liste beitreten.
+    Join(usize),
+    /// Gruppe verlassen.
+    Leave,
+    /// Liste neu laden.
+    Refresh,
 }
 
 #[derive(Debug, Clone, PartialEq)]

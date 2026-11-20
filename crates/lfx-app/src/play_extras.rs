@@ -76,6 +76,20 @@ impl App {
         let Some(p) = self.st.borrow().play.player.clone() else {
             return;
         };
+        // W5-remote: in einer SyncPlay-Gruppe geht die Bedienung an den Server
+        let handled = match cmd {
+            MediaCommand::Play => self.remote_intent_pause(Some(false)),
+            MediaCommand::Pause => self.remote_intent_pause(Some(true)),
+            MediaCommand::Toggle => self.remote_intent_pause(None),
+            MediaCommand::FastForward => self.remote_intent_seek_by(30.0),
+            MediaCommand::Rewind => self.remote_intent_seek_by(-10.0),
+            MediaCommand::SeekTo(t) => self.remote_intent_seek(t),
+            _ => false,
+        };
+        if handled {
+            self.player_activity();
+            return;
+        }
         match cmd {
             MediaCommand::Play => p.play(),
             MediaCommand::Pause => p.pause(),

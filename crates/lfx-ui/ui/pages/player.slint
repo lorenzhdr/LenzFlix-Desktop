@@ -222,6 +222,22 @@ export component PlayerPage inherits Rectangle {
             font-weight: 700;
             overflow: elide;
         }
+        if root.pv.sync-text != "": Rectangle { // W5-remote
+            x: parent.width - root.pad - self.width;
+            y: 18px;
+            width: sync-t.preferred-width + 24px;
+            height: 30px;
+            border-radius: 15px;
+            background: #000000a0;
+            border-width: 1px;
+            border-color: #ffffff40;
+            sync-t := LfxText {
+                x: 12px;
+                y: 6px;
+                text: root.pv.sync-text;
+                font-size: 14px;
+            }
+        }
         if root.pv.subtitle != "" && !root.pv.loading: LfxText {
             x: root.pad + 56px;
             y: 42px;
@@ -458,6 +474,11 @@ export component PlayerPage inherits Rectangle {
                 icon: Icons.settings;
                 focused: root.pv.focus-slot == 10;
                 clicked => { root.cmd("menu:quality", 0.0); }
+            }
+            OsdIcon { // W5-remote
+                icon: Icons.user;
+                focused: root.pv.focus-slot == 12;
+                clicked => { root.cmd("menu:together", 0.0); }
             }
             OsdIcon {
                 icon: Icons.fullscreen;

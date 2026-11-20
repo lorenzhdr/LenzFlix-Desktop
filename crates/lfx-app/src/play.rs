@@ -175,7 +175,7 @@ impl App {
         self.start_item(item, mode, false);
     }
 
-    fn start_item(self: &Rc<Self>, item: &BaseItem, mode: ResumeMode, replace: bool) {
+    pub(crate) fn start_item(self: &Rc<Self>, item: &BaseItem, mode: ResumeMode, replace: bool) {
         let Some(active) = self.session.active() else {
             return;
         };
@@ -544,7 +544,7 @@ impl App {
     }
 
     /// Wie `stop_playback`, aber ohne die Oberfläche zu leeren (Folgewiedergabe, Qualitätswechsel).
-    fn stop_playback_keep_route(self: &Rc<Self>) {
+    pub(crate) fn stop_playback_keep_route(self: &Rc<Self>) {
         let (player, reporter, request) = {
             let mut st = self.st.borrow_mut();
             st.play.generation += 1;

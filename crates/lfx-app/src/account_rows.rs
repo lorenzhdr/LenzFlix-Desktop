@@ -101,6 +101,7 @@ impl App {
                 Row::toggle("Datensparmodus", cx.ds_on, Act::DataSaver),
                 self.local_row(lg::KEY_COUCH),
                 self.local_row(lg::KEY_SOUND),
+                self.local_row(lg::KEY_REMOTE), // W5-remote
                 Row::note(
                     "Gilt für diesen Benutzer auf diesem Gerät. Die Web-Einstellungen bleiben unberührt.",
                 ),

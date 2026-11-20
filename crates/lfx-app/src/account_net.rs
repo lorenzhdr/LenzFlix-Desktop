@@ -82,6 +82,9 @@ impl App {
                     let stored = self.local_get(key);
                     let v = lg::local_step(def, stored.as_ref(), dir);
                     self.save_setting(key, v);
+                    if key == lg::KEY_REMOTE {
+                        self.remote_settings_changed(); // W5-remote
+                    }
                     // Zugehörige Anzeige (Vorschau) mitführen
                     let _ = matches!(def.kind, LocalKind::Toggle(_));
                 }

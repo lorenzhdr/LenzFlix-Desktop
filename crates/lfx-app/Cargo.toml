@@ -29,6 +29,7 @@ lfx-images = { path = "../lfx-images" }
 lfx-nav = { path = "../lfx-nav", features = ["gamepad"] }
 lfx-platform = { path = "../lfx-platform" }
 lfx-player = { path = "../lfx-player" }
+lfx-remote = { path = "../lfx-remote" } # W5-remote
 lfx-retro-fx = { path = "../lfx-retro-fx" } # W3-retro
 chrono = { version = "0.4", default-features = false, features = ["clock", "std"] } # W3-retro
 lfx-session = { path = "../lfx-session" }
@@ -97,6 +98,10 @@ required-features = ["dev-automation"]
 
 [[test]] # W3-picker
 name = "w3_picker"
+required-features = ["dev-automation"]
+
+[[test]] # W5-remote
+name = "w5_remote"
 required-features = ["dev-automation"]
 
 [[test]] # W4-account
