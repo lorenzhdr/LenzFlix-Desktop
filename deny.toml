@@ -45,3 +45,8 @@ allow-registry = ["https://github.com/rust-lang/crates.io-index"]
 [advisories]
 unmaintained = "workspace"
 yanked = "warn"
+ignore = [
+  # chrono ist laut Bulletin ungepflegt; es kommt nur transitiv über Slint (i-slint-core) und wird
+  # von uns nicht direkt genutzt. Ausnahme entfernen, sobald Slint es ersetzt.
+  { id = "RUSTSEC-2026-0543", reason = "transitiv über Slint, keine direkte Nutzung" },
+]
