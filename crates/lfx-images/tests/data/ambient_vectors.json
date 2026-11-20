@@ -1,0 +1,1412 @@
+{
+ "default": [
+  27,
+  40,
+  41
+ ],
+ "cases": [
+  {
+   "name": "rauschen-16x16",
+   "rgba": "0b098effec4c16ff4f5265ff909690ff5a7ab2fffecadfff3c45ceffaa4c96ffc67f94fff98762ff5dd45affa895bdff1048cdff5725d7ff355cb8ffe30167ffa8ee8eff6730feff8b084cff7fe036fff05889ffc4efa9ff80b361ff12317cff488d1aff174d42ff2010f8ff5c3fb7ff210178ff19ae2dff51aeb9ff2ba7f1ff97f78dffff5200ff297a15ffdfbc45ff912169ff732c7bffa14db0ff802b2eff3b1e1cffeea1c5fff7a7dcff99f265ff83ed02ffaa8a79ff226492ffefe6abff29c992ffd54806ff5cffbfffb602b6ffba6bafff262ac6ffc487a5ff5a3731ffd5ca39ff23bccbff09dc30ffb309f7ff211d0bff6a77d4ff31b4a3ff1bed37ff73eb1bff617655ff2759e7ffd28b45ff74792fffd487d2ff6eca6fff931effff1eaaa5ff01f4acffea4df7ff2c3b78ffe66a94ffcead9fff8cfffdff1f3261ff776904fff82702ffa4e68cff1c561eff840ba3ff621f05ffe89c59fffc135cff6ff4c3ffaa63eaff7070daff66fa08ff266d49ff8c7135ff6d26afff0b1103ff27c017ff686ee4ffc8e866ff7dc523ff41c0e5ff80819eff8889e0ffa27a30ff9a2dfeff55003bff885a2affd5ccd0ff354867ff6deac7ffc64dd6ff87b7ddffb0261fff20567bff967ed0ff515f3fff74f4f5ff37d497ff18ed59fff2de22ff22beaaffa5a7e3ff9e987cff6409ffff9acfcfff46bbabff1ddb6cffd2bceeff7597a4fffeb028ff240782ff160e74ffc570aaff8a1f42ffce3290ff5f3cc6ff6a01e3ff6e970aff95af16ff0408fefffc2684ff7a817bff81f5fbffa72a38ff307602ff0dad23ff2a0d56ff5f4a12ff3e283eff610c5cff9ef5d8ff3d958bffeb6aeeff7ea53dffc6b8c8ff4718beff06530aff35480effaa3cc1ff7a6463ff39b050ff4787eeff383676fffe5e1eff8caab3ffa405c4ffc580a9ff133fe4ff0aa873ff9f4384ffd3cfd3ffb9185fff5c6000ffb85989ff3da044ffa7db9bff4c34e1ff171109ff7ada2fff3b2c21ff39e6c1ff15c07fff36d08dff850400ffff1558ff592c8fff834e48fffd8cafff5602b5ffba22c6ffe1b87cffb337a3ff96e3d1ffe190acff35b1deffeeb818ffa96146ff3f40aaff3a412cfff0773ffff4f50fff6c537fff704b39ff452856ff8bd922ff26c01fffc34a38ff0730bdff90e6deff1c2029ff4dec6cfff6475cffd75cebfff1a40bff608d9fffe3c383ffd18718ff083d08ffc492abff4af0bbff2382d2ff4f6ed4ff539ffbff60fa86ff1691dfffdf61c3fff4fd41ff69ca17ff182132ff02e290fff230f2ffb205e3ff81e7acff2759f4ffed55a9ffc16debff7a08a0ff3dc430ff4c82f7ffd735bcff8d7738ff094dccff7cdbeefffd31c4ff5681fdfffd774dfffeaba8ff7e5767fffe5ec8ffd44df4ffe625c2ffc36509ff46aedafff59524ffe30ffcff43c344ff",
+   "dominant": [
+    254,
+    20,
+    90
+   ],
+   "ambient": [
+    95,
+    28,
+    48
+   ],
+   "clamped": [
+    95,
+    28,
+    48
+   ]
+  },
+  {
+   "name": "rauschen-33x7",
+   "rgba": "fa5b1bff4cc87eff7f8483ffee8554ff0fe958ffa001f5ff5f5f59fff5ecfeff2f1372ffe8ad78ff3da5caffbbd996ff7f2824ff7e60b2ff421eaeff2fb17effc52a72ffeebc03ff43609cff1dac57ff0f28b0ffbc9a5cff3ad22fffdb51a1ff192e94ff88c62affd878d7ff8da987ffcc4a8effb55e0bff170522ffb6de34ff60e0cbfffd9bb9ff9bfdfaff4ceacbffeba5b7ff294cf4ffcb3b32ffcdd03dff252b27ff44f21dff971fd2ff4d6b52ff0a08f6ff96f3adffb0b484ff84eee7ff49ee05ff5507c8fff3d236ffd0445effbf221bff7ef1a9ff304861ff837423ff8537ecffc04ccefff8613cff19c893ff7fad6dff244a6eff946a52ffe6c44fffbbdf58ff33d8aeff759909ff7e32d8ffdebf57ff737635ff25bb53ff4102e1ff4835f6ff1296e4ff4a8e2dffff803aff14a1b2ff1c2b5dff26e6acff1471a8ff753c8cff5782c9ff052176ff051096fff33ac0ff71b78dff3c6263ffa429b7ff08a199ff82de94ff0eead0ff7b6d41ff653045ff4d55a8ff403eabff0f33a5ffd9a501ff0387b9ff86ae07ffd7f99fff18ee59ff4a32b0ff6ff769ffb86d0affac6c30ffe50af3ffbcdf62ffae5a09ff17761affb8c9c4ff83e246ff6e8399ffcc1f20ff6f20d3ff0ddd91ff5286e5ffe0ad3eff310571ffee0675ffcd4b84fff92144ff4e009cff9ea1bdff6b51ccff392832ff21a6f8ffb09abcff16b975ffb71341ffb95515ffae7767ff6f9785ff2d6d05ff89102effe924a3ffa1d60cffe88bfffff825f2ffa13f1bff73610cff7a5460ff3ccd9aff712e66ffd547ecffe3daefff279cf4ffd6bf10ff8f89e1ff08ab49ff593047ff9dd414fff9cad7ff7db478ffedd937ffa0c049ffeb4df7ffda30e1ff92cc3affc7b90cff0ebc88ff95d0c1ff4a54dbff23fc03ffa7bf82ffa524acff147284ff678338ffef8fcdff649c07ff6e4169ff93f21eff49a05aff7ef319ff1ab4afff91f21bff912eb6ff3ecceeff8d47bfffd333fbffa7b84bff8a475affdc6702ff812f1effe1d0fcff2f5b7eff4a1d6cff803a9fff7dc7dfffafb9c6ff7f91ecff0526eaff7009abff25ed76ffed699affc0c43efff85d6cff5aa532ff519221ffa28b19ff8d47ddff4737fbff094219ff901be2ff4d1285ffdf4700fff929a8ffedaabaff148ef5ff2bf1a7ffe953dbffb91d22ff896220ffe58a79ff2806f8ff8ecfbcffb433a8ff56919affdba1a0ff38fcfbffda0736ff123752ff31e9a9ff7251dbffee8050ffae8b52ff8da322ff192e68ff24a383ffa9e984ff150520ffa14308ff",
+   "dominant": [
+    71,
+    54,
+    249
+   ],
+   "ambient": [
+    33,
+    28,
+    95
+   ],
+   "clamped": [
+    33,
+    28,
+    95
+   ]
+  },
+  {
+   "name": "rauschen-halbtransparent",
+   "rgba": "101a8f91094f2ad6459fb8d8f6529d162ccfe3a6e7e3813117c9b932babf888ca08ee3772b9caa25e04adf21e8347844cde2a760ccff71a4f639052f1c1ff6986a788b80e27674abbf24ff34f9e1925f0c5aa742efff9a7a507f95b7501a4b7e5810e4002927b57e80d5564ce4479f2426cccddc3de28b01ac3dcc339f9b60c7817f4bc9d0c2c5879f0aad6ef6ae1c3dd8123585fdd210bc602e069a90d128afe23f76f1532c4f71ce2be28d061de97fa652a2fd5afbab6016d5f014da24c548bc2056500017d067715f1d6f8ec2ffe964f7cc5506fe15ed251c0748ae0c0d1fb3a38e9f7912d4f27052ed86fde8a84ba61f63f70ab4742081d9797deb05f51ae30fdc2750b4a0cba0c498d1282261c9f400db3936dc87d79756aa28b4fcbb6d27eeda3d45303fb10de722a24ec58bae8f9a6b19d371f027a0dd56672b490daa907c0cb00b2f161d45fb6b356727e760e15fdff5ea7ea8403fda3aa6485baf7e1b9d4bef1ed5bc3c401bfeb9568802e9b09364ba21a375230f081945d14b47bd982fff8e44bdf958493bd6e2cb61e1cb90fd4fa26c6efe3963241fd3811dba2562eb5e6af0ef4933e60f73292d27b02c15fe7931267dc57e176a41373a34fc3e5544ab3857e6668801b7d143b8a65a5b1eee2fd07e50dc037aa0c643b24f6954ba55387d8a92f751b2ab46cfdfb12477576f3aa39f74e3dcacecea1b4b840adfa8f30a24efd0d9da14a2f38b6a2502bb6fe6ced5bae85c5dc3c2adcffc665914c51b9a54ca9b64bbcbe850aadb967b75383cc62fd84c870301f0f6dd9bebfd9c0647c08cdc3e879fa3ff7a5fb19841ffc77a2d9af302849f50dde893db206221fc58f12f1d37516bde0081a722d88d88717575fb36a4c7ff8ce9bdd9e2afec21c190dd2b33309742de4b37f1a49e8f77f7b58cb5a2fe16c192faf133ed70ab0735168ee4e217738496171fe9ebe23f6b3e5be8ae2809fa7c30a115ac513c8c5039459d3c474586d2018003a62f768b785f7e62d130840fb1d1c89dd888bfaa4bb5bbc054a2b388a4f0229adedcd7ec0047a10c27cb64efca81b497d962676a35d6a9a50cb0ea4aa667444c1bbd210b8e19a6912cb7e8301221256cc8612c6c271906379eae2b948724edb35c18f7721f6d5e6febaf1552a6b5e4fcd13b5302b56d2cd9a1de18f31d5dc96a07ea8b9f09fe91c3b41aa9fe60b05b5489e5d6b1e69496754d940ff5ec788c2673de8d0ad93981371342832ba704508a982c9fdfc85a7298e04075d29a8ebf6494d8a6c40e6aa11e762379a1dcd05e21af96fed6d16e7b18cf60a282182e933668dd42402dfc74e3abaebedf52b520a71fd500dc313e03e03efa301d3fda0bd333e8ccbbe3f987a28f1499ff98876b39bb0f7c8deb57aa1295da916d0d1b29e7b0b681d5ac6d3bdd631555389c89313726757029c8af4768814ba90250747093d356e89063c9feabcc445573fa3bdb834dd819bf79a62bac516b88f2a147c93c903425e6b092b4b1bf767cb22988b32d2d05dffc2b7b2273b0a0ba6ee6e74f0abaa8fdd25dbf576f2ddd9778e974dd2e8fe61b182e8a5c30c0ba3430a572a475820a1113210e7a99136f4cba57edeb199f42bcc3fbffb069aef32bef8e651d375c927ba684c8c0b3bf3f63465160b6a7f53aaad753bf53ac79113770a6600e7719d28932d21c59435c68e6afd10988ad69e38eb38de9723c46e97a6adc545d8cb798698a089ec2db08f4a0bc0ce9f1cfce2988f03b198f6f97d7dcbb07fd3ba6cc37088680646b4a7aed020e61448c7256f11ca0462b1bab7eecd46e7a3abd2d9491a64473f6963aa111d8c543d8eb34c7c66489a00b5e8b699135c631d4b7054c9834a3b8e9ca4ade02ff1c6daa63cee43d6d8a63c24e62e0737095d1d572a6520f28f177b0dc2f3eb047c37b8b44b81c198005d299dbf8aadc920abf39e2b515d6bd61f22742ab8226f38257c942bd9398beb3cf5c7a33be50a10969859e528844df523e9d4ef80572148c98bf413b1fb082013a72f59a1fdedd57d9da6822b5b2dfb2ca18744dccafd5f97557aa4473ab944c12badea35d068cea533289195bb3abdf0cbf7363b10faa6077afff884f72b713c90e30056a8b791068742f1741eea6fa7757c65df705234c44c5cb335ee223f4a6f6af78dbb505887727dc741fd5d226093e7a0b61b7975f59d10fd2fa4dda16e9bd8e435436e0dbe8cdff67da77d49291debfa2c6497f4afd9b0c73a4e538ffce",
+   "dominant": [
+    101,
+    41,
+    4
+   ],
+   "ambient": [
+    81,
+    46,
+    24
+   ],
+   "clamped": [
+    81,
+    46,
+    24
+   ]
+  },
+  {
+   "name": "alles-schwarz",
+   "rgba": "000000ff000000ff000000ff000000ff000000ff000000ff000000ff000000ff000000ff000000ff000000ff000000ff000000ff000000ff000000ff000000ff000000ff000000ff000000ff000000ff000000ff000000ff000000ff000000ff000000ff000000ff000000ff000000ff000000ff000000ff000000ff000000ff000000ff000000ff000000ff000000ff000000ff000000ff000000ff000000ff000000ff000000ff000000ff000000ff000000ff000000ff000000ff000000ff000000ff000000ff000000ff000000ff000000ff000000ff000000ff000000ff000000ff000000ff000000ff000000ff000000ff000000ff000000ff000000ff",
+   "dominant": null,
+   "ambient": [
+    27,
+    40,
+    41
+   ],
+   "clamped": null
+  },
+  {
+   "name": "alles-weiss",
+   "rgba": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+   "dominant": null,
+   "ambient": [
+    27,
+    40,
+    41
+   ],
+   "clamped": null
+  },
+  {
+   "name": "alles-transparent",
+   "rgba": "c81e1e00c81e1e00c81e1e00c81e1e00c81e1e00c81e1e00c81e1e00c81e1e00c81e1e00c81e1e00c81e1e00c81e1e00c81e1e00c81e1e00c81e1e00c81e1e00c81e1e00c81e1e00c81e1e00c81e1e00c81e1e00c81e1e00c81e1e00c81e1e00c81e1e00c81e1e00c81e1e00c81e1e00c81e1e00c81e1e00c81e1e00c81e1e00c81e1e00c81e1e00c81e1e00c81e1e00c81e1e00c81e1e00c81e1e00c81e1e00c81e1e00c81e1e00c81e1e00c81e1e00c81e1e00c81e1e00c81e1e00c81e1e00c81e1e00c81e1e00c81e1e00c81e1e00c81e1e00c81e1e00c81e1e00c81e1e00c81e1e00c81e1e00c81e1e00c81e1e00c81e1e00c81e1e00c81e1e00c81e1e00",
+   "dominant": null,
+   "ambient": [
+    27,
+    40,
+    41
+   ],
+   "clamped": null
+  },
+  {
+   "name": "grau",
+   "rgba": "808080ff808080ff808080ff808080ff808080ff808080ff808080ff808080ff808080ff808080ff808080ff808080ff808080ff808080ff808080ff808080ff808080ff808080ff808080ff808080ff808080ff808080ff808080ff808080ff808080ff808080ff808080ff808080ff808080ff808080ff808080ff808080ff808080ff808080ff808080ff808080ff808080ff808080ff808080ff808080ff808080ff808080ff808080ff808080ff808080ff808080ff808080ff808080ff808080ff808080ff808080ff808080ff808080ff808080ff808080ff808080ff808080ff808080ff808080ff808080ff808080ff808080ff808080ff808080ff",
+   "dominant": [
+    128,
+    128,
+    128
+   ],
+   "ambient": [
+    61,
+    61,
+    61
+   ],
+   "clamped": [
+    61,
+    61,
+    61
+   ]
+  },
+  {
+   "name": "leer",
+   "rgba": "",
+   "dominant": null,
+   "ambient": [
+    27,
+    40,
+    41
+   ],
+   "clamped": null
+  },
+  {
+   "name": "rot-blau-gleichstand",
+   "rgba": "c81414ffc81414ffc81414ffc81414ff1414c8ff1414c8ff1414c8ff1414c8ffc81414ffc81414ffc81414ffc81414ff1414c8ff1414c8ff1414c8ff1414c8ffc81414ffc81414ffc81414ffc81414ff1414c8ff1414c8ff1414c8ff1414c8ffc81414ffc81414ffc81414ffc81414ff1414c8ff1414c8ff1414c8ff1414c8ffc81414ffc81414ffc81414ffc81414ff1414c8ff1414c8ff1414c8ff1414c8ffc81414ffc81414ffc81414ffc81414ff1414c8ff1414c8ff1414c8ff1414c8ffc81414ffc81414ffc81414ffc81414ff1414c8ff1414c8ff1414c8ff1414c8ffc81414ffc81414ffc81414ffc81414ff1414c8ff1414c8ff1414c8ff1414c8ff",
+   "dominant": [
+    200,
+    20,
+    20
+   ],
+   "ambient": [
+    95,
+    28,
+    28
+   ],
+   "clamped": [
+    95,
+    28,
+    28
+   ]
+  },
+  {
+   "name": "blau-mehrheit",
+   "rgba": "dc2828ffdc2828ffdc2828ff1e3cbeff1e3cbeff1e3cbeff1e3cbeff1e3cbeff1e3cbeff1e3cbeffdc2828ffdc2828ffdc2828ff1e3cbeff1e3cbeff1e3cbeff1e3cbeff1e3cbeff1e3cbeff1e3cbeffdc2828ffdc2828ffdc2828ff1e3cbeff1e3cbeff1e3cbeff1e3cbeff1e3cbeff1e3cbeff1e3cbeffdc2828ffdc2828ffdc2828ff1e3cbeff1e3cbeff1e3cbeff1e3cbeff1e3cbeff1e3cbeff1e3cbeffdc2828ffdc2828ffdc2828ff1e3cbeff1e3cbeff1e3cbeff1e3cbeff1e3cbeff1e3cbeff1e3cbeffdc2828ffdc2828ffdc2828ff1e3cbeff1e3cbeff1e3cbeff1e3cbeff1e3cbeff1e3cbeff1e3cbeffdc2828ffdc2828ffdc2828ff1e3cbeff1e3cbeff1e3cbeff1e3cbeff1e3cbeff1e3cbeff1e3cbeffdc2828ffdc2828ffdc2828ff1e3cbeff1e3cbeff1e3cbeff1e3cbeff1e3cbeff1e3cbeff1e3cbeffdc2828ffdc2828ffdc2828ff1e3cbeff1e3cbeff1e3cbeff1e3cbeff1e3cbeff1e3cbeff1e3cbeffdc2828ffdc2828ffdc2828ff1e3cbeff1e3cbeff1e3cbeff1e3cbeff1e3cbeff1e3cbeff1e3cbeff",
+   "dominant": [
+    30,
+    60,
+    190
+   ],
+   "ambient": [
+    28,
+    40,
+    95
+   ],
+   "clamped": [
+    28,
+    40,
+    95
+   ]
+  },
+  {
+   "name": "verlauf",
+   "rgba": "0000ffff0800f7ff1000efff1800e7ff2000dfff2800d7ff3000cfff3800c7ff4000bfff4800b7ff5000afff5800a7ff60009fff680097ff70008fff780087ff80007fff880077ff90006fff980067ffa0005fffa80057ffb0004fffb80047ffc0003fffc80037ffd0002fffd80027ffe0001fffe80017fff0000ffff80007ff0008ffff0808f7ff1008efff1808e7ff2008dfff2808d7ff3008cfff3808c7ff4008bfff4808b7ff5008afff5808a7ff60089fff680897ff70088fff780887ff80087fff880877ff90086fff980867ffa0085fffa80857ffb0084fffb80847ffc0083fffc80837ffd0082fffd80827ffe0081fffe80817fff0080ffff80807ff0010ffff0810f7ff1010efff1810e7ff2010dfff2810d7ff3010cfff3810c7ff4010bfff4810b7ff5010afff5810a7ff60109fff681097ff70108fff781087ff80107fff881077ff90106fff981067ffa0105fffa81057ffb0104fffb81047ffc0103fffc81037ffd0102fffd81027ffe0101fffe81017fff0100ffff81007ff0018ffff0818f7ff1018efff1818e7ff2018dfff2818d7ff3018cfff3818c7ff4018bfff4818b7ff5018afff5818a7ff60189fff681897ff70188fff781887ff80187fff881877ff90186fff981867ffa0185fffa81857ffb0184fffb81847ffc0183fffc81837ffd0182fffd81827ffe0181fffe81817fff0180ffff81807ff0020ffff0820f7ff1020efff1820e7ff2020dfff2820d7ff3020cfff3820c7ff4020bfff4820b7ff5020afff5820a7ff60209fff682097ff70208fff782087ff80207fff882077ff90206fff982067ffa0205fffa82057ffb0204fffb82047ffc0203fffc82037ffd0202fffd82027ffe0201fffe82017fff0200ffff82007ff0028ffff0828f7ff1028efff1828e7ff2028dfff2828d7ff3028cfff3828c7ff4028bfff4828b7ff5028afff5828a7ff60289fff682897ff70288fff782887ff80287fff882877ff90286fff982867ffa0285fffa82857ffb0284fffb82847ffc0283fffc82837ffd0282fffd82827ffe0281fffe82817fff0280ffff82807ff0030ffff0830f7ff1030efff1830e7ff2030dfff2830d7ff3030cfff3830c7ff4030bfff4830b7ff5030afff5830a7ff60309fff683097ff70308fff783087ff80307fff883077ff90306fff983067ffa0305fffa83057ffb0304fffb83047ffc0303fffc83037ffd0302fffd83027ffe0301fffe83017fff0300ffff83007ff0038ffff0838f7ff1038efff1838e7ff2038dfff2838d7ff3038cfff3838c7ff4038bfff4838b7ff5038afff5838a7ff60389fff683897ff70388fff783887ff80387fff883877ff90386fff983867ffa0385fffa83857ffb0384fffb83847ffc0383fffc83837ffd0382fffd83827ffe0381fffe83817fff0380ffff83807ff0040ffff0840f7ff1040efff1840e7ff2040dfff2840d7ff3040cfff3840c7ff4040bfff4840b7ff5040afff5840a7ff60409fff684097ff70408fff784087ff80407fff884077ff90406fff984067ffa0405fffa84057ffb0404fffb84047ffc0403fffc84037ffd0402fffd84027ffe0401fffe84017fff0400ffff84007ff0048ffff0848f7ff1048efff1848e7ff2048dfff2848d7ff3048cfff3848c7ff4048bfff4848b7ff5048afff5848a7ff60489fff684897ff70488fff784887ff80487fff884877ff90486fff984867ffa0485fffa84857ffb0484fffb84847ffc0483fffc84837ffd0482fffd84827ffe0481fffe84817fff0480ffff84807ff0050ffff0850f7ff1050efff1850e7ff2050dfff2850d7ff3050cfff3850c7ff4050bfff4850b7ff5050afff5850a7ff60509fff685097ff70508fff785087ff80507fff885077ff90506fff985067ffa0505fffa85057ffb0504fffb85047ffc0503fffc85037ffd0502fffd85027ffe0501fffe85017fff0500ffff85007ff0058ffff0858f7ff1058efff1858e7ff2058dfff2858d7ff3058cfff3858c7ff4058bfff4858b7ff5058afff5858a7ff60589fff685897ff70588fff785887ff80587fff885877ff90586fff985867ffa0585fffa85857ffb0584fffb85847ffc0583fffc85837ffd0582fffd85827ffe0581fffe85817fff0580ffff85807ff0060ffff0860f7ff1060efff1860e7ff2060dfff2860d7ff3060cfff3860c7ff4060bfff4860b7ff5060afff5860a7ff60609fff686097ff70608fff786087ff80607fff886077ff90606fff986067ffa0605fffa86057ffb0604fffb86047ffc0603fffc86037ffd0602fffd86027ffe0601fffe86017fff0600ffff86007ff0068ffff0868f7ff1068efff1868e7ff2068dfff2868d7ff3068cfff3868c7ff4068bfff4868b7ff5068afff5868a7ff60689fff686897ff70688fff786887ff80687fff886877ff90686fff986867ffa0685fffa86857ffb0684fffb86847ffc0683fffc86837ffd0682fffd86827ffe0681fffe86817fff0680ffff86807ff0070ffff0870f7ff1070efff1870e7ff2070dfff2870d7ff3070cfff3870c7ff4070bfff4870b7ff5070afff5870a7ff60709fff687097ff70708fff787087ff80707fff887077ff90706fff987067ffa0705fffa87057ffb0704fffb87047ffc0703fffc87037ffd0702fffd87027ffe0701fffe87017fff0700ffff87007ff0078ffff0878f7ff1078efff1878e7ff2078dfff2878d7ff3078cfff3878c7ff4078bfff4878b7ff5078afff5878a7ff60789fff687897ff70788fff787887ff80787fff887877ff90786fff987867ffa0785fffa87857ffb0784fffb87847ffc0783fffc87837ffd0782fffd87827ffe0781fffe87817fff0780ffff87807ff0080ffff0880f7ff1080efff1880e7ff2080dfff2880d7ff3080cfff3880c7ff4080bfff4880b7ff5080afff5880a7ff60809fff688097ff70808fff788087ff80807fff888077ff90806fff988067ffa0805fffa88057ffb0804fffb88047ffc0803fffc88037ffd0802fffd88027ffe0801fffe88017fff0800ffff88007ff0088ffff0888f7ff1088efff1888e7ff2088dfff2888d7ff3088cfff3888c7ff4088bfff4888b7ff5088afff5888a7ff60889fff688897ff70888fff788887ff80887fff888877ff90886fff988867ffa0885fffa88857ffb0884fffb88847ffc0883fffc88837ffd0882fffd88827ffe0881fffe88817fff0880ffff88807ff0090ffff0890f7ff1090efff1890e7ff2090dfff2890d7ff3090cfff3890c7ff4090bfff4890b7ff5090afff5890a7ff60909fff689097ff70908fff789087ff80907fff889077ff90906fff989067ffa0905fffa89057ffb0904fffb89047ffc0903fffc89037ffd0902fffd89027ffe0901fffe89017fff0900ffff89007ff0098ffff0898f7ff1098efff1898e7ff2098dfff2898d7ff3098cfff3898c7ff4098bfff4898b7ff5098afff5898a7ff60989fff689897ff70988fff789887ff80987fff889877ff90986fff989867ffa0985fffa89857ffb0984fffb89847ffc0983fffc89837ffd0982fffd89827ffe0981fffe89817fff0980ffff89807ff00a0ffff08a0f7ff10a0efff18a0e7ff20a0dfff28a0d7ff30a0cfff38a0c7ff40a0bfff48a0b7ff50a0afff58a0a7ff60a09fff68a097ff70a08fff78a087ff80a07fff88a077ff90a06fff98a067ffa0a05fffa8a057ffb0a04fffb8a047ffc0a03fffc8a037ffd0a02fffd8a027ffe0a01fffe8a017fff0a00ffff8a007ff00a8ffff08a8f7ff10a8efff18a8e7ff20a8dfff28a8d7ff30a8cfff38a8c7ff40a8bfff48a8b7ff50a8afff58a8a7ff60a89fff68a897ff70a88fff78a887ff80a87fff88a877ff90a86fff98a867ffa0a85fffa8a857ffb0a84fffb8a847ffc0a83fffc8a837ffd0a82fffd8a827ffe0a81fffe8a817fff0a80ffff8a807ff00b0ffff08b0f7ff10b0efff18b0e7ff20b0dfff28b0d7ff30b0cfff38b0c7ff40b0bfff48b0b7ff50b0afff58b0a7ff60b09fff68b097ff70b08fff78b087ff80b07fff88b077ff90b06fff98b067ffa0b05fffa8b057ffb0b04fffb8b047ffc0b03fffc8b037ffd0b02fffd8b027ffe0b01fffe8b017fff0b00ffff8b007ff00b8ffff08b8f7ff10b8efff18b8e7ff20b8dfff28b8d7ff30b8cfff38b8c7ff40b8bfff48b8b7ff50b8afff58b8a7ff60b89fff68b897ff70b88fff78b887ff80b87fff88b877ff90b86fff98b867ffa0b85fffa8b857ffb0b84fffb8b847ffc0b83fffc8b837ffd0b82fffd8b827ffe0b81fffe8b817fff0b80ffff8b807ff00c0ffff08c0f7ff10c0efff18c0e7ff20c0dfff28c0d7ff30c0cfff38c0c7ff40c0bfff48c0b7ff50c0afff58c0a7ff60c09fff68c097ff70c08fff78c087ff80c07fff88c077ff90c06fff98c067ffa0c05fffa8c057ffb0c04fffb8c047ffc0c03fffc8c037ffd0c02fffd8c027ffe0c01fffe8c017fff0c00ffff8c007ff00c8ffff08c8f7ff10c8efff18c8e7ff20c8dfff28c8d7ff30c8cfff38c8c7ff40c8bfff48c8b7ff50c8afff58c8a7ff60c89fff68c897ff70c88fff78c887ff80c87fff88c877ff90c86fff98c867ffa0c85fffa8c857ffb0c84fffb8c847ffc0c83fffc8c837ffd0c82fffd8c827ffe0c81fffe8c817fff0c80ffff8c807ff00d0ffff08d0f7ff10d0efff18d0e7ff20d0dfff28d0d7ff30d0cfff38d0c7ff40d0bfff48d0b7ff50d0afff58d0a7ff60d09fff68d097ff70d08fff78d087ff80d07fff88d077ff90d06fff98d067ffa0d05fffa8d057ffb0d04fffb8d047ffc0d03fffc8d037ffd0d02fffd8d027ffe0d01fffe8d017fff0d00ffff8d007ff00d8ffff08d8f7ff10d8efff18d8e7ff20d8dfff28d8d7ff30d8cfff38d8c7ff40d8bfff48d8b7ff50d8afff58d8a7ff60d89fff68d897ff70d88fff78d887ff80d87fff88d877ff90d86fff98d867ffa0d85fffa8d857ffb0d84fffb8d847ffc0d83fffc8d837ffd0d82fffd8d827ffe0d81fffe8d817fff0d80ffff8d807ff00e0ffff08e0f7ff10e0efff18e0e7ff20e0dfff28e0d7ff30e0cfff38e0c7ff40e0bfff48e0b7ff50e0afff58e0a7ff60e09fff68e097ff70e08fff78e087ff80e07fff88e077ff90e06fff98e067ffa0e05fffa8e057ffb0e04fffb8e047ffc0e03fffc8e037ffd0e02fffd8e027ffe0e01fffe8e017fff0e00ffff8e007ff00e8ffff08e8f7ff10e8efff18e8e7ff20e8dfff28e8d7ff30e8cfff38e8c7ff40e8bfff48e8b7ff50e8afff58e8a7ff60e89fff68e897ff70e88fff78e887ff80e87fff88e877ff90e86fff98e867ffa0e85fffa8e857ffb0e84fffb8e847ffc0e83fffc8e837ffd0e82fffd8e827ffe0e81fffe8e817fff0e80ffff8e807ff00f0ffff08f0f7ff10f0efff18f0e7ff20f0dfff28f0d7ff30f0cfff38f0c7ff40f0bfff48f0b7ff50f0afff58f0a7ff60f09fff68f097ff70f08fff78f087ff80f07fff88f077ff90f06fff98f067ffa0f05fffa8f057ffb0f04fffb8f047ffc0f03fffc8f037ffd0f02fffd8f027ffe0f01fffe8f017fff0f00ffff8f007ff00f8ffff08f8f7ff10f8efff18f8e7ff20f8dfff28f8d7ff30f8cfff38f8c7ff40f8bfff48f8b7ff50f8afff58f8a7ff60f89fff68f897ff70f88fff78f887ff80f87fff88f877ff90f86fff98f867ffa0f85fffa8f857ffb0f84fffb8f847ffc0f83fffc8f837ffd0f82fffd8f827ffe0f81fffe8f817fff0f80ffff8f807ff",
+   "dominant": [
+    4,
+    4,
+    251
+   ],
+   "ambient": [
+    28,
+    28,
+    95
+   ],
+   "clamped": [
+    28,
+    28,
+    95
+   ]
+  },
+  {
+   "name": "pastell",
+   "rgba": "c8b4beffc9b4beffcab4beffc8b4beffc9b4beffcab4beffc8b4beffc9b4beffcab4beffc8b4beffc9b4beffcab4beffc8b5beffc9b5beffcab5beffc8b5beffc9b5beffcab5beffc8b5beffc9b5beffcab5beffc8b5beffc9b5beffcab5beffc8b6beffc9b6beffcab6beffc8b6beffc9b6beffcab6beffc8b6beffc9b6beffcab6beffc8b6beffc9b6beffcab6beffc8b7beffc9b7beffcab7beffc8b7beffc9b7beffcab7beffc8b7beffc9b7beffcab7beffc8b7beffc9b7beffcab7beffc8b4beffc9b4beffcab4beffc8b4beffc9b4beffcab4beffc8b4beffc9b4beffcab4beffc8b4beffc9b4beffcab4beffc8b5beffc9b5beffcab5beffc8b5beffc9b5beffcab5beffc8b5beffc9b5beffcab5beffc8b5beffc9b5beffcab5beffc8b6beffc9b6beffcab6beffc8b6beffc9b6beffcab6beffc8b6beffc9b6beffcab6beffc8b6beffc9b6beffcab6beffc8b7beffc9b7beffcab7beffc8b7beffc9b7beffcab7beffc8b7beffc9b7beffcab7beffc8b7beffc9b7beffcab7beffc8b4beffc9b4beffcab4beffc8b4beffc9b4beffcab4beffc8b4beffc9b4beffcab4beffc8b4beffc9b4beffcab4beffc8b5beffc9b5beffcab5beffc8b5beffc9b5beffcab5beffc8b5beffc9b5beffcab5beffc8b5beffc9b5beffcab5beffc8b6beffc9b6beffcab6beffc8b6beffc9b6beffcab6beffc8b6beffc9b6beffcab6beffc8b6beffc9b6beffcab6beffc8b7beffc9b7beffcab7beffc8b7beffc9b7beffcab7beffc8b7beffc9b7beffcab7beffc8b7beffc9b7beffcab7beff",
+   "dominant": [
+    201,
+    181,
+    190
+   ],
+   "ambient": [
+    71,
+    52,
+    60
+   ],
+   "clamped": [
+    71,
+    52,
+    60
+   ]
+  },
+  {
+   "name": "dunkel-mit-akzent",
+   "rgba": "0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cfffa780aff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff0a0a0cff",
+   "dominant": [
+    250,
+    120,
+    10
+   ],
+   "ambient": [
+    95,
+    58,
+    28
+   ],
+   "clamped": [
+    95,
+    58,
+    28
+   ]
+  },
+  {
+   "name": "teiltransparent-kante",
+   "rgba": "0ac85a7f0ac85a7f0ac85a7f0ac85a7f0ac85a7f0a5ac8800a5ac8800a5ac8800a5ac8800a5ac8800ac85a7f0ac85a7f0ac85a7f0ac85a7f0ac85a7f0a5ac8800a5ac8800a5ac8800a5ac8800a5ac8800ac85a7f0ac85a7f0ac85a7f0ac85a7f0ac85a7f0a5ac8800a5ac8800a5ac8800a5ac8800a5ac8800ac85a7f0ac85a7f0ac85a7f0ac85a7f0ac85a7f0a5ac8800a5ac8800a5ac8800a5ac8800a5ac8800ac85a7f0ac85a7f0ac85a7f0ac85a7f0ac85a7f0a5ac8800a5ac8800a5ac8800a5ac8800a5ac8800ac85a7f0ac85a7f0ac85a7f0ac85a7f0ac85a7f0a5ac8800a5ac8800a5ac8800a5ac8800a5ac8800ac85a7f0ac85a7f0ac85a7f0ac85a7f0ac85a7f0a5ac8800a5ac8800a5ac8800a5ac8800a5ac8800ac85a7f0ac85a7f0ac85a7f0ac85a7f0ac85a7f0a5ac8800a5ac8800a5ac8800a5ac8800a5ac8800ac85a7f0ac85a7f0ac85a7f0ac85a7f0ac85a7f0a5ac8800a5ac8800a5ac8800a5ac8800a5ac8800ac85a7f0ac85a7f0ac85a7f0ac85a7f0ac85a7f0a5ac8800a5ac8800a5ac8800a5ac8800a5ac880",
+   "dominant": [
+    10,
+    90,
+    200
+   ],
+   "ambient": [
+    28,
+    56,
+    95
+   ],
+   "clamped": [
+    28,
+    56,
+    95
+   ]
+  },
+  {
+   "name": "grenze-helligkeit",
+   "rgba": "141414ff141414ff141414ff141414ffebebebffebebebffebebebffebebebff141414ff141414ff141414ff141414ffebebebffebebebffebebebffebebebff141414ff141414ff141414ff141414ffebebebffebebebffebebebffebebebff141414ff141414ff141414ff141414ffebebebffebebebffebebebffebebebff141414ff141414ff141414ff141414ffebebebffebebebffebebebffebebebff141414ff141414ff141414ff141414ffebebebffebebebffebebebffebebebff141414ff141414ff141414ff141414ffebebebffebebebffebebebffebebebff141414ff141414ff141414ff141414ffebebebffebebebffebebebffebebebff",
+   "dominant": null,
+   "ambient": [
+    27,
+    40,
+    41
+   ],
+   "clamped": null
+  }
+ ],
+ "hsl": [
+  {
+   "rgb": [
+    119,
+    86,
+    114
+   ],
+   "hsl": [
+    309.09090909090907,
+    0.16097560975609754,
+    0.4019607843137255
+   ],
+   "clamped": [
+    71,
+    51,
+    68
+   ]
+  },
+  {
+   "rgb": [
+    219,
+    190,
+    116
+   ],
+   "hsl": [
+    43.10679611650486,
+    0.5885714285714285,
+    0.6568627450980392
+   ],
+   "clamped": [
+    95,
+    76,
+    28
+   ]
+  },
+  {
+   "rgb": [
+    182,
+    114,
+    81
+   ],
+   "hsl": [
+    19.603960396039607,
+    0.4089068825910931,
+    0.5156862745098039
+   ],
+   "clamped": [
+    86,
+    53,
+    36
+   ]
+  },
+  {
+   "rgb": [
+    95,
+    160,
+    200
+   ],
+   "hsl": [
+    202.85714285714286,
+    0.48837209302325574,
+    0.5784313725490196
+   ],
+   "clamped": [
+    31,
+    68,
+    91
+   ]
+  },
+  {
+   "rgb": [
+    85,
+    123,
+    189
+   ],
+   "hsl": [
+    218.07692307692307,
+    0.44067796610169496,
+    0.5372549019607843
+   ],
+   "clamped": [
+    34,
+    54,
+    88
+   ]
+  },
+  {
+   "rgb": [
+    132,
+    156,
+    93
+   ],
+   "hsl": [
+    82.85714285714286,
+    0.2530120481927711,
+    0.4882352941176471
+   ],
+   "clamped": [
+    65,
+    77,
+    46
+   ]
+  },
+  {
+   "rgb": [
+    105,
+    84,
+    21
+   ],
+   "hsl": [
+    45,
+    0.6666666666666666,
+    0.24705882352941175
+   ],
+   "clamped": [
+    95,
+    78,
+    28
+   ]
+  },
+  {
+   "rgb": [
+    43,
+    191,
+    67
+   ],
+   "hsl": [
+    129.72972972972974,
+    0.6324786324786323,
+    0.45882352941176474
+   ],
+   "clamped": [
+    28,
+    95,
+    38
+   ]
+  },
+  {
+   "rgb": [
+    239,
+    104,
+    14
+   ],
+   "hsl": [
+    23.999999999999996,
+    0.8893280632411067,
+    0.49607843137254903
+   ],
+   "clamped": [
+    95,
+    54,
+    28
+   ]
+  },
+  {
+   "rgb": [
+    56,
+    8,
+    89
+   ],
+   "hsl": [
+    275.55555555555554,
+    0.8350515463917526,
+    0.19019607843137254
+   ],
+   "clamped": [
+    53,
+    22,
+    75
+   ]
+  },
+  {
+   "rgb": [
+    101,
+    196,
+    249
+   ],
+   "hsl": [
+    201.48648648648648,
+    0.9249999999999999,
+    0.6862745098039216
+   ],
+   "clamped": [
+    28,
+    71,
+    95
+   ]
+  },
+  {
+   "rgb": [
+    32,
+    188,
+    200
+   ],
+   "hsl": [
+    184.28571428571428,
+    0.7241379310344828,
+    0.4549019607843137
+   ],
+   "clamped": [
+    28,
+    90,
+    95
+   ]
+  },
+  {
+   "rgb": [
+    8,
+    53,
+    171
+   ],
+   "hsl": [
+    223.43558282208588,
+    0.9106145251396648,
+    0.3509803921568627
+   ],
+   "clamped": [
+    28,
+    46,
+    95
+   ]
+  },
+  {
+   "rgb": [
+    184,
+    66,
+    28
+   ],
+   "hsl": [
+    14.615384615384617,
+    0.7358490566037738,
+    0.4156862745098039
+   ],
+   "clamped": [
+    95,
+    44,
+    28
+   ]
+  },
+  {
+   "rgb": [
+    39,
+    239,
+    0
+   ],
+   "hsl": [
+    110.2092050209205,
+    1,
+    0.46862745098039216
+   ],
+   "clamped": [
+    39,
+    95,
+    28
+   ]
+  },
+  {
+   "rgb": [
+    100,
+    211,
+    217
+   ],
+   "hsl": [
+    183.07692307692307,
+    0.6062176165803109,
+    0.6215686274509804
+   ],
+   "clamped": [
+    28,
+    91,
+    95
+   ]
+  },
+  {
+   "rgb": [
+    131,
+    207,
+    129
+   ],
+   "hsl": [
+    118.46153846153847,
+    0.4482758620689655,
+    0.6588235294117647
+   ],
+   "clamped": [
+    35,
+    89,
+    34
+   ]
+  },
+  {
+   "rgb": [
+    196,
+    78,
+    220
+   ],
+   "hsl": [
+    289.85915492957747,
+    0.669811320754717,
+    0.5843137254901961
+   ],
+   "clamped": [
+    83,
+    28,
+    95
+   ]
+  },
+  {
+   "rgb": [
+    96,
+    235,
+    9
+   ],
+   "hsl": [
+    96.90265486725663,
+    0.9262295081967213,
+    0.4784313725490196
+   ],
+   "clamped": [
+    53,
+    95,
+    28
+   ]
+  },
+  {
+   "rgb": [
+    149,
+    224,
+    198
+   ],
+   "hsl": [
+    159.2,
+    0.5474452554744526,
+    0.7313725490196079
+   ],
+   "clamped": [
+    28,
+    95,
+    71
+   ]
+  },
+  {
+   "rgb": [
+    107,
+    18,
+    97
+   ],
+   "hsl": [
+    306.7415730337079,
+    0.712,
+    0.2450980392156863
+   ],
+   "clamped": [
+    95,
+    28,
+    87
+   ]
+  },
+  {
+   "rgb": [
+    67,
+    92,
+    82
+   ],
+   "hsl": [
+    156,
+    0.1572327044025157,
+    0.31176470588235294
+   ],
+   "clamped": [
+    52,
+    71,
+    63
+   ]
+  },
+  {
+   "rgb": [
+    128,
+    138,
+    197
+   ],
+   "hsl": [
+    231.30434782608697,
+    0.372972972972973,
+    0.6372549019607843
+   ],
+   "clamped": [
+    38,
+    45,
+    84
+   ]
+  },
+  {
+   "rgb": [
+    116,
+    177,
+    50
+   ],
+   "hsl": [
+    88.81889763779527,
+    0.5594713656387665,
+    0.44509803921568625
+   ],
+   "clamped": [
+    63,
+    95,
+    28
+   ]
+  },
+  {
+   "rgb": [
+    31,
+    152,
+    97
+   ],
+   "hsl": [
+    152.72727272727272,
+    0.6612021857923497,
+    0.3588235294117647
+   ],
+   "clamped": [
+    28,
+    95,
+    64
+   ]
+  },
+  {
+   "rgb": [
+    28,
+    69,
+    193
+   ],
+   "hsl": [
+    225.0909090909091,
+    0.7466063348416289,
+    0.43333333333333335
+   ],
+   "clamped": [
+    28,
+    44,
+    95
+   ]
+  },
+  {
+   "rgb": [
+    72,
+    190,
+    189
+   ],
+   "hsl": [
+    179.4915254237288,
+    0.4758064516129032,
+    0.5137254901960784
+   ],
+   "clamped": [
+    32,
+    90,
+    90
+   ]
+  },
+  {
+   "rgb": [
+    209,
+    248,
+    197
+   ],
+   "hsl": [
+    105.88235294117648,
+    0.7846153846153845,
+    0.8725490196078431
+   ],
+   "clamped": [
+    43,
+    95,
+    28
+   ]
+  },
+  {
+   "rgb": [
+    198,
+    81,
+    49
+   ],
+   "hsl": [
+    12.885906040268452,
+    0.6032388663967612,
+    0.4843137254901961
+   ],
+   "clamped": [
+    95,
+    42,
+    28
+   ]
+  },
+  {
+   "rgb": [
+    223,
+    216,
+    202
+   ],
+   "hsl": [
+    40,
+    0.24705882352941178,
+    0.8333333333333333
+   ],
+   "clamped": [
+    76,
+    66,
+    46
+   ]
+  },
+  {
+   "rgb": [
+    223,
+    103,
+    185
+   ],
+   "hsl": [
+    319,
+    0.6521739130434782,
+    0.6392156862745098
+   ],
+   "clamped": [
+    95,
+    28,
+    74
+   ]
+  },
+  {
+   "rgb": [
+    18,
+    253,
+    54
+   ],
+   "hsl": [
+    129.1914893617021,
+    0.9832635983263599,
+    0.5313725490196078
+   ],
+   "clamped": [
+    28,
+    95,
+    38
+   ]
+  },
+  {
+   "rgb": [
+    248,
+    153,
+    83
+   ],
+   "hsl": [
+    25.454545454545457,
+    0.9217877094972067,
+    0.6490196078431373
+   ],
+   "clamped": [
+    95,
+    56,
+    28
+   ]
+  },
+  {
+   "rgb": [
+    223,
+    245,
+    0
+   ],
+   "hsl": [
+    65.38775510204083,
+    1,
+    0.4803921568627451
+   ],
+   "clamped": [
+    89,
+    95,
+    28
+   ]
+  },
+  {
+   "rgb": [
+    168,
+    61,
+    177
+   ],
+   "hsl": [
+    295.3448275862069,
+    0.4873949579831932,
+    0.4666666666666667
+   ],
+   "clamped": [
+    86,
+    31,
+    91
+   ]
+  },
+  {
+   "rgb": [
+    55,
+    12,
+    134
+   ],
+   "hsl": [
+    261.1475409836066,
+    0.8356164383561645,
+    0.28627450980392155
+   ],
+   "clamped": [
+    51,
+    28,
+    95
+   ]
+  },
+  {
+   "rgb": [
+    236,
+    18,
+    33
+   ],
+   "hsl": [
+    355.8715596330275,
+    0.8582677165354331,
+    0.4980392156862745
+   ],
+   "clamped": [
+    95,
+    28,
+    32
+   ]
+  },
+  {
+   "rgb": [
+    192,
+    109,
+    206
+   ],
+   "hsl": [
+    291.340206185567,
+    0.4974358974358975,
+    0.6176470588235294
+   ],
+   "clamped": [
+    83,
+    31,
+    92
+   ]
+  },
+  {
+   "rgb": [
+    153,
+    173,
+    148
+   ],
+   "hsl": [
+    108.00000000000004,
+    0.13227513227513224,
+    0.6294117647058823
+   ],
+   "clamped": [
+    56,
+    69,
+    53
+   ]
+  },
+  {
+   "rgb": [
+    254,
+    122,
+    125
+   ],
+   "hsl": [
+    358.6363636363636,
+    0.9850746268656717,
+    0.7372549019607844
+   ],
+   "clamped": [
+    95,
+    28,
+    29
+   ]
+  },
+  {
+   "rgb": [
+    106,
+    118,
+    231
+   ],
+   "hsl": [
+    234.24,
+    0.722543352601156,
+    0.6607843137254902
+   ],
+   "clamped": [
+    28,
+    34,
+    95
+   ]
+  },
+  {
+   "rgb": [
+    66,
+    48,
+    212
+   ],
+   "hsl": [
+    246.58536585365852,
+    0.656,
+    0.5098039215686274
+   ],
+   "clamped": [
+    35,
+    28,
+    95
+   ]
+  },
+  {
+   "rgb": [
+    156,
+    183,
+    22
+   ],
+   "hsl": [
+    70.06211180124224,
+    0.7853658536585365,
+    0.4019607843137255
+   ],
+   "clamped": [
+    84,
+    95,
+    28
+   ]
+  },
+  {
+   "rgb": [
+    33,
+    7,
+    84
+   ],
+   "hsl": [
+    260.2597402597403,
+    0.8461538461538459,
+    0.1784313725490196
+   ],
+   "clamped": [
+    38,
+    21,
+    71
+   ]
+  },
+  {
+   "rgb": [
+    58,
+    98,
+    42
+   ],
+   "hsl": [
+    102.85714285714286,
+    0.4,
+    0.27450980392156865
+   ],
+   "clamped": [
+    51,
+    86,
+    37
+   ]
+  },
+  {
+   "rgb": [
+    79,
+    110,
+    164
+   ],
+   "hsl": [
+    218.11764705882354,
+    0.3497942386831276,
+    0.47647058823529415
+   ],
+   "clamped": [
+    40,
+    55,
+    83
+   ]
+  },
+  {
+   "rgb": [
+    93,
+    148,
+    230
+   ],
+   "hsl": [
+    215.91240875912408,
+    0.732620320855615,
+    0.6333333333333333
+   ],
+   "clamped": [
+    28,
+    55,
+    95
+   ]
+  },
+  {
+   "rgb": [
+    172,
+    255,
+    66
+   ],
+   "hsl": [
+    86.34920634920634,
+    1,
+    0.6294117647058823
+   ],
+   "clamped": [
+    65,
+    95,
+    28
+   ]
+  },
+  {
+   "rgb": [
+    96,
+    212,
+    239
+   ],
+   "hsl": [
+    191.32867132867133,
+    0.8171428571428572,
+    0.6568627450980392
+   ],
+   "clamped": [
+    28,
+    82,
+    95
+   ]
+  },
+  {
+   "rgb": [
+    158,
+    57,
+    188
+   ],
+   "hsl": [
+    286.25954198473283,
+    0.5346938775510205,
+    0.4803921568627451
+   ],
+   "clamped": [
+    79,
+    28,
+    94
+   ]
+  },
+  {
+   "rgb": [
+    233,
+    18,
+    149
+   ],
+   "hsl": [
+    323.4418604651163,
+    0.8565737051792829,
+    0.492156862745098
+   ],
+   "clamped": [
+    95,
+    28,
+    69
+   ]
+  },
+  {
+   "rgb": [
+    155,
+    12,
+    55
+   ],
+   "hsl": [
+    341.958041958042,
+    0.8562874251497008,
+    0.3274509803921568
+   ],
+   "clamped": [
+    95,
+    28,
+    48
+   ]
+  },
+  {
+   "rgb": [
+    57,
+    62,
+    36
+   ],
+   "hsl": [
+    71.53846153846152,
+    0.2653061224489796,
+    0.19215686274509802
+   ],
+   "clamped": [
+    57,
+    62,
+    36
+   ]
+  },
+  {
+   "rgb": [
+    20,
+    5,
+    12
+   ],
+   "hsl": [
+    332,
+    0.6000000000000001,
+    0.049019607843137254
+   ],
+   "clamped": [
+    71,
+    21,
+    44
+   ]
+  },
+  {
+   "rgb": [
+    169,
+    198,
+    243
+   ],
+   "hsl": [
+    216.48648648648648,
+    0.7551020408163265,
+    0.807843137254902
+   ],
+   "clamped": [
+    28,
+    54,
+    95
+   ]
+  },
+  {
+   "rgb": [
+    87,
+    44,
+    218
+   ],
+   "hsl": [
+    254.82758620689654,
+    0.7016129032258064,
+    0.5137254901960784
+   ],
+   "clamped": [
+    44,
+    28,
+    95
+   ]
+  },
+  {
+   "rgb": [
+    25,
+    150,
+    173
+   ],
+   "hsl": [
+    189.32432432432432,
+    0.7474747474747475,
+    0.38823529411764707
+   ],
+   "clamped": [
+    28,
+    84,
+    95
+   ]
+  },
+  {
+   "rgb": [
+    220,
+    137,
+    69
+   ],
+   "hsl": [
+    27.01986754966887,
+    0.6832579185520363,
+    0.5666666666666667
+   ],
+   "clamped": [
+    95,
+    58,
+    28
+   ]
+  },
+  {
+   "rgb": [
+    161,
+    228,
+    229
+   ],
+   "hsl": [
+    180.88235294117646,
+    0.5666666666666667,
+    0.7647058823529411
+   ],
+   "clamped": [
+    28,
+    94,
+    95
+   ]
+  },
+  {
+   "rgb": [
+    60,
+    208,
+    210
+   ],
+   "hsl": [
+    180.79999999999998,
+    0.6249999999999999,
+    0.5294117647058824
+   ],
+   "clamped": [
+    28,
+    94,
+    95
+   ]
+  },
+  {
+   "rgb": [
+    0,
+    0,
+    0
+   ],
+   "hsl": [
+    0,
+    0,
+    0
+   ],
+   "clamped": [
+    46,
+    46,
+    46
+   ]
+  },
+  {
+   "rgb": [
+    255,
+    255,
+    255
+   ],
+   "hsl": [
+    0,
+    0,
+    1
+   ],
+   "clamped": [
+    61,
+    61,
+    61
+   ]
+  },
+  {
+   "rgb": [
+    255,
+    0,
+    0
+   ],
+   "hsl": [
+    0,
+    1,
+    0.5
+   ],
+   "clamped": [
+    95,
+    28,
+    28
+   ]
+  },
+  {
+   "rgb": [
+    0,
+    255,
+    0
+   ],
+   "hsl": [
+    120,
+    1,
+    0.5
+   ],
+   "clamped": [
+    28,
+    95,
+    28
+   ]
+  },
+  {
+   "rgb": [
+    0,
+    0,
+    255
+   ],
+   "hsl": [
+    240,
+    1,
+    0.5
+   ],
+   "clamped": [
+    28,
+    28,
+    95
+   ]
+  },
+  {
+   "rgb": [
+    128,
+    128,
+    128
+   ],
+   "hsl": [
+    0,
+    0,
+    0.5019607843137255
+   ],
+   "clamped": [
+    61,
+    61,
+    61
+   ]
+  },
+  {
+   "rgb": [
+    255,
+    255,
+    0
+   ],
+   "hsl": [
+    60,
+    1,
+    0.5
+   ],
+   "clamped": [
+    95,
+    95,
+    28
+   ]
+  },
+  {
+   "rgb": [
+    1,
+    2,
+    3
+   ],
+   "hsl": [
+    210,
+    0.5000000000000018,
+    0.00784313725490196
+   ],
+   "clamped": [
+    23,
+    46,
+    69
+   ]
+  }
+ ]
+}

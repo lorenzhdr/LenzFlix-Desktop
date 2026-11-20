@@ -1,0 +1,31 @@
+[package]
+name = "lfx-images"
+description = "Bild-Pipeline für LENZFLIX Desktop: Laden, Dekodieren, Skalieren, Caches, Ambient-Farbe, Blurhash"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+blurhash = "0.2.3"
+bytes = "1"
+fast_image_resize = "6"
+image = { version = "0.25", default-features = false, features = ["jpeg", "png", "webp"] }
+lfx-api = { path = "../lfx-api" }
+lfx-platform = { path = "../lfx-platform" }
+lru = "0.19"
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1", features = ["float_roundtrip"] }
+sha2 = "0.11"
+thiserror = "2"
+tokio = { version = "1", features = ["rt", "sync", "time"] }
+tracing = "0.1"
+
+[dev-dependencies]
+lfx-mock-jellyfin = { path = "../lfx-mock-jellyfin" }
+tempfile = "3"
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "sync", "time"] }
