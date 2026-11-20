@@ -84,7 +84,7 @@ export component ProfileMenu inherits Popup {
     in property <int> index: -1;
     callback pick(int);
     width: 230px;
-    height: 56px + 5 * 40px + 8px;
+    height: 56px + 6 * 40px + 8px;  // W3-picker: sechster Eintrag
     LfxText {
         x: 20px;
         y: 10px;
@@ -102,12 +102,13 @@ export component ProfileMenu inherits Popup {
     }
     VerticalLayout {
         y: 56px;
-        height: 5 * 40px;
+        height: 6 * 40px;
         MenuItem { text: "Profil wechseln"; hot: root.index == 0; clicked => { root.pick(0); } }
         MenuItem { text: "Einstellungen"; hot: root.index == 1; clicked => { root.pick(1); } }
         MenuItem { text: "Statistik"; ink: Theme.t.gold; hot: root.index == 2; clicked => { root.pick(2); } }
         MenuItem { text: "Über"; hot: root.index == 3; clicked => { root.pick(3); } }
         MenuItem { text: "Abmelden"; hot: root.index == 4; clicked => { root.pick(4); } }
+        MenuItem { text: "Design wählen"; hot: root.index == 5; clicked => { root.pick(5); } } // W3-picker
     }
 }
 

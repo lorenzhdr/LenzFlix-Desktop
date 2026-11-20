@@ -1,0 +1,62 @@
+import { Theme } from "../theme/theme.slint";
+import { LfxText } from "text.slint";
+import { PickerPreview } from "picker-preview.slint";
+
+// Eine Design-Karte des Pickers: Vorschau, Wortmarke, Beschreibung, Farbpunkte, „Aktiv“/„bald“.
+export component PickerCard inherits Rectangle {
+    in property <int> id;
+    in property <string> tagline;
+    in property <[color]> palette;
+    in property <bool> active;
+    in property <bool> hot;
+    in property <bool> disabled;
+    in property <[color]> covers;
+    callback clicked();
+
+    border-radius: 14px;
+    border-width: root.hot ? 3px : 2px;
+    border-color: root.hot ? #ffffff : (root.active ? Theme.t.text : transparent);
+    background: ((ta.has-hover && !root.disabled) || root.active) ? Theme.t.surface-3 : Theme.t.surface-2;
+
+    ta := TouchArea { clicked => { root.clicked(); } }
+
+    VerticalLayout {
+        padding: 12px;
+        spacing: 8px;
+        opacity: root.disabled ? 0.55 : 1.0;
+        PickerPreview { id: root.id; covers: root.covers; }
+        Rectangle {
+            height: 30px;
+            if root.id == 0: Image { source: @image-url("../../../../assets/logo/lenzflix.svg"); x: 0px; width: 100px; height: 28px; image-fit: contain; }
+            if root.id == 1: Image { source: @image-url("../../../../assets/logo/lenzplus-large.svg"); x: 0px; width: 120px; height: 28px; image-fit: contain; }
+            if root.id == 2: Image { source: @image-url("../../../../assets/logo/lenzprime.svg"); x: 0px; width: 112px; height: 28px; image-fit: contain; }
+            if root.id == 3: Image { source: @image-url("../../../../assets/logo/lenz84.svg"); x: 0px; width: 120px; height: 28px; image-fit: contain; }
+            if root.id == 4: LfxText { text: "VIDEOTHEK LENZ"; font-size: 18px; font-weight: 800; color: #ffd23f; vertical-alignment: center; }
+        }
+        LfxText { text: root.tagline; font-size: 13px; color: Theme.t.text-muted; wrap: word-wrap; overflow: elide; min-height: 34px; }
+        HorizontalLayout {
+            height: 14px;
+            spacing: 6px;
+            alignment: start;
+            for c in root.palette: Rectangle { width: 14px; height: 14px; border-radius: 7px; background: c; border-width: 1px; border-color: #ffffff40; }
+        }
+    }
+    if root.active: Rectangle {
+        x: parent.width - self.width - 20px;
+        y: 20px;
+        width: 52px;
+        height: 22px;
+        border-radius: 11px;
+        background: Theme.t.text;
+        LfxText { text: "Aktiv"; color: #000000; font-size: 12px; font-weight: 700; horizontal-alignment: center; vertical-alignment: center; }
+    }
+    if root.disabled: Rectangle {
+        x: parent.width - self.width - 20px;
+        y: 20px;
+        width: 52px;
+        height: 22px;
+        border-radius: 11px;
+        background: #ffd23f;
+        LfxText { text: "bald"; color: #0d1330; font-size: 12px; font-weight: 700; horizontal-alignment: center; vertical-alignment: center; }
+    }
+}

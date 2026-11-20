@@ -151,6 +151,9 @@ impl App {
             "state" => ok(json!({"state": self.state_json()})),
             "nav" => match msg["action"].as_str().and_then(parse_action) {
                 Some(a) => {
+                    if let Some(src) = msg["source"].as_str() {
+                        self.note_input_named(src); // W3-picker: simulierte Eingabequelle
+                    }
                     let n = msg["count"].as_u64().unwrap_or(1).clamp(1, 50);
                     for _ in 0..n {
                         self.apply_action(a);
@@ -247,6 +250,13 @@ impl App {
                 ok(json!({}));
                 self.shell.close();
             }
+            // W3-picker
+            c if c.starts_with("picker_") || c == "couch" || c == "input" => {
+                match self.picker_automation(c, msg) {
+                    Ok(v) => ok(v),
+                    Err(e) => fail(&e),
+                }
+            }
             // W2-tvui
             "tv" => match self.tv_automation(msg) {
                 Ok(v) => ok(v),
@@ -319,6 +329,7 @@ impl App {
             "depth": st.router.depth(),
             "session": self.session.active().is_some(),
             "design": st.design.slug(),
+            "couch": self.couch_state_json(), // W3-picker
             "focus": focus,
             "focus_item": item,
             "rows": st.home.rows.iter().map(|r| json!({"title": r.title, "count": r.items.len()})).collect::<Vec<_>>(),

@@ -29,6 +29,10 @@ mod library_impl; // W2-library
 pub mod library_np; // W2-library
 pub mod library_search; // W2-library
 pub mod logging;
+pub mod picker; // W3-picker
+#[cfg(feature = "dev-automation")]
+pub mod picker_automation; // W3-picker
+pub mod picker_couch; // W3-picker
 pub mod play;
 #[cfg(feature = "dev-automation")]
 pub mod play_auto; // W2-player
@@ -131,9 +135,11 @@ pub fn run(opts: Options) -> Result<(), String> {
             geo: None,
             images: None,
             toast_gen: 0,
-            tv: tvui::TvUi::default(),            // W2-tvui
-            lib: library::LibState::default(),    // W2-library
-            detail: detail::DetailCtl::default(), // W2-detail
+            tv: tvui::TvUi::default(),                // W2-tvui
+            lib: library::LibState::default(),        // W2-library
+            detail: detail::DetailCtl::default(),     // W2-detail
+            picker: picker::PickerCtl::default(),     // W3-picker
+            couch: picker_couch::CouchCtl::default(), // W3-picker
         }),
         timers: Timers::default(),
         gamepad: RefCell::new(None),
@@ -142,8 +148,10 @@ pub fn run(opts: Options) -> Result<(), String> {
     app::install(app.clone());
     wire(&app, &ui, &shell);
     App::tv_wire(&app, &ui); // W2-tvui
+    App::picker_wire(&app, &ui); // W3-picker
     app.start();
     app.start_gamepad();
+    app.start_couch_watch(); // W3-picker
     #[cfg(feature = "dev-automation")]
     if let Err(e) = automation::start(&dirs.data) {
         tracing::warn!("Automation nicht gestartet: {e}");

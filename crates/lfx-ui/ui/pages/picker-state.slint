@@ -1,0 +1,17 @@
+// W3-picker: Zustand des Design-Pickers und des Couch-Modus (Rust füllt, die Oberfläche meldet Ereignisse).
+export global PickerState {
+    in property <bool> open: false;
+    // Fokussierte Karte (0..4; 4 = VIDEOTHEK LENZ, nur Platz)
+    in property <int> index: 0;
+    // Aktives Design (0..3)
+    in property <int> active: 0;
+    // Tagesmischung der Platzhalter-Cover auf der Vorschau der VIDEOTHEK LENZ (13 Farben)
+    in property <[color]> covers;
+    // Text des Couch-Schalters in den Einstellungen
+    in property <string> couch-label: "Couch-Modus: automatisch";
+    callback choose(int);
+    callback close();
+    callback open-request();
+    callback couch-cycle();
+    callback pointer-moved(length, length);
+}

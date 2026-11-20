@@ -7,7 +7,7 @@ export component LfxFocusRing inherits Rectangle {
     in property <bool> active;
     in property <length> radius: Theme.t.card-radius;
     property <length> off: Theme.design == Design.plus ? 7px : (Theme.design == Design.retro ? 3px : 2px);
-    property <length> bw: Theme.design == Design.flix ? 2px : (Theme.design == Design.retro ? 2px : 3px);
+    property <length> bw: Theme.couch ? 4px : Theme.design == Design.flix ? 2px : (Theme.design == Design.retro ? 2px : 3px);
 
     visible: root.active;
     ring := Rectangle {
