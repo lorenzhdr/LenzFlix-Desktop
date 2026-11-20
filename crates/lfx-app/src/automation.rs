@@ -276,6 +276,11 @@ impl App {
                 Ok(v) => ok(v),
                 Err(e) => fail(&e),
             },
+            // W5-stats
+            c if c.starts_with("stats_") => match self.stats_automation(c, msg) {
+                Ok(v) => ok(v),
+                Err(e) => fail(&e),
+            },
             c if c.starts_with("detail_") => self.detail_automation(c, msg, reply), // W2-detail
             c if c.starts_with("media") => match self.media_automation(c, msg) {
                 // W4-media
@@ -379,6 +384,7 @@ impl App {
             "account": self.account_state_json(), // W4-account
             "downloads": self.dl_state_json(), // W5-downloads
             "remote": self.remote_state_json(), // W5-remote
+            "stats": self.stats_state_json(), // W5-stats
         })
     }
 }

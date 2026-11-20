@@ -112,3 +112,7 @@ required-features = ["dev-automation"]
 [[test]] # W5-downloads
 name = "w5_downloads"
 required-features = ["dev-automation"]
+
+[[test]] # W5-stats
+name = "w5_stats"
+required-features = ["dev-automation"]

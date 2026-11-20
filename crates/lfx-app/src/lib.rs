@@ -65,6 +65,8 @@ pub mod retro; // W3-retro
 pub mod retro_automation; // W3-retro
 pub mod retro_term; // W3-retro
 pub mod route;
+pub mod stats; // W5-stats
+pub mod stats_logic; // W5-stats
 pub mod tvui; // W2-tvui
 pub mod tvui_host; // W2-tvui
 pub mod tvui_view; // W2-tvui
@@ -169,6 +171,7 @@ pub fn run(opts: Options) -> Result<(), String> {
             account: account::AccountCtl::default(),  // W4-account
             downloads: downloads::DlCtl::default(),   // W5-downloads
             remote: remote::RemoteCtl::default(),     // W5-remote
+            stats: stats::StatsCtl::default(),        // W5-stats
         }),
         timers: Timers::default(),
         gamepad: RefCell::new(None),
@@ -315,6 +318,12 @@ fn wire(app: &Rc<App>, ui: &MainWindow, shell: &Shell) {
         m.on_event(move |k, x, y| a1.media_event(&k, x, y));
         let a2 = app.clone();
         m.on_event_f(move |k, v| a2.media_event_f(&k, v));
+    }
+    {
+        // W5-stats
+        let a = app.clone();
+        ui.global::<lfx_ui::StatsState>()
+            .on_event(move |k, v| a.stats_event(&k, v));
     }
     {
         // W4-account
