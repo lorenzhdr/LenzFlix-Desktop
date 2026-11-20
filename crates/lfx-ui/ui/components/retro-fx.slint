@@ -1,0 +1,410 @@
+// W3-retro: LENZ//84 Effekte als Slint-Ebene (Web: `features/retro/fx/*`, `themes/retro/fx.css`).
+// Rust (`lfx-app/src/retro*.rs`) hält Zeitpläne und Zustand (Crate lfx-retro-fx) und schreibt sie in das Global
+// `RetroFx`; die Ebene `RetroFxLayer` zeichnet nur. Slint hat keine Shader: CRT = gekachelte Scanline-Textur,
+// Vignette aus vier Randverläufen, Rollbalken/Flackern/Streifen als Flächen, die Rust in niedriger Rate bewegt
+// (keine Dauer-Animation, damit die Oberfläche im Ruhezustand nicht ständig neu zeichnet).
+import { Theme, Design } from "../theme/theme.slint";
+
+// Zeile des Terminals; kind: 0 normal, 1 Befehl, 2 Fehler, 3 Hinweis, 4 Erfolg.
+export struct RetroLine {
+    text: string,
+    kind: int,
+}
+
+// Eine Spalte des Code-Regens: Kopfzeichen bei (x, y), darüber die Spur (neueste unten).
+export struct RainCol {
+    x: length,
+    y: length,
+    head: string,
+    trail: string,
+}
+
+export global RetroFx {
+    // Farbzyklus („Overdrive“): -1 = aus (Token-Farben), sonst Farbton 0..360.
+    in-out property <float> od-hue: -1;
+    out property <color> amber: root.od-hue < 0 ? Theme.t.retro-amber : Colors.hsv(root.od-hue, 1.0, 1.0, 1.0);
+    out property <color> amber-hi: root.od-hue < 0 ? Theme.t.retro-amber-hi : Colors.hsv(root.od-hue, 0.34, 1.0, 1.0);
+    out property <color> amber-lo: root.od-hue < 0 ? Theme.t.retro-amber-lo : Colors.hsv(root.od-hue, 1.0, 0.66, 1.0);
+    out property <color> hot: root.od-hue < 0 ? Theme.t.retro-hot : Colors.hsv(Math.mod(root.od-hue + 330, 360), 1.0, 1.0, 1.0);
+    out property <color> dim: root.amber.with-alpha(0.14);
+    out property <color> panel-bg: #140c05e0;
+    out property <color> line: root.amber.with-alpha(0.45);
+
+    // Ebene aktiv (Design LENZ//84, eingeloggt, nicht Player/TV).
+    in-out property <bool> fx-on: false;
+    in-out property <bool> crt-on: true;
+    in-out property <bool> sound-on: false;
+    // Scanline-Textur (Rust erzeugt sie), Rollbalken 0..1 (-1 = aus), Flackern (Deckkraft), Streifen
+    in-out property <image> scan;
+    in-out property <float> roll: -1;
+    in-out property <float> flicker: 0.6;
+    in-out property <bool> strip: false;
+    in-out property <float> strip-y: 0.4;
+    in-out property <length> shake-x: 0px;
+    in-out property <length> shake-y: 0px;
+    // Uhr der Kopfzeile
+    in-out property <string> clock-h: "00";
+    in-out property <string> clock-m: "00";
+    in-out property <bool> clock-colon: true;
+    // Boot
+    in-out property <bool> boot-show: false;
+    in-out property <[string]> boot-lines: [];
+    in-out property <bool> boot-caret: false;
+    in-out property <bool> boot-open: false;
+    in-out property <int> boot-line-phase: 0;
+    in-out property <string> boot-hint;
+    // Terminal
+    in-out property <bool> term-open: false;
+    in-out property <[RetroLine]> term-lines: [];
+    in-out property <string> term-input;
+    in-out property <string> term-prompt: "LENZ84:\\>";
+    in-out property <bool> term-caret: true;
+    // Code-Regen
+    in-out property <bool> rain-show: false;
+    in-out property <[RainCol]> rain-cols: [];
+    in-out property <length> rain-font: 16px;
+    in-out property <string> rain-flash;
+    // Overdrive-Einblendung
+    in-out property <bool> od-toast: false;
+    in-out property <float> od-toast-opacity: 1.0;
+    // Hero-Fenster: Dateiname im DOS-Stil (Rust leitet ihn aus dem Titel ab)
+    in-out property <string> hero-file;
+    // Glitch an Überschriften (kurz, Rust setzt und löscht)
+    in-out property <bool> glitch: false;
+
+    callback boot-skip();
+    callback term-close();
+    callback rain-stop();
+    // Schalter der Kopfzeile: "crt" | "sound"
+    callback switch(string);
+    callback logo-tap();
+    callback logo-long();
+}
+
+// Pixelschrift mit Farbe des Zyklus.
+export component RetroText inherits Text {
+    color: RetroFx.amber;
+    font-family: Theme.t.retro-font-pixel;
+    font-size: 22px;
+}
+
+component Vignette inherits Rectangle {
+    property <length> e: min(root.width, root.height) * 0.16;
+    Rectangle { y: 0px; height: root.e; background: @linear-gradient(180deg, #0000008c 0%, #00000000 100%); }
+    Rectangle { y: root.height - root.e; height: root.e; background: @linear-gradient(0deg, #0000008c 0%, #00000000 100%); }
+    Rectangle { x: 0px; width: root.e; background: @linear-gradient(90deg, #0000008c 0%, #00000000 100%); }
+    Rectangle { x: root.width - root.e; width: root.e; background: @linear-gradient(270deg, #0000008c 0%, #00000000 100%); }
+}
+
+component Crt inherits Rectangle {
+    // Scanlines (4-px-Raster, Alpha 0.22 * 0.7)
+    Image {
+        width: 100%;
+        height: 100%;
+        source: RetroFx.scan;
+        horizontal-tiling: repeat;
+        vertical-tiling: repeat;
+        opacity: 0.7;
+    }
+    Vignette { }
+    // Flackern: schwacher Bernsteinschleier
+    Rectangle {
+        background: #ffbe5a09;
+        opacity: RetroFx.flicker;
+    }
+    // Rollbalken
+    if RetroFx.roll >= 0: Rectangle {
+        y: RetroFx.roll * (root.height * 1.4) - root.height * 0.3;
+        height: root.height * 0.22;
+        background: @linear-gradient(180deg, #ffe2a800 0%, #ffe2a812 45%, #ffe2a81f 55%, #ffe2a800 100%);
+    }
+    // Glitch-Streifen
+    if RetroFx.strip: Rectangle {
+        y: RetroFx.strip-y * root.height;
+        x: 10px;
+        height: root.height * 0.04;
+        background: @linear-gradient(90deg, #ff2b6d29 0%, #ffb00019 50%, #22e4ff24 100%);
+    }
+}
+
+component BootScreen inherits Rectangle {
+    property <length> half: root.height * 0.502;
+    property <easing> crt-ease: Theme.t.retro-ease-crt;
+    TouchArea { clicked => { RetroFx.boot-skip(); } }
+    // Hälften
+    Rectangle {
+        y: RetroFx.boot-open ? -root.half - 2px : 0px;
+        height: root.half;
+        background: #0a0603;
+        animate y { duration: 520ms; delay: 200ms; easing: root.crt-ease; }
+    }
+    Rectangle {
+        y: RetroFx.boot-open ? root.height : root.height - root.half;
+        height: root.half;
+        background: #0a0603;
+        animate y { duration: 520ms; delay: 200ms; easing: root.crt-ease; }
+    }
+    // Text
+    Rectangle {
+        opacity: RetroFx.boot-open ? 0.0 : 1.0;
+        animate opacity { duration: 120ms; }
+        VerticalLayout {
+            x: clamp(root.width * 0.06, 24px, 88px);
+            y: clamp(root.width * 0.06, 24px, 88px);
+            width: root.width - 2 * self.x;
+            spacing: 0px;
+            for line[i] in RetroFx.boot-lines: HorizontalLayout {
+                height: 40px;
+                alignment: start;
+                Text {
+                    text: line;
+                    color: RetroFx.amber;
+                    font-family: Theme.t.retro-font-pixel;
+                    font-size: clamp(root.width * 0.034, 22px, 32px);
+                    letter-spacing: 1.2px;
+                    vertical-alignment: center;
+                }
+                if RetroFx.boot-caret && i == RetroFx.boot-lines.length - 1: Rectangle {
+                    width: 14px;
+                    height: 22px;
+                    y: 9px;
+                    background: RetroFx.amber;
+                }
+            }
+        }
+        Text {
+            x: root.width - self.width - clamp(root.width * 0.03, 16px, 40px);
+            y: root.height - self.height - clamp(root.width * 0.03, 14px, 32px);
+            text: RetroFx.boot-hint;
+            color: RetroFx.amber.with-alpha(0.55);
+            font-family: Theme.t.retro-font-pixel;
+            font-size: 20px;
+        }
+    }
+    // Einschalt-Strich
+    Rectangle {
+        property <length> w: RetroFx.boot-line-phase == 0 ? root.width * 0.02 : root.width;
+        x: (root.width - self.width) / 2;
+        y: root.height / 2 - 1px;
+        width: self.w;
+        height: 2px;
+        background: #ffffff;
+        opacity: RetroFx.boot-line-phase == 1 ? 1.0 : 0.0;
+        animate w { duration: 200ms; easing: root.crt-ease; }
+        animate opacity { duration: 300ms; }
+    }
+}
+
+component TermRow inherits Text {
+    in property <int> kind;
+    color: root.kind == 1 ? RetroFx.amber-hi : (root.kind == 2 ? RetroFx.hot : (root.kind == 4 ? #fff6df : (root.kind == 3 ? RetroFx.amber.with-alpha(0.6) : RetroFx.amber)));
+    font-family: Theme.t.retro-font-pixel;
+    font-size: 25px;
+    wrap: word-wrap;
+}
+
+component Terminal inherits Rectangle {
+    in property <length> avail;
+    property <length> h: min(560px, max(280px, root.avail * 0.45));
+    height: root.h;
+    y: RetroFx.term-open ? 0px : -root.h - 6px;
+    animate y { duration: 260ms; easing: Theme.t.retro-ease-crt; }
+    visible: self.y > -root.h - 5px;
+    background: #0a0603f6;
+    TouchArea { }
+    // Rand unten und Schein
+    Rectangle {
+        y: root.h - 2px;
+        height: 2px;
+        background: RetroFx.amber;
+    }
+    // Scanlines
+    Image {
+        width: 100%;
+        height: 100%;
+        source: RetroFx.scan;
+        horizontal-tiling: repeat;
+        vertical-tiling: repeat;
+        opacity: 0.8;
+    }
+    // Kopfzeile
+    Text {
+        x: clamp(root.width * 0.03, 14px, 40px);
+        y: 6px;
+        height: 34px;
+        text: "LENZ//84 TERMINAL  ·  HILFE ZEIGT DIE BEFEHLE  ·  ESC SCHLIESST";
+        color: RetroFx.amber-hi;
+        font-family: Theme.t.retro-font-pixel;
+        font-size: 24px;
+        letter-spacing: 1.5px;
+        vertical-alignment: center;
+    }
+    Rectangle {
+        x: root.width - self.width - clamp(root.width * 0.03, 14px, 40px);
+        y: 4px;
+        width: 48px;
+        height: 36px;
+        border-width: 1px;
+        border-color: RetroFx.amber;
+        border-radius: 2px;
+        background: cl.has-hover ? RetroFx.amber : transparent;
+        Text {
+            text: "X";
+            color: cl.has-hover ? Theme.t.retro-ink : RetroFx.amber;
+            font-family: Theme.t.retro-font-pixel;
+            font-size: 24px;
+            horizontal-alignment: center;
+            vertical-alignment: center;
+        }
+        cl := TouchArea { clicked => { RetroFx.term-close(); } }
+    }
+    Rectangle {
+        x: clamp(root.width * 0.03, 14px, 40px);
+        y: 44px;
+        width: root.width - 2 * self.x;
+        height: 1px;
+        background: RetroFx.line;
+    }
+    // Ausgabe (die letzten Zeilen, unten bündig)
+    Rectangle {
+        x: clamp(root.width * 0.03, 14px, 40px);
+        y: 50px;
+        width: root.width - 2 * self.x;
+        height: root.h - 50px - 52px;
+        clip: true;
+        VerticalLayout {
+            alignment: end;
+            spacing: 0px;
+            for l in RetroFx.term-lines: TermRow {
+                text: l.text;
+                kind: l.kind;
+            }
+        }
+    }
+    // Eingabezeile
+    Rectangle {
+        x: clamp(root.width * 0.03, 14px, 40px);
+        y: root.h - 46px;
+        width: root.width - 2 * self.x;
+        height: 1px;
+        background: RetroFx.line;
+    }
+    HorizontalLayout {
+        x: clamp(root.width * 0.03, 14px, 40px);
+        y: root.h - 42px;
+        width: root.width - 2 * self.x;
+        height: 34px;
+        spacing: 10px;
+        alignment: start;
+        Text {
+            text: RetroFx.term-prompt;
+            color: RetroFx.amber-hi;
+            font-family: Theme.t.retro-font-pixel;
+            font-size: 25px;
+            vertical-alignment: center;
+        }
+        Text {
+            text: RetroFx.term-input;
+            color: RetroFx.amber-hi;
+            font-family: Theme.t.retro-font-pixel;
+            font-size: 25px;
+            vertical-alignment: center;
+        }
+        Rectangle {
+            width: 13px;
+            height: 22px;
+            y: 6px;
+            background: RetroFx.amber;
+            opacity: RetroFx.term-caret ? 1.0 : 0.0;
+        }
+    }
+}
+
+component Rain inherits Rectangle {
+    background: #0a0603;
+    TouchArea { clicked => { RetroFx.rain-stop(); } }
+    for c in RetroFx.rain-cols: Rectangle {
+        x: c.x;
+        y: 0px;
+        width: RetroFx.rain-font;
+        height: root.height;
+        Text {
+            y: c.y - self.preferred-height - 2px;
+            width: RetroFx.rain-font;
+            text: c.trail;
+            color: RetroFx.amber.with-alpha(0.7);
+            font-family: Theme.t.retro-font-mono;
+            font-size: RetroFx.rain-font * 0.9;
+            horizontal-alignment: center;
+        }
+        Text {
+            y: c.y - 2px;
+            width: RetroFx.rain-font;
+            text: c.head;
+            color: RetroFx.amber-hi;
+            font-family: Theme.t.retro-font-mono;
+            font-size: RetroFx.rain-font * 0.9;
+            horizontal-alignment: center;
+        }
+    }
+    if RetroFx.rain-flash != "": Rectangle {
+        x: (root.width - self.width) / 2;
+        y: root.height * 0.42;
+        width: flash-t.preferred-width + 48px;
+        height: 76px;
+        background: #0a0603d9;
+        border-width: 1px;
+        border-color: RetroFx.amber;
+        flash-t := Text {
+            text: RetroFx.rain-flash;
+            color: RetroFx.amber-hi;
+            font-family: Theme.t.retro-font-pixel;
+            font-size: 52px;
+            horizontal-alignment: center;
+            vertical-alignment: center;
+        }
+    }
+}
+
+// Alle Effekte in einer Ebene. Reicht Mausereignisse durch, solange Boot/Terminal/Regen nicht sichtbar sind.
+export component RetroFxLayer inherits Rectangle {
+    visible: RetroFx.fx-on;
+    if RetroFx.fx-on && RetroFx.crt-on: Crt {
+        x: RetroFx.shake-x;
+        y: RetroFx.shake-y;
+        width: parent.width;
+        height: parent.height;
+    }
+    if RetroFx.fx-on && RetroFx.od-toast: Rectangle {
+        x: (parent.width - self.width) / 2;
+        y: parent.height * 0.22;
+        width: min(parent.width * 0.94, od-t.preferred-width + 44px);
+        height: 74px;
+        opacity: RetroFx.od-toast-opacity;
+        background: #0a0603d1;
+        border-width: 1px;
+        border-color: RetroFx.amber;
+        od-t := Text {
+            text: ">> OVERDRIVE AKTIVIERT <<";
+            color: RetroFx.amber-hi;
+            font-family: Theme.t.retro-font-pixel;
+            font-size: 46px;
+            letter-spacing: 3px;
+            horizontal-alignment: center;
+            vertical-alignment: center;
+        }
+    }
+    if RetroFx.fx-on: Terminal {
+        x: 0px;
+        width: parent.width;
+        avail: parent.height;
+    }
+    if RetroFx.fx-on && RetroFx.rain-show: Rain {
+        width: parent.width;
+        height: parent.height;
+    }
+    if RetroFx.fx-on && RetroFx.boot-show: BootScreen {
+        width: parent.width;
+        height: parent.height;
+    }
+}

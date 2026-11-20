@@ -38,6 +38,10 @@ pub mod play_osd; // W2-player
 pub mod play_ui; // W2-player
 pub mod plus; // W3-plus
 pub mod prime_gate; // W3-prime
+pub mod retro; // W3-retro
+#[cfg(feature = "dev-automation")]
+pub mod retro_automation; // W3-retro
+pub mod retro_term; // W3-retro
 pub mod route;
 pub mod tvui; // W2-tvui
 pub mod tvui_host; // W2-tvui
@@ -136,6 +140,7 @@ pub fn run(opts: Options) -> Result<(), String> {
             tv: tvui::TvUi::default(),            // W2-tvui
             lib: library::LibState::default(),    // W2-library
             detail: detail::DetailCtl::default(), // W2-detail
+            retro: retro::RetroState::default(),  // W3-retro
         }),
         timers: Timers::default(),
         gamepad: RefCell::new(None),
@@ -263,6 +268,7 @@ fn wire(app: &Rc<App>, ui: &MainWindow, shell: &Shell) {
     }
 
     detail::wire(app, ui); // W2-detail
+    retro::wire(app, ui); // W3-retro
     // W2-home
     let a = app.clone();
     ui.on_home_event(move |k, v| a.on_home_event(&k, v));

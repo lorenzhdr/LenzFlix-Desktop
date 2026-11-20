@@ -5,6 +5,7 @@ import { HeroData } from "types.slint";
 import { HRow, HomeLayout, HomeUi } from "home-types.slint";
 import { HomeChrome } from "../components/home-chrome.slint";
 import { HomeBillboard } from "../components/home-billboard.slint";
+import { RetroHero } from "../components/retro-hero.slint"; // W3-retro
 import { HomeRow } from "../components/home-row.slint";
 import { DetailState } from "detail-state.slint"; // W2-detail
 
@@ -189,7 +190,23 @@ export component HomePage inherits Rectangle {
         content-height: root.rows-top + max(1, root.rows.length) * root.row-h + root.tall-total * root.top-extra + 80px;
         animate content-y { duration: Theme.t.dur * 2; easing: Theme.t.ease-out; }
 
+        if Theme.design == Design.retro: RetroHero { // W3-retro: Hero im Retro-Look, gleiche Maße und Rückrufe
+            x: root.bb-x;
+            y: root.bb-y;
+            width: root.bb-w;
+            height: root.bb-h;
+            hero: root.hero;
+            ui: root.ui;
+            badge: root.ui.badge;
+            primary-text: root.ui.primary;
+            focus-index: root.focus-row == -1 ? root.focus-index : -1;
+            play => { root.event("hero-play", 0); }
+            info => { root.event("hero-info", 0); }
+            mute => { root.event("mute", 0); }
+            dot(d) => { root.event("dot", d); }
+        }
         bb := HomeBillboard {
+            visible: Theme.design != Design.retro; // W3-retro
             x: root.bb-x;
             y: root.bb-y;
             width: root.bb-w;

@@ -3216,6 +3216,7 @@ dependencies = [
 name = "lfx-app"
 version = "0.1.0"
 dependencies = [
+ "chrono",
  "lfx-api",
  "lfx-app",
  "lfx-core",
@@ -3224,6 +3225,7 @@ dependencies = [
  "lfx-nav",
  "lfx-platform",
  "lfx-player",
+ "lfx-retro-fx",
  "lfx-session",
  "lfx-shell",
  "lfx-store",

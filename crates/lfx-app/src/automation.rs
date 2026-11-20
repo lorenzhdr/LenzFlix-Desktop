@@ -252,6 +252,10 @@ impl App {
                 Ok(v) => ok(v),
                 Err(e) => fail(&e),
             },
+            c if c.starts_with("retro_") => match self.retro_automation(c, msg) {
+                Ok(v) => ok(v),
+                Err(e) => fail(&e),
+            }, // W3-retro
             c if c.starts_with("detail_") => self.detail_automation(c, msg, reply), // W2-detail
             c if c.starts_with("home_") => self.home_command(c, msg, reply),        // W2-home
             // W2-library
@@ -339,6 +343,7 @@ impl App {
             "play_ui": self.player_state_json(), // W2-player
             "window": {"width": pw, "height": ph, "dpr": dpr},
             "detail": self.detail_state_json(), // W2-detail
+            "retro": self.retro_state_json(), // W3-retro
         })
     }
 }

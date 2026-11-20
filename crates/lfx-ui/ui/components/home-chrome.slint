@@ -3,6 +3,7 @@ import { PrimeHeader } from "prime-header.slint"; // W3-prime
 import { PrimeProfileMenu } from "prime-menus.slint"; // W3-prime
 import { HomeUi } from "../pages/home-types.slint";
 import { HomeHeader } from "home-header.slint";
+import { RetroHeader } from "retro-header.slint"; // W3-retro
 import { ProfileMenu, DsPanel, SecretPanel } from "home-menus.slint";
 import { PlusHeader, PlusSwitcher, PlusProfileMenu } from "plus-header.slint"; // W3-plus
 
@@ -26,7 +27,21 @@ export component HomeChrome inherits Rectangle {
         clicked => { root.event("menu-close", 0); }
     }
 
-    if Theme.design != Design.plus && Theme.design != Design.prime: HomeHeader { // W3-plus W3-prime
+    if Theme.design == Design.retro: RetroHeader { // W3-retro
+        x: 0px;
+        y: 0px;
+        width: root.width;
+        gutter: root.gutter;
+        scrolled: root.scrolled;
+        focus-index: root.focus-index;
+        current: root.current;
+        ds-on: root.ui.ds-on;
+        initial: root.ui.user-initial;
+        narrow: root.width < 900px;
+        pick(i) => { root.event("nav", i); }
+        logo-clicked => { root.event("logo", 0); }
+    }
+    if Theme.design != Design.plus && Theme.design != Design.prime && Theme.design != Design.retro: HomeHeader { // W3-plus W3-prime W3-retro
         x: 0px;
         y: 0px;
         width: root.width;

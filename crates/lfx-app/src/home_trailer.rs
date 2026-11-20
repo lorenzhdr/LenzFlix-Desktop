@@ -63,6 +63,7 @@ impl App {
         let (item, immediate) = {
             let st = self.st.borrow();
             if !matches!(st.router.current(), Route::Home)
+                || st.design == crate::cli::DesignId::Retro // W3-retro: das Retro-Hero kennt keinen Trailer
                 || st.play.opened
                 || st.home.x.trailer.suppressed
                 || st.design == crate::cli::DesignId::Plus
