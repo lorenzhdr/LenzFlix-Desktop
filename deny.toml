@@ -24,6 +24,8 @@ allow = [
   "OFL-1.1",
   "CC0-1.0",
   "BSL-1.0",
+  "bzip2-1.0.6",
+  "CDLA-Permissive-2.0",
   "LicenseRef-Slint-Royalty-free-2.0",
   "LicenseRef-Slint-Software-3.0",
 ]

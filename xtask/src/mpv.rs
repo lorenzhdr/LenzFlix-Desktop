@@ -246,6 +246,8 @@ fn load_version(lib: &Path) -> Res<u64> {
             library.get(b"mpv_client_api_version\0")?;
         f()
     };
+    // c_ulong ist unter Windows 32 Bit, unter macOS 64 Bit.
+    #[allow(clippy::useless_conversion)]
     Ok(u64::from(ver))
 }
 
