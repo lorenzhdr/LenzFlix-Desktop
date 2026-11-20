@@ -1,0 +1,160 @@
+// W2-tvui: Datentypen und globaler Zustand der TV-Modus-Seite. Rust (lfx-app/src/tvui.rs) schreibt die
+// Properties, die Oberfläche meldet Ereignisse über die Callbacks. Eigene Datei, damit `main.slint` nur einen
+// Einhängepunkt braucht.
+import { Theme, Design } from "../theme/theme.slint";
+
+// Zeile der Senderliste („Jetzt im TV“).
+export struct TvChanRow {
+    no: int,
+    color: color,
+    ink: color,
+    short: string,
+    name: string,
+    title: string,
+    sub: string,
+    next: string,
+    progress: float,
+    dim: bool,
+}
+
+// Zelle im Programm-Raster (x und w sind schon in Pixeln, Minuten mal Pixel je Minute).
+export struct TvCellData {
+    x: length,
+    w: length,
+    title: string,
+    sub: string,
+    time: string,
+    // 0 Sendung, 1 Füller (gedämpft), 2 Sendepause
+    kind: int,
+    current: bool,
+    past: bool,
+    progress: float,
+    // 0 normal, 1 kurz (nur Titel), 2 winzig (kein Text)
+    size: int,
+}
+
+export struct TvEpgRowData {
+    no: int,
+    color: color,
+    ink: color,
+    short: string,
+    current: bool,
+    cells: [TvCellData],
+}
+
+// Marke der Zeitskala.
+export struct TvMark {
+    x: length,
+    label: string,
+    half: bool,
+}
+
+// Akzentfarbe des Designs (LENZ//84: Bernstein).
+export global TvTheme {
+    out property <color> accent: Theme.design == Design.retro ? Theme.t.retro-amber : Theme.t.red;
+    out property <color> accent-ink: Theme.design == Design.retro ? Theme.t.retro-ink : #ffffff;
+}
+
+export global TvState {
+    // ---- Laden ----
+    in property <bool> loading: true;
+    in property <string> load-text: "Sendersuchlauf …";
+    in property <float> load-progress: 0.0;
+    in property <string> load-error;
+
+    // ---- Seite ----
+    // 0 Jetzt im TV, 1 Programm
+    in property <int> tab: 0;
+    in property <bool> fullscreen: false;
+    in property <string> toast;
+
+    // ---- Player-Zustand ----
+    // 0 aus, 1 Laden, 2 Spielt, 3 Pause, 4 Sendepause, 5 Fehler
+    in property <int> phase: 0;
+    // 0 keine, 1 Gleich, 2 Pause, 3 Sendepause, 4 leer, 5 Fehler
+    in property <int> card-kind: 0;
+    in property <string> card-title;
+    in property <string> card-text;
+    in property <string> card-hint;
+    in property <string> card-code;
+    in property <string> card-button;
+    in property <string> banner;
+    in property <string> digits;
+    in property <bool> needs-tap: false;
+    in property <bool> muted-by-policy: false;
+    in property <bool> muted: false;
+    in property <float> volume: 1.0;
+    in property <bool> controls-on: true;
+
+    // ---- Zapp-Einblendung ----
+    in property <bool> zap-on: false;
+    in property <int> zap-no: 1;
+    in property <color> zap-color: #000000;
+    in property <color> zap-ink: #ffffff;
+    in property <string> zap-short;
+    in property <string> zap-title;
+    in property <string> zap-time;
+    in property <float> zap-progress: 0.0;
+
+    // ---- Info unter dem Player ----
+    in property <bool> has-entry: false;
+    in property <int> info-no: 1;
+    in property <color> info-color: #000000;
+    in property <color> info-ink: #ffffff;
+    in property <string> info-short;
+    in property <string> info-title;
+    in property <string> info-sub;
+    in property <string> info-time;
+    in property <[string]> info-badges;
+    in property <string> info-next;
+    in property <float> info-progress: 0.0;
+
+    // ---- Senderliste ----
+    in property <[TvChanRow]> channels;
+    in property <int> current-channel: 0;
+    in-out property <length> list-y: 0px;
+
+    // ---- Programm ----
+    in property <[string]> days;
+    in property <int> day-index: 0;
+    in property <[TvMark]> scale;
+    in property <[TvEpgRowData]> epg-rows;
+    in property <length> epg-total-w: 1440px;
+    in property <length> now-x: 0px;
+    in property <bool> now-visible: false;
+    in-out property <length> epg-x: 0px;
+    in-out property <length> epg-y: 0px;
+
+    // ---- Info-Karte ----
+    in property <bool> ic-open: false;
+    in property <string> ic-channel;
+    in property <color> ic-color: #000000;
+    in property <color> ic-ink: #ffffff;
+    in property <string> ic-short;
+    in property <string> ic-title;
+    in property <string> ic-sub;
+    in property <string> ic-time;
+    in property <string> ic-meta;
+    in property <[string]> ic-badges;
+    in property <string> ic-overview;
+    in property <[string]> ic-actions;
+
+    // ---- Ereignisse ----
+    callback leave();
+    callback select-tab(int);
+    callback select-day(int);
+    callback epg-now();
+    callback tune(int);
+    callback zap(int);
+    callback cell-clicked(int, int);
+    callback toggle-mute();
+    callback set-volume(float);
+    callback toggle-fullscreen();
+    callback open-info();
+    callback close-info();
+    callback info-action(int);
+    callback card-button-clicked();
+    callback activity();
+    // Rechteck des Videofensters in Fensterkoordinaten (logische Pixel)
+    callback player-rect(length, length, length, length);
+}

@@ -51,6 +51,7 @@ pub struct State {
     pub geo: Option<focus::HomeGeo>,
     pub images: Option<ImageLoader>,
     pub toast_gen: u64,
+    pub tv: crate::tvui::TvUi, // W2-tvui
 }
 
 /// Zeitgeber, die leben müssen, solange die App läuft.
@@ -198,6 +199,7 @@ impl App {
 
     /// Aufräumen beim Verlassen einer Seite (Quick Connect abbrechen).
     fn leave_route_hooks(self: &Rc<Self>) {
+        self.tv_leave(); // W2-tvui
         let task = self.st.borrow_mut().qc_task.take();
         if let Some(t) = task {
             t.abort();
@@ -246,6 +248,13 @@ impl App {
                 ui.set_page(Page::Player);
                 ctx = InputContext::Player;
                 self.st.borrow_mut().graph = FocusGraph::new();
+            }
+            Route::TvMode => {
+                // W2-tvui
+                ui.set_page(Page::Tvmode);
+                self.st.borrow_mut().graph = FocusGraph::new();
+                ctx = InputContext::TvMode;
+                self.tv_enter();
             }
             Route::Settings => {
                 ui.set_page(Page::Settings);
@@ -321,6 +330,9 @@ impl App {
         if matches!(route, Route::Player { .. }) {
             self.player_action(action);
             return;
+        }
+        if matches!(route, Route::TvMode) && self.tv_action(action) {
+            return; // W2-tvui
         }
         match action {
             NavAction::Back => {

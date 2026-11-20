@@ -17,6 +17,9 @@ pub mod keys;
 pub mod logging;
 pub mod play;
 pub mod route;
+pub mod tvui; // W2-tvui
+pub mod tvui_host; // W2-tvui
+pub mod tvui_view; // W2-tvui
 pub mod video;
 
 use std::cell::RefCell;
@@ -108,6 +111,7 @@ pub fn run(opts: Options) -> Result<(), String> {
             geo: None,
             images: None,
             toast_gen: 0,
+            tv: tvui::TvUi::default(), // W2-tvui
         }),
         timers: Timers::default(),
         gamepad: RefCell::new(None),
@@ -115,6 +119,7 @@ pub fn run(opts: Options) -> Result<(), String> {
     });
     app::install(app.clone());
     wire(&app, &ui, &shell);
+    App::tv_wire(&app, &ui); // W2-tvui
     app.start();
     app.start_gamepad();
     #[cfg(feature = "dev-automation")]
@@ -126,6 +131,7 @@ pub fn run(opts: Options) -> Result<(), String> {
     let result = shell.run().map_err(|e| e.to_string());
 
     // Aufräumen: Wiedergabe beenden (Stopped melden), Videoausgabe vor dem Player freigeben.
+    app.tv_leave(); // W2-tvui
     app.stop_playback();
     {
         let mut st = app.st.borrow_mut();
