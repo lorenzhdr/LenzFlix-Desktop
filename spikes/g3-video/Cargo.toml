@@ -1,0 +1,32 @@
+# Gate G3: Video + HDR + Slint-OSD (Modell A: DirectComposition mit zwei Visuals).
+# Eigener Workspace, gehört nicht zum Haupt-Workspace.
+[workspace]
+
+[package]
+name = "g3-video"
+version = "0.0.0"
+edition = "2024"
+publish = false
+license = "MIT"
+
+[dependencies]
+lfx-mpv-sys = { path = "../../crates/lfx-mpv-sys" }
+winit = "0.30"
+slint = { version = "1.19", default-features = false, features = ["std", "compat-1-2", "renderer-software", "software-renderer-systemfonts"] }
+
+[dependencies.windows]
+version = "0.62"
+features = [
+    "Win32_Foundation",
+    "Win32_Graphics_Direct2D_Common",
+    "Win32_Graphics_Direct3D",
+    "Win32_Graphics_Direct3D10",
+    "Win32_Graphics_Direct3D11",
+    "Win32_Graphics_DirectComposition",
+    "Win32_Graphics_Dxgi",
+    "Win32_Graphics_Dxgi_Common",
+    "Win32_UI_WindowsAndMessaging",
+]
+
+[profile.release]
+debug = 1
