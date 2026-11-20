@@ -38,7 +38,28 @@ jobs:
         run: cargo fmt --all --check
       - name: Clippy
         run: cargo clippy --workspace --all-targets -- -D warnings
+      - name: Web-Commit der Golden-Vektoren lesen
+        id: webcommit
+        shell: bash
+        run: echo "sha=$(tr -d '[:space:]' < tools/golden/web-commit.txt)" >> "$GITHUB_OUTPUT"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Web-Theme auschecken (Quelle der Golden-Vektoren)
+        uses: actions/checkout@v4
+        with:
+          repository: lorenzhdr/LenzFlix
+          ref: ${{ steps.webcommit.outputs.sha }}
+          path: web-theme
+      - name: Golden-Vektoren erzeugen
+        shell: bash
+        env:
+          LENZFLIX_WEB_DIR: ${{ github.workspace }}/web-theme
+        run: node tools/golden/gen.mjs
       - name: Tests
+        shell: bash
+        env:
+          LFX_GOLDEN_REQUIRED: "1"
         run: cargo test --workspace
 
   hygiene:
