@@ -1,0 +1,237 @@
+// W3-retro: Hero von LENZ//84 (Web: `features/retro/home-hero.js`, `themes/retro/hero.css`).
+// Bühne: Backdrop mit Bernstein-Schleier, Sterne, Sonne mit Streifenschnitten, Horizont, Gitterboden;
+// Terminal-Fenster mit Pfadzeile, Dateiname, Meta, Knöpfen und Kanalwahl. Gleiche Schnittstelle wie HomeBillboard,
+// Knöpfe an denselben Stellen (Fokus-Geometrie der Startseite bleibt gültig). Näherungen: Duotone als Schleier statt
+// Mischmodus, Gitter als feste Linien ohne Fahrt (kein Dauer-Neuzeichnen).
+import { Theme } from "../theme/theme.slint";
+import { HeroData } from "../pages/types.slint";
+import { HomeUi } from "../pages/home-types.slint";
+import { RetroFx } from "retro-fx.slint";
+
+component RBtn inherits Rectangle {
+    in property <string> text;
+    in property <bool> primary;
+    in property <bool> focused;
+    callback clicked();
+    height: Theme.t.btn-h;
+    border-width: 1px;
+    border-radius: 2px;
+    border-color: RetroFx.amber;
+    background: root.primary ? (ta.has-hover ? RetroFx.amber-hi : RetroFx.amber) : (ta.has-hover ? RetroFx.amber : RetroFx.panel-bg);
+    Text {
+        text: (root.primary ? "> " : "") + root.text;
+        color: (root.primary || ta.has-hover) ? Theme.t.retro-ink : RetroFx.amber;
+        font-family: Theme.t.retro-font-pixel;
+        font-size: 26px;
+        letter-spacing: 1.5px;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+    }
+    if root.focused: Rectangle {
+        x: -3px;
+        y: -3px;
+        width: parent.width + 6px;
+        height: parent.height + 6px;
+        border-width: 2px;
+        border-color: RetroFx.amber-hi;
+    }
+    ta := TouchArea { clicked => { root.clicked(); } }
+}
+
+export component RetroHero inherits Rectangle {
+    in property <HeroData> hero;
+    in property <HomeUi> ui;
+    in property <string> badge;
+    in property <string> primary-text: "Abspielen";
+    in property <int> focus-index: -1;
+    in property <bool> show-desc: false;
+    callback play();
+    callback info();
+    callback mute();
+    callback dot(int);
+
+    property <length> hz: root.height * 0.34;
+    background: Theme.t.retro-bg;
+    clip: true;
+    ta-bb := TouchArea { }
+
+    // Backdrop mit Bernstein-Schleier
+    if root.hero.has-backdrop: Image {
+        width: 100%;
+        height: 100%;
+        source: root.hero.backdrop;
+        image-fit: cover;
+        opacity: 0.55;
+    }
+    Rectangle {
+        background: #ff9a0040;
+    }
+    Rectangle {
+        background: @linear-gradient(90deg, #0a0603d9 0%, #0a060326 70%);
+    }
+    // Sterne
+    for st[i] in [[0.08, 0.14], [0.17, 0.38], [0.27, 0.09], [0.36, 0.27], [0.47, 0.16], [0.55, 0.41], [0.63, 0.08], [0.74, 0.24], [0.83, 0.12], [0.91, 0.33], [0.96, 0.06]]: Rectangle {
+        x: st[0] * root.width;
+        y: st[1] * (root.height - root.hz);
+        width: Math.mod(i, 2) == 0 ? 2px : 1px;
+        height: self.width;
+        background: Math.mod(i, 2) == 0 ? #ffe2a8 : #ffb000;
+        opacity: 0.8;
+    }
+    // Sonne mit Streifenschnitten
+    sun := Rectangle {
+        property <length> s: clamp(root.width * 0.38, 200px, 440px);
+        x: root.width * 0.70 - self.s / 2;
+        y: root.height - root.hz - self.s * 0.54;
+        width: self.s;
+        height: self.s;
+        border-radius: self.s / 2;
+        clip: true;
+        background: @linear-gradient(180deg, RetroFx.amber-hi 0%, RetroFx.amber 42%, RetroFx.hot 82%);
+        for k in 6: Rectangle {
+            y: sun.s * 0.5 + k * 22px;
+            height: 5px + k * 1.5px;
+            background: Theme.t.retro-bg;
+        }
+    }
+    // Boden und Horizont
+    Rectangle {
+        y: root.height - root.hz;
+        height: root.hz;
+        background: @linear-gradient(180deg, #1c0b00 0%, #0a0603 85%);
+        for r in 5: Rectangle {
+            y: parent.height * (r * r) / 25 + 3px;
+            height: 1px;
+            background: #ffb000a6;
+        }
+        for q in 15: Rectangle {
+            x: parent.width / 2 + (q - 7) * parent.width * 0.09 - 0.5px;
+            width: 1px;
+            background: #ffb00073;
+        }
+    }
+    Rectangle {
+        y: root.height - root.hz - 1px;
+        height: 2px;
+        background: @linear-gradient(90deg, #ffe2a800 0%, RetroFx.amber-hi 15%, RetroFx.amber-hi 85%, #ffe2a800 100%);
+    }
+    Rectangle {
+        y: root.height - 40px;
+        height: 40px;
+        background: @linear-gradient(0deg, Theme.t.retro-bg 0%, #0a060300 100%);
+    }
+
+    // Terminal-Fenster
+    win := Rectangle {
+        x: 28px;
+        width: min(660px, root.width - 56px);
+        y: root.height - Theme.t.btn-h - 27px - self.height - 22px;
+        height: 26px + body.preferred-height + 14px;
+        background: #0e0803db;
+        border-width: 1px;
+        border-color: RetroFx.amber;
+        Rectangle {
+            x: 0px;
+            y: 0px;
+            width: parent.width;
+            height: 26px;
+            background: RetroFx.amber;
+            Text {
+                x: 12px;
+                text: "C:\\LENZ84>";
+                color: Theme.t.retro-ink;
+                font-family: Theme.t.retro-font-pixel;
+                font-size: 22px;
+                letter-spacing: 1.7px;
+                vertical-alignment: center;
+            }
+        }
+        body := VerticalLayout {
+            x: 0px;
+            y: 26px;
+            width: parent.width;
+            padding-left: 24px;
+            padding-right: 24px;
+            padding-top: 12px;
+            padding-bottom: 6px;
+            spacing: 6px;
+            Text {
+                text: RetroFx.hero-file != "" ? RetroFx.hero-file : root.hero.title;
+                color: RetroFx.amber-hi;
+                font-family: Theme.t.retro-font-pixel;
+                font-size: root.hero.title.character-count > 20 ? 40px : 54px;
+                letter-spacing: 1.5px;
+                wrap: word-wrap;
+                overflow: elide;
+            }
+            if root.hero.meta != "": Text {
+                text: root.hero.meta;
+                color: RetroFx.amber;
+                font-family: Theme.t.retro-font-pixel;
+                font-size: 24px;
+                letter-spacing: 2px;
+            }
+            if root.hero.overview != "": Text {
+                text: root.hero.overview;
+                color: #d9a032;
+                font-family: Theme.t.retro-font-mono;
+                font-size: 13px;
+                wrap: word-wrap;
+                overflow: elide;
+                max-height: 66px;
+            }
+        }
+    }
+
+    // Knöpfe (Lage wie beim Billboard)
+    if root.hero.has-item: HorizontalLayout {
+        x: 28px;
+        y: root.height - Theme.t.btn-h - 27px;
+        height: Theme.t.btn-h;
+        spacing: Theme.t.btn-gap;
+        RBtn {
+            width: 178px;
+            primary: true;
+            text: root.primary-text;
+            focused: root.focus-index == 0;
+            clicked => { root.play(); }
+        }
+        RBtn {
+            width: 184px;
+            text: "Info";
+            focused: root.focus-index == 1;
+            clicked => { root.info(); }
+        }
+    }
+    // Kanalwahl 01/05
+    if root.ui.hero-count > 1: HorizontalLayout {
+        x: root.width - self.preferred-width - 28px;
+        y: root.height - 27px - 36px;
+        height: 36px;
+        spacing: 8px;
+        Rectangle {
+            width: 34px;
+            border-width: 1px;
+            border-color: RetroFx.amber-lo;
+            background: pv.has-hover ? RetroFx.amber : transparent;
+            Text { text: "<"; color: pv.has-hover ? Theme.t.retro-ink : RetroFx.amber; font-family: Theme.t.retro-font-pixel; font-size: 24px; horizontal-alignment: center; vertical-alignment: center; }
+            pv := TouchArea { clicked => { root.dot(Math.mod(root.ui.hero-index + root.ui.hero-count - 1, root.ui.hero-count)); } }
+        }
+        Text {
+            text: (root.ui.hero-index + 1 < 10 ? "0" : "") + (root.ui.hero-index + 1) + "/" + (root.ui.hero-count < 10 ? "0" : "") + root.ui.hero-count;
+            color: RetroFx.amber-hi;
+            font-family: Theme.t.retro-font-pixel;
+            font-size: 26px;
+            letter-spacing: 2px;
+            vertical-alignment: center;
+        }
+        Rectangle {
+            width: 34px;
+            border-width: 1px;
+            border-color: RetroFx.amber-lo;
+            background: nx.has-hover ? RetroFx.amber : transparent;
+            Text { text: ">"; color: nx.has-hover ? Theme.t.retro-ink : RetroFx.amber; font-family: Theme.t.retro-font-pixel; font-size: 24px; horizontal-alignment: center; vertical-alignment: center; }
+            nx := TouchArea { clicked => { root.dot(Math.mod(root.ui.hero-index + 1, root.ui.hero-count)); } }
+        }
+    }
+}

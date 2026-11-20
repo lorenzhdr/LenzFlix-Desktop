@@ -11,6 +11,7 @@ import { TvPage } from "tvui.slint";  // W2-tvui
 import { LibraryPage } from "library.slint"; // W2-library
 import { PlayerView } from "player-types.slint"; // W2-player
 import { SoonPage, SettingsPage, AboutPage } from "misc.slint";
+import { RetroFxLayer } from "../components/retro-fx.slint"; // W3-retro
 import { DetailPage, DetailOverlays } from "detail-layer.slint"; // W2-detail
 
 // Hauptfenster von LENZFLIX Desktop. Rust (lfx-app) hält Router, Zustand und Fokus und setzt die Properties;
@@ -201,6 +202,14 @@ export component MainWindow inherits Window {
             y: 0px;
             width: parent.width;
             height: parent.height;
+        }
+
+        // W3-retro: CRT, Boot, Terminal, Code-Regen (unter der Titelleiste)
+        RetroFxLayer {
+            x: 0px;
+            y: bar.height;
+            width: parent.width;
+            height: parent.height - bar.height;
         }
 
         bar := LfxTitleBar {

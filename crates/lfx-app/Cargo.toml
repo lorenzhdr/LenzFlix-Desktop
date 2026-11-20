@@ -29,6 +29,8 @@ lfx-images = { path = "../lfx-images" }
 lfx-nav = { path = "../lfx-nav", features = ["gamepad"] }
 lfx-platform = { path = "../lfx-platform" }
 lfx-player = { path = "../lfx-player" }
+lfx-retro-fx = { path = "../lfx-retro-fx" } # W3-retro
+chrono = { version = "0.4", default-features = false, features = ["clock", "std"] } # W3-retro
 lfx-session = { path = "../lfx-session" }
 lfx-shell = { path = "../lfx-shell" }
 lfx-store = { path = "../lfx-store" }
@@ -75,4 +77,8 @@ required-features = ["dev-automation"]
 
 [[test]] # W2-home
 name = "home_e2e"
+required-features = ["dev-automation"]
+
+[[test]] # W3-retro
+name = "e2e_retro"
 required-features = ["dev-automation"]

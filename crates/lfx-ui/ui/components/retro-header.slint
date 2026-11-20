@@ -1,0 +1,157 @@
+// W3-retro: Kopfleiste von LENZ//84 (Web: `features/retro/header*.js`, `themes/retro/header.css`).
+// Gleiche Fokus-Indizes wie HomeHeader: 0..4 Links, 5 Suche, 6 TV, 7 Datensparmodus, 8 Profil.
+import { Theme } from "../theme/theme.slint";
+import { LfxIcon } from "icon.slint";
+import { Icons } from "../icons.slint";
+import { RetroFx } from "retro-fx.slint";
+
+component RLink inherits Rectangle {
+    in property <string> text;
+    in property <bool> active;
+    in property <bool> focused;
+    callback clicked();
+    height: 32px;
+    width: lbl.preferred-width + 20px;
+    background: root.active ? RetroFx.amber : (ta.has-hover ? RetroFx.amber-hi : (root.focused ? RetroFx.dim : transparent));
+    border-width: root.focused ? 1px : 0px;
+    border-color: RetroFx.amber;
+    lbl := Text {
+        x: 10px;
+        height: parent.height;
+        text: (root.active ? "> " : "") + root.text;
+        color: (root.active || ta.has-hover) ? Theme.t.retro-ink : RetroFx.amber;
+        font-family: Theme.t.retro-font-pixel;
+        font-size: 24px;
+        letter-spacing: 1.9px;
+        vertical-alignment: center;
+    }
+    ta := TouchArea { clicked => { root.clicked(); } }
+}
+
+// Eckklammer-Schalter (36 x 32): an = Glow, aus = gedimmt.
+component RSwitch inherits Rectangle {
+    in property <image> source;
+    in property <bool> on;
+    in property <bool> focused;
+    in property <bool> lit-icon: true;
+    callback clicked();
+    width: 36px;
+    height: 32px;
+    border-width: 1px;
+    border-radius: 2px;
+    border-color: (root.on || root.focused || ta.has-hover) ? RetroFx.amber : RetroFx.amber-lo;
+    background: root.on ? RetroFx.dim : transparent;
+    LfxIcon {
+        x: 7px;
+        y: 5px;
+        source: root.source;
+        size: 22px;
+        tint: root.on ? RetroFx.amber-hi : (ta.has-hover ? RetroFx.amber : RetroFx.amber-lo);
+    }
+    if !root.on && root.lit-icon: Rectangle {
+        // Schrägstrich bei „aus“
+        x: 6px;
+        y: 15px;
+        width: 24px;
+        height: 2px;
+        background: RetroFx.amber-lo;
+        transform-rotation: -40deg;
+    }
+    ta := TouchArea { clicked => { root.clicked(); } }
+}
+
+export component RetroHeader inherits Rectangle {
+    in property <length> gutter;
+    in property <bool> scrolled;
+    in property <int> focus-index: -1;
+    in property <int> current: 0;
+    in property <bool> ds-on;
+    in property <string> initial;
+    in property <bool> narrow: false;
+    callback pick(int);
+    callback logo-clicked();
+
+    height: Theme.t.header-h;
+    background: @linear-gradient(180deg, #0a0603eb 0%, #0a06038c 70%, #0a060300 100%);
+    opacity: 1.0;
+    if root.scrolled: Rectangle {
+        background: Theme.t.retro-bg.with-alpha(0.92);
+        Rectangle {
+            y: parent.height - 1px;
+            height: 1px;
+            background: RetroFx.line;
+        }
+    }
+    Image {
+        x: root.gutter;
+        y: (parent.height - self.height) / 2;
+        width: 112px;
+        height: 30px;
+        source: @image-url("../../../../assets/logo/lenz84.svg");
+        image-fit: contain;
+        // Tippen zählt (7 schnelle Tipps = Overdrive), Langdruck (700 ms) öffnet das Terminal.
+        TouchArea {
+            clicked => { RetroFx.logo-tap(); }
+            pointer-event(e) => {
+                if (e.button == PointerEventButton.left && e.kind == PointerEventKind.down) {
+                    lp.running = true;
+                } else if (e.kind == PointerEventKind.up || e.kind == PointerEventKind.cancel) {
+                    lp.running = false;
+                }
+            }
+        }
+        lp := Timer {
+            interval: 700ms;
+            running: false;
+            triggered => { self.running = false; RetroFx.logo-long(); }
+        }
+    }
+    if !root.narrow: HorizontalLayout {
+        x: root.gutter + 130px;
+        y: (parent.height - 32px) / 2;
+        height: 32px;
+        spacing: 4px;
+        RLink { text: "START"; active: root.current == 0; focused: root.focus-index == 0; clicked => { root.pick(0); } }
+        RLink { text: "SERIEN"; active: root.current == 1; focused: root.focus-index == 1; clicked => { root.pick(1); } }
+        RLink { text: "FILME"; active: root.current == 2; focused: root.focus-index == 2; clicked => { root.pick(2); } }
+        RLink { text: "NEU & BELIEBT"; active: root.current == 3; focused: root.focus-index == 3; clicked => { root.pick(3); } }
+        RLink { text: "MEINE LISTE"; active: root.current == 4; focused: root.focus-index == 4; clicked => { root.pick(4); } }
+    }
+    HorizontalLayout {
+        x: 0px;
+        width: parent.width - root.gutter;
+        y: (parent.height - 32px) / 2;
+        height: 32px;
+        alignment: end;
+        spacing: 10px;
+        Text {
+            text: RetroFx.clock-h + (RetroFx.clock-colon ? ":" : " ") + RetroFx.clock-m;
+            color: RetroFx.amber-hi;
+            font-family: Theme.t.retro-font-pixel;
+            font-size: 28px;
+            letter-spacing: 1.5px;
+            vertical-alignment: center;
+        }
+        RSwitch { source: Icons.tvmode; on: RetroFx.crt-on; lit-icon: false; clicked => { RetroFx.switch("crt"); } }
+        RSwitch { source: Icons.volume; on: RetroFx.sound-on; clicked => { RetroFx.switch("sound"); } }
+        RSwitch { source: Icons.search; on: false; lit-icon: false; focused: root.focus-index == 5; clicked => { root.pick(5); } }
+        RSwitch { source: Icons.tvmode; on: false; lit-icon: false; focused: root.focus-index == 6; clicked => { root.pick(6); } }
+        RSwitch { source: Icons.datasaver; on: root.ds-on; lit-icon: false; focused: root.focus-index == 7; clicked => { root.pick(7); } }
+        Rectangle {
+            width: 36px;
+            height: 32px;
+            border-width: 1px;
+            border-color: root.focus-index == 8 ? RetroFx.amber-hi : RetroFx.amber;
+            background: RetroFx.amber;
+            Text {
+                text: root.initial;
+                color: Theme.t.retro-ink;
+                font-family: Theme.t.retro-font-pixel;
+                font-size: 24px;
+                horizontal-alignment: center;
+                vertical-alignment: center;
+            }
+            TouchArea { clicked => { root.pick(8); } }
+        }
+    }
+}

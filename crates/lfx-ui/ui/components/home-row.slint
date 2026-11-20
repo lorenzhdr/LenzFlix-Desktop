@@ -4,6 +4,9 @@ import { LfxIcon } from "icon.slint";
 import { Icons } from "../icons.slint";
 import { HCard } from "../pages/home-types.slint";
 import { HomeCard } from "home-card.slint";
+import { RetroCard } from "retro-card.slint"; // W3-retro
+import { RetroFx } from "retro-fx.slint"; // W3-retro
+import { Design } from "../theme/theme.slint"; // W3-retro
 
 // Zeile der Startseite (Web: `.lfx-row`): Titel 18 px/600, darunter 14 px Abstand, dann die Karten (virtualisiert).
 // Pfeile an den Rändern (nur bei Mauszeiger über der Zeile), seitenweises Scrollen mit Animation, Seitenpunkte.
@@ -54,9 +57,11 @@ export component HomeRow inherits Rectangle {
         x: root.gutter;
         y: 0px;
         height: root.head-h;
-        text: root.title;
-        font-size: Theme.t.fs-row-title;
+        text: Theme.design == Design.retro ? "> " + root.title : root.title; // W3-retro
+        font-size: Theme.design == Design.retro ? 24px : Theme.t.fs-row-title; // W3-retro
         font-weight: Theme.t.fw-row-title;
+        font-family: Theme.design == Design.retro ? Theme.t.retro-font-pixel : Theme.t.font-family; // W3-retro
+        color: Theme.design == Design.retro ? RetroFx.amber-hi : Theme.t.text; // W3-retro
         vertical-alignment: center;
     }
     // Seitenpunkte (12 x 2 px)
@@ -102,7 +107,20 @@ export component HomeRow inherits Rectangle {
                 y: 4px;
                 width: root.card-w;
                 height: root.card-h;
-                if idx < root.items.length: HomeCard {
+                if idx < root.items.length && Theme.design == Design.retro: RetroCard { // W3-retro
+                    width: 100%;
+                    height: 100%;
+                    data: root.items[idx];
+                    top10: root.top10;
+                    focused: idx == root.focused-index;
+                    clicked => { root.card-clicked(idx); }
+                    hover(h) => {
+                        root.hot = h;
+                        root.card-hover(idx, h, cell.absolute-position.x, cell.absolute-position.y, cell.width, cell.height);
+                    }
+                    context-requested(x, y) => { root.card-context(idx, x, y); }
+                }
+                if idx < root.items.length && Theme.design != Design.retro: HomeCard {
                     width: 100%;
                     height: 100%;
                     data: root.items[idx];

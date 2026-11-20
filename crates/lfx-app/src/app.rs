@@ -55,6 +55,8 @@ pub struct State {
     pub lib: crate::library::LibState, // W2-library
     /// W2-detail: Detail-Modal/-Seite, Kontextmenü, Hovercard.
     pub detail: crate::detail::DetailCtl, // W2-detail
+    /// W3-retro: LENZ//84 Effekte.
+    pub retro: crate::retro::RetroState, // W3-retro
 }
 
 /// Zeitgeber, die leben müssen, solange die App läuft.
@@ -171,6 +173,9 @@ impl App {
         self.st.borrow_mut().design = d;
         self.win().global::<Theme>().set_design(design_to_slint(d));
         self.win().set_design(d.index());
+        if let Some(a) = current() {
+            a.retro_sync(); // W3-retro
+        }
     }
 
     // ---------------------------------------------------------------- Routen
@@ -287,6 +292,7 @@ impl App {
         self.st.borrow_mut().ctx = ctx;
         ui.invoke_focus_root();
         self.show_focus();
+        self.retro_sync(); // W3-retro
     }
 
     fn focus_field_later(self: &Rc<Self>) {
@@ -480,6 +486,10 @@ impl App {
 
     /// Eine Taste aus dem Fenster.
     pub fn key_event(self: &Rc<Self>, text: &str, ctrl: bool, shift: bool, alt: bool) {
+        // W3-retro: Boot, Terminal und Regen verbrauchen Tasten; der Cheat-Code läuft mit.
+        if !ctrl && !alt && self.retro_key(text) {
+            return;
+        }
         let Some(key) = crate::keys::from_slint(text) else {
             return;
         };

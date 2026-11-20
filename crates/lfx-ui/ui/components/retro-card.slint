@@ -1,0 +1,128 @@
+// W3-retro: Kassetten-Karte der Startseiten-Zeilen (Web: `features/retro/card.js`, `themes/retro/card.css`).
+// Rahmen Bernstein-dunkel, dunkler Verlaufsgrund, Bild mit Bernstein-Schleier (statt Sepia-Filter) und Scanlines,
+// Untertitel in Pixelschrift, Fortschritt als Bandwickel. Gleiche Schnittstelle wie HomeCard.
+import { Theme } from "../theme/theme.slint";
+import { HCard } from "../pages/home-types.slint";
+import { RetroFx } from "retro-fx.slint";
+
+export component RetroCard inherits Rectangle {
+    in property <HCard> data;
+    in property <bool> top10;
+    in property <bool> focused;
+    callback clicked();
+    callback hover(bool);
+    callback context-requested(length, length);
+
+    property <length> poster-w: root.height * 2 / 3;
+    property <length> img-x: root.top10 ? root.width - root.poster-w : 0px;
+    property <length> img-w: root.top10 ? root.poster-w : root.width;
+
+    if root.top10 && root.data.rank > 0: Text {
+        x: 0px;
+        width: root.img-x + root.height * 0.1;
+        height: root.height;
+        text: root.data.rank;
+        font-family: Theme.t.retro-font-pixel;
+        font-size: root.data.rank >= 10 ? root.height * 0.95 : root.height * 1.2;
+        color: Theme.t.retro-bg;
+        stroke: RetroFx.amber-lo;
+        stroke-width: 3px;
+        horizontal-alignment: right;
+        vertical-alignment: center;
+    }
+    box := Rectangle {
+        x: root.img-x;
+        width: root.img-w;
+        height: root.height;
+        border-radius: 2px;
+        border-width: 1px;
+        border-color: (ta.has-hover || root.focused) ? RetroFx.amber : RetroFx.amber-lo;
+        background: @linear-gradient(160deg, #1d1208 0%, #0e0803 100%);
+        clip: true;
+        if root.data.has-image: Image {
+            width: 100%;
+            height: 100%;
+            source: root.data.image;
+            image-fit: cover;
+        }
+        Rectangle { background: #ff960026; }
+        Rectangle {
+            y: parent.height * 0.5;
+            height: parent.height * 0.5;
+            background: @linear-gradient(180deg, #0a060300 0%, #0a0603e6 100%);
+        }
+        Image {
+            width: 100%;
+            height: 100%;
+            source: RetroFx.scan;
+            horizontal-tiling: repeat;
+            vertical-tiling: repeat;
+            opacity: 0.7;
+        }
+        if root.data.title != "": Text {
+            x: 8px;
+            width: parent.width - 16px;
+            y: parent.height - self.height - (root.data.progress > 0 ? 16px : 8px) - (root.data.badge != "" ? 20px : 0px);
+            height: min(self.preferred-height, parent.height * 0.5);
+            text: root.data.title;
+            wrap: word-wrap;
+            overflow: elide;
+            color: RetroFx.amber-hi;
+            font-family: Theme.t.retro-font-pixel;
+            font-size: 22px;
+            letter-spacing: 0.6px;
+        }
+        if root.data.badge != "": Rectangle {
+            x: 6px;
+            y: parent.height - self.height - (root.data.progress > 0 ? 16px : 6px);
+            width: bt.preferred-width + 12px;
+            height: 17px;
+            background: RetroFx.amber;
+            bt := Text {
+                width: 100%;
+                height: 100%;
+                text: root.data.badge;
+                color: Theme.t.retro-ink;
+                font-family: Theme.t.retro-font-pixel;
+                font-size: 15px;
+                letter-spacing: 0.8px;
+                horizontal-alignment: center;
+                vertical-alignment: center;
+            }
+        }
+        if root.data.progress > 0: Rectangle {
+            x: 4px;
+            y: parent.height - 11px;
+            width: parent.width - 8px;
+            height: 7px;
+            border-width: 1px;
+            border-color: RetroFx.amber-lo;
+            background: #0a0603d9;
+            clip: true;
+            Rectangle {
+                width: parent.width * min(1.0, root.data.progress);
+                background: RetroFx.hot;
+            }
+        }
+    }
+    ta := TouchArea {
+        x: root.img-x;
+        width: root.img-w;
+        height: root.height;
+        clicked => { root.clicked(); }
+        changed has-hover => { root.hover(self.has-hover); }
+        pointer-event(e) => {
+            if (e.button == PointerEventButton.right && e.kind == PointerEventKind.up) {
+                root.context-requested(self.absolute-position.x + self.mouse-x, self.absolute-position.y + self.mouse-y);
+            }
+        }
+    }
+    if root.focused: Rectangle {
+        x: root.img-x - 3px;
+        y: -3px;
+        width: root.img-w + 6px;
+        height: root.height + 6px;
+        border-width: 2px;
+        border-color: RetroFx.amber;
+    }
+}
