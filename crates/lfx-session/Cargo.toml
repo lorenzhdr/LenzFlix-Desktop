@@ -1,0 +1,26 @@
+[package]
+name = "lfx-session"
+description = "Sitzungsverwaltung für LENZFLIX Desktop: Server, Benutzer, Anmeldung, Quick Connect, Erreichbarkeit"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+lfx-api = { path = "../lfx-api" }
+lfx-platform = { path = "../lfx-platform" }
+lfx-store = { path = "../lfx-store" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"
+tokio = { version = "1", features = ["sync", "time", "rt"] }
+tracing = "0.1"
+
+[dev-dependencies]
+lfx-mock-jellyfin = { path = "../lfx-mock-jellyfin" }
+tempfile = "3"
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "sync", "time"] }
