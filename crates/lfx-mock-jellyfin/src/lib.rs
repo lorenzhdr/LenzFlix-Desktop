@@ -12,6 +12,7 @@ pub mod media;
 pub mod w2_tvui; // W2-tvui
 mod w2_library;
 pub use w2_library::{VIEW_BOXSETS, set_extra_titles};
+pub mod w2_player; // W2-player
 
 pub use extra::{
     VIEW_BOOKS, VIEW_LIVETV, VIEW_MUSIC, VIEW_PHOTOS, album_id, artist_id, book_id, channel_id,
@@ -347,6 +348,10 @@ fn router(shared: Arc<Shared>) -> Router {
             post(rating_set).delete(rating_clear),
         )
         .route("/MediaSegments/{id}", get(segments))
+        .route(
+            "/Videos/{id}/Trickplay/{width}/{file}",
+            get(w2_player::trickplay_tile),
+        ) // W2-player
         .route("/Sessions/Playing", post(playing))
         .route("/Sessions/Playing/Progress", post(progress))
         .route("/Sessions/Playing/Stopped", post(stopped))
@@ -458,7 +463,7 @@ fn user_json_for(guest: bool) -> Value {
     json!({
         "Id": id, "Name": name, "ServerId": SERVER_ID, "HasPassword": true,
         "Policy": { "IsAdministrator": false, "EnableMediaPlayback": true, "EnableVideoPlaybackTranscoding": false },
-        "Configuration": { "PlayDefaultAudioTrack": true, "SubtitleMode": "Default" }
+        "Configuration": { "PlayDefaultAudioTrack": true, "SubtitleMode": "Default", "EnableNextEpisodeAutoPlay": true }
     })
 }
 
@@ -1030,6 +1035,9 @@ async fn rating_clear(State(s): S, Path(id): Path<String>) -> Response {
 }
 
 async fn segments(State(shared): S, Path(id): Path<String>) -> Response {
+    if let Some(r) = w2_player::try_segments(&id) {
+        return r; // W2-player
+    }
     let Some(it) = find(&shared, &id) else {
         return StatusCode::NOT_FOUND.into_response();
     };

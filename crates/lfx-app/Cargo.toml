@@ -63,3 +63,8 @@ required-features = ["dev-automation"]
 [[test]] # W2-tvui
 name = "e2e_tvui"
 required-features = ["dev-automation"]
+
+# W2-player: Player-E2E (eigene Datei, damit sie nicht mit e2e.rs kollidiert)
+[[test]]
+name = "e2e_player"
+required-features = ["dev-automation"]

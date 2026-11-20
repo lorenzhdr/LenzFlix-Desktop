@@ -25,6 +25,9 @@ pub struct PrepareOptions {
     pub start_seconds: f64,
     /// Server-Umwandlung als Rückfall erlauben?
     pub allow_transcode: bool,
+    /// Höchstbitrate in Bit/s (W2-player, Qualitätswahl): erzwingt die Server-Umwandlung mit dieser Grenze;
+    /// `None` = Original (Direktwiedergabe, wenn möglich).
+    pub max_bitrate: Option<u64>,
 }
 
 impl Default for PrepareOptions {
@@ -35,6 +38,7 @@ impl Default for PrepareOptions {
             subtitle_stream_index: None,
             start_seconds: 0.0,
             allow_transcode: true,
+            max_bitrate: None,
         }
     }
 }
@@ -60,7 +64,11 @@ pub async fn prepare(
     request.media_source_id = opts.media_source_id.clone();
     let info = client.playback_info(item_id, &request).await?;
 
-    let direct = pick_source(&info.media_sources, opts.media_source_id.as_deref(), true);
+    let direct = if opts.max_bitrate.is_some() {
+        None
+    } else {
+        pick_source(&info.media_sources, opts.media_source_id.as_deref(), true)
+    };
     if let Some(src) = direct {
         let url = client.stream_url(item_id, &src.id)?;
         return Ok(build(
@@ -90,6 +98,9 @@ pub async fn prepare(
     second.enable_transcoding = true;
     second.enable_direct_play = false;
     second.enable_direct_stream = false;
+    if let Some(b) = opts.max_bitrate {
+        second.device_profile.max_streaming_bitrate = i64::try_from(b).unwrap_or(i64::MAX);
+    }
     second.media_source_id = source_id;
     if let (Some(a), Some(_)) = (opts.audio_stream_index, &second.media_source_id) {
         second.audio_stream_index = Some(a);

@@ -8,6 +8,7 @@ import { HomePage } from "home.slint";
 import { PlayerPage } from "player.slint";
 import { TvPage } from "tvui.slint";  // W2-tvui
 import { LibraryPage } from "library.slint"; // W2-library
+import { PlayerView } from "player-types.slint"; // W2-player
 import { SoonPage, SettingsPage, AboutPage } from "misc.slint";
 
 // Hauptfenster von LENZFLIX Desktop. Rust (lfx-app) hält Router, Zustand und Fokus und setzt die Properties;
@@ -77,22 +78,9 @@ export component MainWindow inherits Window {
     callback hero-info();
     callback card-clicked(int, int);
     callback home-geometry(HomeGeometry);
-    // Player
-    in property <string> player-title;
-    in property <string> pos-text;
-    in property <string> dur-text;
-    in property <float> progress;
-    in property <float> buffered;
-    in property <bool> paused;
-    in property <bool> osd: true;
-    in property <bool> buffering;
-    in property <string> player-note;
-    in property <int> player-slot: 2;
-    callback toggle-pause();
-    callback seek-by(float);
-    callback seek-to(float);
-    callback leave-player();
-    callback player-activity();
+    // Player (W2-player)
+    in property <PlayerView> pv;
+    callback player-cmd(string, float);
     // Folgt-Seite, Einstellungen, Über
     in property <string> soon-title;
     in property <int> simple-slot;
@@ -170,21 +158,8 @@ export component MainWindow inherits Window {
                 geometry-changed(g) => { root.home-geometry(g); }
             }
             if root.page == Page.player: PlayerPage {
-                title: root.player-title;
-                pos-text: root.pos-text;
-                dur-text: root.dur-text;
-                progress: root.progress;
-                buffered: root.buffered;
-                paused: root.paused;
-                osd: root.osd;
-                buffering: root.buffering;
-                note: root.player-note;
-                focus-slot: root.player-slot;
-                toggle-pause => { root.toggle-pause(); }
-                seek-by(d) => { root.seek-by(d); }
-                seek-to(v) => { root.seek-to(v); }
-                leave => { root.leave-player(); }
-                activity => { root.player-activity(); }
+                pv: root.pv; // W2-player
+                cmd(n, v) => { root.player-cmd(n, v); }
             }
             if root.page == Page.tvmode: TvPage { }  // W2-tvui
             if root.page == Page.library: LibraryPage { } // W2-library
@@ -216,7 +191,7 @@ export component MainWindow inherits Window {
             width: parent.width;
             mac: root.mac;
             maximized: root.is-maximized;
-            opacity: root.page == Page.player && !root.osd ? 0.0 : 1.0;
+            opacity: root.page == Page.player && !root.pv.osd ? 0.0 : 1.0;
             minimize => { root.minimize(); }
             toggle-maximize => { root.toggle-maximize(); }
             close-window => { root.close-window(); }
