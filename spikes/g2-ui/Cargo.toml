@@ -1,0 +1,36 @@
+# Gate G2: Slint-UI-Spike (eigener Workspace, nicht Teil des Haupt-Workspaces).
+[workspace]
+
+[package]
+name = "g2-ui"
+description = "Spike G2: Startseiten-Attrappe mit Slint (Titelleiste, Zeilen, Fokus-Zoom, Frametime-Messung)"
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+publish = false
+build = "build.rs"
+
+[features]
+default = []
+# Skia-Renderer (braucht vorgebaute Skia-Binaries bzw. LLVM/Python zum Selbstbau).
+skia = ["slint/renderer-skia"]
+# femtovg über wgpu (D3D12/Vulkan statt OpenGL).
+wgpu = ["slint/renderer-femtovg-wgpu"]
+
+[dependencies]
+slint = { version = "1.19", default-features = false, features = [
+    "std",
+    "compat-1-2",
+    "backend-winit",
+    "renderer-femtovg",
+    "renderer-software",
+    "unstable-winit-030",
+] }
+png = "0.17"
+
+[build-dependencies]
+slint-build = "1.19"
+
+[profile.release]
+debug = false
+lto = "thin"

@@ -1,0 +1,27 @@
+// Einstieg der LENZFLIX-Oberfläche: Design-Wahl (Theme) und Probe-Fenster für Tests.
+import {
+    Shadow, DesignTokens, TokensFlix, TokensPlus, TokensPrime, TokensRetro
+} from "theme/tokens.slint";
+
+export { Shadow, DesignTokens, TokensFlix, TokensPlus, TokensPrime, TokensRetro }
+
+export enum Design { flix, plus, prime, retro }
+
+// Aktives Design: `design` setzt die Anwendung, `t` liefert die passenden Token.
+export global Theme {
+    in-out property <Design> design: Design.flix;
+    out property <DesignTokens> t:
+        design == Design.plus ? TokensPlus.v
+        : design == Design.prime ? TokensPrime.v
+        : design == Design.retro ? TokensRetro.v
+        : TokensFlix.v;
+}
+
+// Minimales Fenster, das Theme-Werte sichtbar macht (Tests).
+export component ThemeProbe inherits Window {
+    background: Theme.t.bg;
+    in-out property <string> font-name: Theme.t.font-family;
+    Rectangle {
+        background: Theme.t.red;
+    }
+}
