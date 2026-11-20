@@ -1,0 +1,64 @@
+#!/bin/sh
+# Pre-commit: blockiert private Daten, Geheimnisse, Binärdateien und fremde Marken.
+# Aktivieren: git config core.hooksPath .githooks
+set -u
+root=$(git rev-parse --show-toplevel)
+cd "$root" || exit 1
+fail=0
+staged=$(git diff --cached --name-only --diff-filter=ACMR)
+[ -n "$staged" ] || exit 0
+
+# 1) Binärdateien
+for f in $staged; do
+  case "$f" in
+    *.dll|*.dylib|*.exe|*.7z)
+      echo "BLOCKIERT: Binärdatei gestagt: $f" >&2; fail=1 ;;
+  esac
+done
+
+# 2) Denylist (private Begriffe, lokal in .tmp/denylist.txt, nie im Repo)
+deny="$root/.tmp/denylist.txt"
+if [ -f "$deny" ]; then
+  # Kleinschreibung statt grep -i (grep -i -F -f bricht in manchen Git-Bash-Versionen ab).
+  lower=$(mktemp)
+  grep -v '^[[:space:]]*$' "$deny" | tr 'A-Z' 'a-z' > "$lower"
+  for f in $staged; do
+    if git show ":$f" | tr 'A-Z' 'a-z' | grep -a -F -f "$lower" >/dev/null 2>&1; then
+      echo "BLOCKIERT: Denylist-Treffer in $f" >&2; fail=1
+    fi
+  done
+  rm -f "$lower"
+else
+  echo "WARNUNG: .tmp/denylist.txt fehlt, private Begriffe werden nicht geprüft." >&2
+fi
+
+# 3) gitleaks
+if command -v gitleaks >/dev/null 2>&1; then
+  if ! gitleaks protect --staged --no-banner >/dev/null 2>&1; then
+    echo "BLOCKIERT: gitleaks meldet Geheimnisse (gitleaks protect --staged)." >&2; fail=1
+  fi
+else
+  echo "WARNUNG: gitleaks nicht installiert, Geheimnis-Scan übersprungen." >&2
+fi
+
+# 4) Fremde Marken (Index-Inhalt, nicht Arbeitsbaum)
+tmp=$(mktemp -d)
+trap 'rm -rf "$tmp"' EXIT
+for f in $staged; do
+  case "$f" in tools/brand-denylist.txt|.githooks/*) continue ;; esac
+  mkdir -p "$tmp/$(dirname "$f")"
+  git show ":$f" > "$tmp/$f" 2>/dev/null || continue
+done
+(
+  cd "$tmp" || exit 0
+  pat=$(grep -v '^[[:space:]]*#' "$root/tools/brand-denylist.txt" | grep -v '^[[:space:]]*$' | tr 'A-Za-z' 'N-ZA-Mn-za-m' | sed 's/[][\.*^$/]/\&/g' | paste -sd'|' -)
+  [ -n "$pat" ] || exit 0
+  hits=$(grep -r -I -n -i -E -w -e "($pat)" . 2>/dev/null | head -10)
+  if [ -n "$hits" ]; then
+    echo "BLOCKIERT: fremde Markennamen:" >&2
+    echo "$hits" >&2
+    exit 1
+  fi
+) || fail=1
+
+exit $fail

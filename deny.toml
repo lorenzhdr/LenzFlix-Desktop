@@ -1,0 +1,45 @@
+# cargo-deny: Lizenzen, Quellen, Advisories.
+# Slint steht unter "GPL-3.0-only OR LicenseRef-Slint-Royalty-free-2.0 OR LicenseRef-Slint-Software-3.0";
+# erlaubt ist nur der Royalty-free-Zweig (plus Software-3.0), GPL bleibt ausgeschlossen.
+
+[graph]
+targets = [
+  "aarch64-pc-windows-msvc",
+  "x86_64-pc-windows-msvc",
+  "aarch64-apple-darwin",
+]
+
+[licenses]
+confidence-threshold = 0.9
+allow = [
+  "MIT",
+  "Apache-2.0",
+  "Apache-2.0 WITH LLVM-exception",
+  "BSD-2-Clause",
+  "BSD-3-Clause",
+  "ISC",
+  "Zlib",
+  "Unicode-3.0",
+  "MPL-2.0",
+  "OFL-1.1",
+  "CC0-1.0",
+  "BSL-1.0",
+  "LicenseRef-Slint-Royalty-free-2.0",
+  "LicenseRef-Slint-Software-3.0",
+]
+# GPL/AGPL/LGPL sind nicht in der Allow-Liste und damit verboten.
+# Eigene Crates sind MIT (workspace.package).
+
+[bans]
+multiple-versions = "warn"
+wildcards = "deny"
+allow-wildcard-paths = true
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]
+
+[advisories]
+unmaintained = "workspace"
+yanked = "warn"

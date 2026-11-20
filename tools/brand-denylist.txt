@@ -1,0 +1,23 @@
+# Fremde Marken-/Dienstnamen, die im Repo nicht vorkommen dürfen – ROT13-kodiert,
+# damit die Namen selbst nicht im Klartext im öffentlichen Repo stehen.
+# Eine Marke pro Zeile (ganzes Wort, Groß-/Kleinschreibung egal). Dekodieren: tr A-Za-z N-ZA-Mn-za-m
+# Protokollnamen von Jellyfin (z. B. der Token-Header) sind bewusst nicht enthalten.
+argsyvk
+qvfarl
+uhyh
+uob
+cevzr ivqrb
+nznmba
+cnenzbhag
+crnpbpx
+nccyr gi
+pehapulebyy
+lbhghor
+gjvgpu
+fcbgvsl
+cyrk
+xbqv
+qnma
+wbla
+mnggbb
+jnvch

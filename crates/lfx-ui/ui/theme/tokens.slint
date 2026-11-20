@@ -1,0 +1,725 @@
+// Generiert von tools/tokens/extract.mjs – nicht von Hand ändern.
+// Quelle: src/css/tokens.css und src/css/themes/{plus,prime,retro}/tokens.css der Web-Vorlage (store bewusst ausgelassen).
+//
+// Aufbau: ein `DesignTokens`-Struct (alle Felder für alle Designs) und je Design ein Global
+// (TokensFlix, TokensPlus, TokensPrime, TokensRetro) mit `out property <DesignTokens> v`.
+// Ein späteres Theme-Global wählt per Design-Enum (flix, plus, prime, retro) das passende Global.
+// Designs erben wie in der Web-Kaskade die Kern-Tokens (LENZFLIX); Felder, die ein Design nicht
+// kennt (z. B. retro-* in LENZ+), tragen Nullwerte (transparent / 0px / "").
+// Zusätzlich je Global: `cards-visible-at(width)` und `gutter-at(width)` (Breakpoints der Media-Queries).
+//
+// Konventionen: rem = 16px; vw und clamp() werden bei 1920 px Referenzbreite zu festen Längen aufgelöst
+// (die Breitenabhängigkeit liefert gutter-at()). Schriftfamilien sind die echten Familiennamen der
+// eingebetteten Schriften (z. B. "Inter" statt CSS-Name "LenzFlix Sans"). Schatten: Slint kennt nur eine
+// Schicht ohne Spread, übernommen wird die erste Schicht mit Unschärfe.
+// Nicht übernommen: --*Channel-Tokens (Redundanz), --lfx-css (Web-Marker), --lfx-retro-scan (Verlauf).
+
+export struct Shadow {
+    x: length,
+    y: length,
+    blur: length,
+    spread: length,
+    color: color,
+}
+
+export struct DesignTokens {
+    // Jellyfin-Palette (MUI)
+    jf-primary-main: color,
+    jf-primary-light: color,
+    jf-primary-dark: color,
+    jf-primary-contrast: color,
+    jf-secondary-main: color,
+    jf-bg-default: color,
+    jf-bg-paper: color,
+    jf-appbar-bg: color,
+    jf-text-primary: color,
+    jf-text-secondary: color,
+    jf-divider: color,
+    jf-snackbar-bg: color,
+    jf-filled-input-bg: color,
+    jf-button-bg: color,
+    jf-button-hover-bg: color,
+    jf-card-radius: length,
+    jf-shape-radius: length,
+    // Farben (--lfx-*)
+    red: color,
+    red-hover: color,
+    red-active: color,
+    accent: color,
+    link: color,
+    progress: color,
+    bg: color,
+    bg-deep: color,
+    surface: color,
+    surface-2: color,
+    surface-3: color,
+    border: color,
+    text: color,
+    text-body: color,
+    text-muted: color,
+    text-soft: color,
+    gold: color,
+    gold-hover: color,
+    green: color,
+    green-soft: color,
+    glass: color,
+    glass-hover: color,
+    pill-active: color,
+    pill-soft: color,
+    icon-circle: color,
+    icon-circle-border: color,
+    progress-rail: color,
+    ambient: color,
+    // Typografie
+    font-family: string,
+    fs-nav: length,
+    fs-row-title: length,
+    fs-meta: length,
+    fs-button: length,
+    fs-badge: length,
+    fs-body: length,
+    fw-nav: int,
+    fw-row-title: int,
+    fw-button: int,
+    // Maße
+    gutter: length,
+    header-h: length,
+    nav-pill-h: length,
+    card-gap: length,
+    cards-visible: int,
+    card-peek: length,
+    card-radius: length,
+    row-title-gap: length,
+    row-gap: length,
+    billboard-radius: length,
+    billboard-ratio: float,
+    btn-h: length,
+    btn-radius: length,
+    btn-gap: length,
+    badge-h: length,
+    popup-radius: length,
+    modal-radius: length,
+    // Bewegung
+    ease: easing,
+    ease-out: easing,
+    dur-fast: duration,
+    dur: duration,
+    hover-delay: duration,
+    // Schatten (jeweils die erste Schicht mit Unschärfe; Rest siehe Kommentar je Design)
+    shadow-card: Shadow,
+    shadow-modal: Shadow,
+    // LENZ+ (plus-*, in anderen Designs Nullwerte)
+    plus-nav-idle: color,
+    plus-circle: color,
+    plus-menu-bg: color,
+    plus-menu-border: color,
+    plus-letter-spacing: length,
+    plus-letter-spacing-bold: length,
+    // LENZPRIME (prime-*, in anderen Designs Nullwerte)
+    prime-glass: color,
+    prime-chip: color,
+    prime-hover-bg: color,
+    prime-ink: color,
+    prime-gutter: length,
+    prime-header-h: length,
+    prime-shadow: Shadow,
+    // LENZ//84 (retro-*, in anderen Designs Nullwerte)
+    retro-amber: color,
+    retro-amber-hi: color,
+    retro-amber-lo: color,
+    retro-amber-dim: color,
+    retro-hot: color,
+    retro-glitch-a: color,
+    retro-glitch-b: color,
+    retro-bg: color,
+    retro-bg-2: color,
+    retro-panel: color,
+    retro-line: color,
+    retro-ink: color,
+    retro-glow: Shadow,
+    retro-glow-strong: Shadow,
+    retro-box-glow: Shadow,
+    retro-font-pixel: string,
+    retro-font-mono: string,
+    retro-ease-crt: easing,
+    retro-dur-glitch: duration,
+    retro-gutter: length,
+}
+
+// ---- LENZFLIX (flix) ----
+export global TokensFlix {
+    out property <DesignTokens> v: {
+        // Jellyfin-Palette (MUI)
+        jf-primary-main: #e50914,
+        jf-primary-light: #f40612,
+        jf-primary-dark: #b81d24,
+        jf-primary-contrast: #ffffff,
+        jf-secondary-main: #e50914,
+        jf-bg-default: #141414,
+        jf-bg-paper: #181818,
+        jf-appbar-bg: #141414,
+        jf-text-primary: #ffffff,
+        jf-text-secondary: #b3b3b3,
+        jf-divider: rgba(255, 255, 255, 0.12),
+        jf-snackbar-bg: #2f2f2f,
+        jf-filled-input-bg: rgba(22, 22, 22, 0.7),
+        jf-button-bg: rgba(109, 109, 110, 0.7),
+        jf-button-hover-bg: rgba(109, 109, 110, 0.4),
+        jf-card-radius: 8px,
+        jf-shape-radius: 4px,
+        // Farben (--lfx-*)
+        red: #e50914,
+        red-hover: #f40612,
+        red-active: #b81d24,
+        accent: #e50914, // Rückfall auf --lfx-red
+        link: #f40612, // Rückfall auf --lfx-red-hover
+        progress: #e50914, // Rückfall auf --lfx-red
+        bg: #141414,
+        bg-deep: #0c0c0c,
+        surface: #181818,
+        surface-2: #232323,
+        surface-3: #2f2f2f,
+        border: #404040,
+        text: #ffffff,
+        text-body: #e5e5e5,
+        text-muted: #b3b3b3,
+        text-soft: #808080,
+        gold: #e3c36a,
+        gold-hover: #f1d98f,
+        green: #46d369,
+        green-soft: rgba(70, 211, 105, 0.12),
+        glass: rgba(109, 109, 110, 0.7),
+        glass-hover: rgba(109, 109, 110, 0.4),
+        pill-active: rgba(255, 255, 255, 0.2),
+        pill-soft: rgba(255, 255, 255, 0.12),
+        icon-circle: rgba(42, 42, 42, 0.6),
+        icon-circle-border: rgba(255, 255, 255, 0.5),
+        progress-rail: rgba(255, 255, 255, 0.85),
+        ambient: rgb(27, 40, 41),
+        // Typografie
+        font-family: "Inter", // CSS: "LenzFlix Sans", "Helvetica Neue", Helvetica, Arial, sans-serif
+        fs-nav: 16px,
+        fs-row-title: 18px,
+        fs-meta: 15px,
+        fs-button: 20px,
+        fs-badge: 12px,
+        fs-body: 16px,
+        fw-nav: 500,
+        fw-row-title: 600,
+        fw-button: 600,
+        // Maße
+        gutter: 36px,
+        header-h: 80px,
+        nav-pill-h: 40px,
+        card-gap: 7.5px,
+        cards-visible: 4,
+        card-peek: 13px,
+        card-radius: 8px,
+        row-title-gap: 14px,
+        row-gap: 40px,
+        billboard-radius: 18px,
+        billboard-ratio: 2.184411,
+        btn-h: 48px,
+        btn-radius: 24px,
+        btn-gap: 12px,
+        badge-h: 18px,
+        popup-radius: 8px,
+        modal-radius: 8px,
+        // Bewegung
+        ease: cubic-bezier(0.4, 0, 0.2, 1),
+        ease-out: cubic-bezier(0, 0, 0.2, 1),
+        dur-fast: 150ms,
+        dur: 250ms,
+        hover-delay: 500ms,
+        // Schatten (jeweils die erste Schicht mit Unschärfe; Rest siehe Kommentar je Design)
+        shadow-card: { x: 0px, y: 16px, blur: 32px, spread: 0px, color: rgba(0, 0, 0, 0.75) },
+        shadow-modal: { x: 0px, y: 32px, blur: 64px, spread: 0px, color: rgba(0, 0, 0, 0.85) },
+        // LENZ+ (plus-*, in anderen Designs Nullwerte)
+        plus-nav-idle: transparent,
+        plus-circle: transparent,
+        plus-menu-bg: transparent,
+        plus-menu-border: transparent,
+        plus-letter-spacing: 0px,
+        plus-letter-spacing-bold: 0px,
+        // LENZPRIME (prime-*, in anderen Designs Nullwerte)
+        prime-glass: transparent,
+        prime-chip: transparent,
+        prime-hover-bg: transparent,
+        prime-ink: transparent,
+        prime-gutter: 0px,
+        prime-header-h: 0px,
+        prime-shadow: { x: 0px, y: 0px, blur: 0px, spread: 0px, color: transparent },
+        // LENZ//84 (retro-*, in anderen Designs Nullwerte)
+        retro-amber: transparent,
+        retro-amber-hi: transparent,
+        retro-amber-lo: transparent,
+        retro-amber-dim: transparent,
+        retro-hot: transparent,
+        retro-glitch-a: transparent,
+        retro-glitch-b: transparent,
+        retro-bg: transparent,
+        retro-bg-2: transparent,
+        retro-panel: transparent,
+        retro-line: transparent,
+        retro-ink: transparent,
+        retro-glow: { x: 0px, y: 0px, blur: 0px, spread: 0px, color: transparent },
+        retro-glow-strong: { x: 0px, y: 0px, blur: 0px, spread: 0px, color: transparent },
+        retro-box-glow: { x: 0px, y: 0px, blur: 0px, spread: 0px, color: transparent },
+        retro-font-pixel: "",
+        retro-font-mono: "",
+        retro-ease-crt: linear,
+        retro-dur-glitch: 0ms,
+        retro-gutter: 0px,
+    };
+    // cards-visible: Breakpoints aus den Media-Queries (CSS-px)
+    pure function cards-visible-at(w: length) -> int {
+        if (w < 800px) { return 2; }
+        if (w < 1100px) { return 3; }
+        if (w < 1400px) { return 4; }
+        if (w < 1800px) { return 5; }
+        return 6;
+    }
+    // gutter: Breakpoints aus den Media-Queries (CSS-px)
+    pure function gutter-at(w: length) -> length {
+        if (w < 800px) { return w * 0.04; }
+        if (w < 1400px) { return 36px; }
+        if (w < 1800px) { return w * 0.03; }
+        return 60px;
+    }
+}
+
+// ---- LENZ+ (plus) ----
+export global TokensPlus {
+    out property <DesignTokens> v: {
+        // Jellyfin-Palette (MUI)
+        jf-primary-main: #1bb3e8,
+        jf-primary-light: #4cc6f0,
+        jf-primary-dark: #0f8fbc,
+        jf-primary-contrast: #ffffff,
+        jf-secondary-main: #1bb3e8,
+        jf-bg-default: #10131f,
+        jf-bg-paper: #151a2a,
+        jf-appbar-bg: #000000,
+        jf-text-primary: #f9f9f9,
+        jf-text-secondary: #c0c0c0,
+        jf-divider: rgba(255, 255, 255, 0.12),
+        jf-snackbar-bg: #2d2f36,
+        jf-filled-input-bg: rgba(255, 255, 255, 0.08),
+        jf-button-bg: rgba(255, 255, 255, 0.1),
+        jf-button-hover-bg: rgba(255, 255, 255, 0.18),
+        jf-card-radius: 12px,
+        jf-shape-radius: 8px,
+        // Farben (--lfx-*)
+        red: #1bb3e8,
+        red-hover: #4cc6f0,
+        red-active: #0f8fbc,
+        accent: #1bb3e8,
+        link: #4cc6f0, // Rückfall auf --lfx-red-hover
+        progress: #1bb3e8,
+        bg: #10131f,
+        bg-deep: #000000,
+        surface: #151a2a,
+        surface-2: #1d2336,
+        surface-3: #2d2f36,
+        border: #353c55,
+        text: #f9f9f9,
+        text-body: #dbdcde,
+        text-muted: #c0c0c0,
+        text-soft: #8d8d95,
+        gold: #e3c36a,
+        gold-hover: #f1d98f,
+        green: #46d369,
+        green-soft: rgba(70, 211, 105, 0.12),
+        glass: rgba(45, 47, 54, 0.71),
+        glass-hover: rgba(255, 255, 255, 0.18),
+        pill-active: #ffffff,
+        pill-soft: rgba(255, 255, 255, 0.12),
+        icon-circle: rgba(42, 42, 42, 0.6),
+        icon-circle-border: rgba(255, 255, 255, 0.5),
+        progress-rail: rgba(255, 255, 255, 0.2),
+        ambient: rgb(27, 40, 41),
+        // Typografie
+        font-family: "Figtree", // CSS: "LenzPlus Sans", "Figtree", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif
+        fs-nav: 15px,
+        fs-row-title: 22px,
+        fs-meta: 15px,
+        fs-button: 15px,
+        fs-badge: 12px,
+        fs-body: 16px,
+        fw-nav: 700,
+        fw-row-title: 400,
+        fw-button: 700,
+        // Maße
+        gutter: 71.04px,
+        header-h: 66px,
+        nav-pill-h: 40px,
+        card-gap: 20px,
+        cards-visible: 5,
+        card-peek: 13px,
+        card-radius: 12px,
+        row-title-gap: 14px,
+        row-gap: 40px,
+        billboard-radius: 18px,
+        billboard-ratio: 2.184411,
+        btn-h: 48px,
+        btn-radius: 9999px,
+        btn-gap: 20px,
+        badge-h: 18px,
+        popup-radius: 8px,
+        modal-radius: 12px,
+        // Bewegung
+        ease: cubic-bezier(0.4, 0, 0.2, 1),
+        ease-out: cubic-bezier(0, 0, 0.2, 1),
+        dur-fast: 150ms,
+        dur: 250ms,
+        hover-delay: 500ms,
+        // Schatten (jeweils die erste Schicht mit Unschärfe; Rest siehe Kommentar je Design)
+        shadow-card: { x: 0px, y: 20px, blur: 24px, spread: 0px, color: rgba(0, 0, 0, 0.8) },
+        shadow-modal: { x: 0px, y: 32px, blur: 64px, spread: 0px, color: rgba(0, 0, 0, 0.85) },
+        // LENZ+ (plus-*, in anderen Designs Nullwerte)
+        plus-nav-idle: #c5c5cc,
+        plus-circle: #2a2a30,
+        plus-menu-bg: #131313,
+        plus-menu-border: rgba(151, 151, 151, 0.34),
+        plus-letter-spacing: -0.1px,
+        plus-letter-spacing-bold: 0.11px,
+        // LENZPRIME (prime-*, in anderen Designs Nullwerte)
+        prime-glass: transparent,
+        prime-chip: transparent,
+        prime-hover-bg: transparent,
+        prime-ink: transparent,
+        prime-gutter: 0px,
+        prime-header-h: 0px,
+        prime-shadow: { x: 0px, y: 0px, blur: 0px, spread: 0px, color: transparent },
+        // LENZ//84 (retro-*, in anderen Designs Nullwerte)
+        retro-amber: transparent,
+        retro-amber-hi: transparent,
+        retro-amber-lo: transparent,
+        retro-amber-dim: transparent,
+        retro-hot: transparent,
+        retro-glitch-a: transparent,
+        retro-glitch-b: transparent,
+        retro-bg: transparent,
+        retro-bg-2: transparent,
+        retro-panel: transparent,
+        retro-line: transparent,
+        retro-ink: transparent,
+        retro-glow: { x: 0px, y: 0px, blur: 0px, spread: 0px, color: transparent },
+        retro-glow-strong: { x: 0px, y: 0px, blur: 0px, spread: 0px, color: transparent },
+        retro-box-glow: { x: 0px, y: 0px, blur: 0px, spread: 0px, color: transparent },
+        retro-font-pixel: "",
+        retro-font-mono: "",
+        retro-ease-crt: linear,
+        retro-dur-glitch: 0ms,
+        retro-gutter: 0px,
+    };
+    // cards-visible: Breakpoints aus den Media-Queries (CSS-px)
+    pure function cards-visible-at(w: length) -> int {
+        if (w < 800px) { return 2; }
+        if (w < 1100px) { return 3; }
+        if (w < 1400px) { return 4; }
+        return 5;
+    }
+    // gutter: Breakpoints aus den Media-Queries (CSS-px)
+    pure function gutter-at(w: length) -> length {
+        if (w < 800px) { return w * 0.04; }
+        return w * 0.037;
+    }
+}
+
+// ---- LENZPRIME (prime) ----
+export global TokensPrime {
+    out property <DesignTokens> v: {
+        // Jellyfin-Palette (MUI)
+        jf-primary-main: #1a98ff,
+        jf-primary-light: #5aa9ff,
+        jf-primary-dark: #0f78d1,
+        jf-primary-contrast: #00050d,
+        jf-secondary-main: #1a98ff,
+        jf-bg-default: #00050d,
+        jf-bg-paper: #17191c,
+        jf-appbar-bg: #00050d,
+        jf-text-primary: #ffffff,
+        jf-text-secondary: #b3b3b3,
+        jf-divider: rgba(255, 255, 255, 0.12),
+        jf-snackbar-bg: #2f2f2f,
+        jf-filled-input-bg: rgba(22, 22, 22, 0.7),
+        jf-button-bg: rgba(109, 109, 110, 0.7),
+        jf-button-hover-bg: rgba(109, 109, 110, 0.4),
+        jf-card-radius: 8px,
+        jf-shape-radius: 4px,
+        // Farben (--lfx-*)
+        red: #1a98ff,
+        red-hover: #5aa9ff,
+        red-active: #0f78d1,
+        accent: #1a98ff,
+        link: #5aa9ff,
+        progress: #1a98ff, // Rückfall auf --lfx-accent
+        bg: #00050d,
+        bg-deep: #00050d,
+        surface: #17191c,
+        surface-2: #33373d,
+        surface-3: #4a4e55,
+        border: #66696e,
+        text: #ffffff,
+        text-body: #e6e8ec,
+        text-muted: #b3b3b3,
+        text-soft: #808080,
+        gold: #e3c36a,
+        gold-hover: #f1d98f,
+        green: #37f1a3,
+        green-soft: rgba(55, 241, 163, 0.12),
+        glass: rgba(25, 30, 37, 0.8),
+        glass-hover: rgba(255, 255, 255, 0.2),
+        pill-active: rgba(255, 255, 255, 0.2),
+        pill-soft: rgba(255, 255, 255, 0.12),
+        icon-circle: rgba(42, 42, 42, 0.6),
+        icon-circle-border: rgba(255, 255, 255, 0.5),
+        progress-rail: rgba(255, 255, 255, 0.85),
+        ambient: rgb(27, 40, 41),
+        // Typografie
+        font-family: "Source Sans 3", // CSS: "LenzPrime Sans", "Source Sans 3", "Helvetica Neue", Arial, sans-serif
+        fs-nav: 16px,
+        fs-row-title: 18px,
+        fs-meta: 15px,
+        fs-button: 20px,
+        fs-badge: 12px,
+        fs-body: 16px,
+        fw-nav: 500,
+        fw-row-title: 600,
+        fw-button: 600,
+        // Maße
+        gutter: 36px,
+        header-h: 66px,
+        nav-pill-h: 42px,
+        card-gap: 7.5px,
+        cards-visible: 4,
+        card-peek: 13px,
+        card-radius: 12px,
+        row-title-gap: 14px,
+        row-gap: 40px,
+        billboard-radius: 18px,
+        billboard-ratio: 2.184411,
+        btn-h: 48px,
+        btn-radius: 8px,
+        btn-gap: 12px,
+        badge-h: 18px,
+        popup-radius: 8px,
+        modal-radius: 12px,
+        // Bewegung
+        ease: cubic-bezier(0.4, 0, 0.2, 1),
+        ease-out: cubic-bezier(0, 0, 0.2, 1),
+        dur-fast: 150ms,
+        dur: 250ms,
+        hover-delay: 500ms,
+        // Schatten (jeweils die erste Schicht mit Unschärfe; Rest siehe Kommentar je Design)
+        shadow-card: { x: 0px, y: 4px, blur: 4px, spread: 0px, color: rgba(0, 0, 0, 0.3) }, // 2 Schichten, übernommen wird die 1.; Original: rgba(0, 0, 0, 0.3) 0 4px 4px 0, rgba(0, 0, 0, 0.15) 0 8px 12px 6px
+        shadow-modal: { x: 0px, y: 32px, blur: 64px, spread: 0px, color: rgba(0, 0, 0, 0.85) },
+        // LENZ+ (plus-*, in anderen Designs Nullwerte)
+        plus-nav-idle: transparent,
+        plus-circle: transparent,
+        plus-menu-bg: transparent,
+        plus-menu-border: transparent,
+        plus-letter-spacing: 0px,
+        plus-letter-spacing-bold: 0px,
+        // LENZPRIME (prime-*, in anderen Designs Nullwerte)
+        prime-glass: rgba(25, 30, 37, 0.8),
+        prime-chip: #33373d,
+        prime-hover-bg: #ebecee,
+        prime-ink: #00050d,
+        prime-gutter: 72px,
+        prime-header-h: 66px,
+        prime-shadow: { x: 0px, y: 4px, blur: 4px, spread: 0px, color: rgba(0, 0, 0, 0.3) }, // 2 Schichten, übernommen wird die 1.; Original: rgba(0, 0, 0, 0.3) 0 4px 4px 0, rgba(0, 0, 0, 0.15) 0 8px 12px 6px
+        // LENZ//84 (retro-*, in anderen Designs Nullwerte)
+        retro-amber: transparent,
+        retro-amber-hi: transparent,
+        retro-amber-lo: transparent,
+        retro-amber-dim: transparent,
+        retro-hot: transparent,
+        retro-glitch-a: transparent,
+        retro-glitch-b: transparent,
+        retro-bg: transparent,
+        retro-bg-2: transparent,
+        retro-panel: transparent,
+        retro-line: transparent,
+        retro-ink: transparent,
+        retro-glow: { x: 0px, y: 0px, blur: 0px, spread: 0px, color: transparent },
+        retro-glow-strong: { x: 0px, y: 0px, blur: 0px, spread: 0px, color: transparent },
+        retro-box-glow: { x: 0px, y: 0px, blur: 0px, spread: 0px, color: transparent },
+        retro-font-pixel: "",
+        retro-font-mono: "",
+        retro-ease-crt: linear,
+        retro-dur-glitch: 0ms,
+        retro-gutter: 0px,
+    };
+    // cards-visible: Breakpoints aus den Media-Queries (CSS-px)
+    pure function cards-visible-at(w: length) -> int {
+        if (w < 800px) { return 2; }
+        if (w < 1100px) { return 3; }
+        if (w < 1400px) { return 4; }
+        if (w < 1800px) { return 5; }
+        return 6;
+    }
+    // gutter: Breakpoints aus den Media-Queries (CSS-px)
+    pure function gutter-at(w: length) -> length {
+        if (w < 800px) { return w * 0.04; }
+        if (w < 1400px) { return 36px; }
+        if (w < 1800px) { return w * 0.03; }
+        return 60px;
+    }
+}
+
+// ---- LENZ//84 (retro) ----
+export global TokensRetro {
+    out property <DesignTokens> v: {
+        // Jellyfin-Palette (MUI)
+        jf-primary-main: #ffb000,
+        jf-primary-light: #ffe2a8,
+        jf-primary-dark: #a86a00,
+        jf-primary-contrast: #0a0603,
+        jf-secondary-main: #ff5a1f,
+        jf-bg-default: #0a0603,
+        jf-bg-paper: #140c05,
+        jf-appbar-bg: #0a0603,
+        jf-text-primary: #ffb000,
+        jf-text-secondary: #c98a12,
+        jf-divider: rgba(255, 255, 255, 0.12),
+        jf-snackbar-bg: #2f2f2f,
+        jf-filled-input-bg: rgba(22, 22, 22, 0.7),
+        jf-button-bg: rgba(109, 109, 110, 0.7),
+        jf-button-hover-bg: rgba(109, 109, 110, 0.4),
+        jf-card-radius: 8px,
+        jf-shape-radius: 4px,
+        // Farben (--lfx-*)
+        red: #ffb000,
+        red-hover: #ffe2a8,
+        red-active: #a86a00,
+        accent: #ffb000,
+        link: #ffe2a8,
+        progress: #ffb000, // Rückfall auf --lfx-accent
+        bg: #0a0603,
+        bg-deep: #050301,
+        surface: #140c05,
+        surface-2: #1d1208,
+        surface-3: #2a1a0a,
+        border: #5a3b08,
+        text: #ffe2a8,
+        text-body: #ffb000,
+        text-muted: #c98a12,
+        text-soft: #8a5d10,
+        gold: #ffe2a8,
+        gold-hover: #fff1d2,
+        green: #ffb000,
+        green-soft: rgba(255, 176, 0, 0.12),
+        glass: rgba(20, 12, 5, 0.86),
+        glass-hover: rgba(255, 176, 0, 0.18),
+        pill-active: rgba(255, 176, 0, 0.18),
+        pill-soft: rgba(255, 255, 255, 0.12),
+        icon-circle: rgba(10, 6, 3, 0.7),
+        icon-circle-border: rgba(255, 176, 0, 0.55),
+        progress-rail: rgba(255, 176, 0, 0.85),
+        ambient: rgb(40, 22, 4),
+        // Typografie
+        font-family: "Space Mono", // CSS: "LenzRetro Mono", ui-monospace, "Cascadia Mono", Consolas, monospace
+        fs-nav: 18px,
+        fs-row-title: 18px,
+        fs-meta: 15px,
+        fs-button: 20px,
+        fs-badge: 12px,
+        fs-body: 16px,
+        fw-nav: 400,
+        fw-row-title: 400,
+        fw-button: 400,
+        // Maße
+        gutter: 36px,
+        header-h: 64px,
+        nav-pill-h: 36px,
+        card-gap: 7.5px,
+        cards-visible: 4,
+        card-peek: 13px,
+        card-radius: 2px,
+        row-title-gap: 14px,
+        row-gap: 40px,
+        billboard-radius: 0px,
+        billboard-ratio: 2.184411,
+        btn-h: 48px,
+        btn-radius: 2px,
+        btn-gap: 12px,
+        badge-h: 18px,
+        popup-radius: 2px,
+        modal-radius: 2px,
+        // Bewegung
+        ease: cubic-bezier(0.4, 0, 0.2, 1),
+        ease-out: cubic-bezier(0, 0, 0.2, 1),
+        dur-fast: 150ms,
+        dur: 250ms,
+        hover-delay: 500ms,
+        // Schatten (jeweils die erste Schicht mit Unschärfe; Rest siehe Kommentar je Design)
+        shadow-card: { x: 0px, y: 0px, blur: 22px, spread: 0px, color: rgba(255, 176, 0, 0.18) }, // 2 Schichten, übernommen wird die 2.; Original: 0 0 0 1px rgba(255, 176, 0, 0.35), 0 0 22px rgba(255, 176, 0, 0.18)
+        shadow-modal: { x: 0px, y: 0px, blur: 48px, spread: 0px, color: rgba(255, 176, 0, 0.16) }, // 3 Schichten, übernommen wird die 2.; Original: 0 0 0 1px rgba(255, 176, 0, 0.45), 0 0 48px rgba(255, 176, 0, 0.16), 0 24px 64px rgba(0, 0, 0, 0.9)
+        // LENZ+ (plus-*, in anderen Designs Nullwerte)
+        plus-nav-idle: transparent,
+        plus-circle: transparent,
+        plus-menu-bg: transparent,
+        plus-menu-border: transparent,
+        plus-letter-spacing: 0px,
+        plus-letter-spacing-bold: 0px,
+        // LENZPRIME (prime-*, in anderen Designs Nullwerte)
+        prime-glass: transparent,
+        prime-chip: transparent,
+        prime-hover-bg: transparent,
+        prime-ink: transparent,
+        prime-gutter: 0px,
+        prime-header-h: 0px,
+        prime-shadow: { x: 0px, y: 0px, blur: 0px, spread: 0px, color: transparent },
+        // LENZ//84 (retro-*, in anderen Designs Nullwerte)
+        retro-amber: #ffb000,
+        retro-amber-hi: #ffe2a8,
+        retro-amber-lo: #a86a00,
+        retro-amber-dim: rgba(255, 176, 0, 0.14),
+        retro-hot: #ff5a1f,
+        retro-glitch-a: #ff2b6d,
+        retro-glitch-b: #22e4ff,
+        retro-bg: #0a0603,
+        retro-bg-2: #120a04,
+        retro-panel: rgba(20, 12, 5, 0.88),
+        retro-line: rgba(255, 176, 0, 0.45),
+        retro-ink: #0a0603,
+        retro-glow: { x: 0px, y: 0px, blur: 6px, spread: 0px, color: rgba(255, 176, 0, 0.55) }, // 2 Schichten, übernommen wird die 1.; Original: 0 0 6px rgba(255, 176, 0, 0.55), 0 0 18px rgba(255, 120, 0, 0.28)
+        retro-glow-strong: { x: 0px, y: 0px, blur: 4px, spread: 0px, color: rgba(255, 226, 168, 0.9) }, // 3 Schichten, übernommen wird die 1.; Original: 0 0 4px rgba(255, 226, 168, 0.9), 0 0 14px rgba(255, 176, 0, 0.75), 0 0 32px rgba(255, 90, 31, 0.45)
+        retro-box-glow: { x: 0px, y: 0px, blur: 14px, spread: 0px, color: rgba(255, 176, 0, 0.28) }, // 3 Schichten, übernommen wird die 2.; Original: 0 0 0 1px rgba(255, 176, 0, 0.5), 0 0 14px rgba(255, 176, 0, 0.28), inset 0 0 14px rgba(255, 176, 0, 0.1)
+        retro-font-pixel: "VT323", // CSS: "LenzRetro Pixel", "VT323", ui-monospace, monospace
+        retro-font-mono: "Space Mono", // CSS: "LenzRetro Mono", ui-monospace, "Cascadia Mono", Consolas, monospace
+        retro-ease-crt: cubic-bezier(0.2, 0.9, 0.25, 1),
+        retro-dur-glitch: 280ms,
+        retro-gutter: 64px,
+    };
+    // cards-visible: Breakpoints aus den Media-Queries (CSS-px)
+    pure function cards-visible-at(w: length) -> int {
+        if (w < 800px) { return 2; }
+        if (w < 1100px) { return 3; }
+        if (w < 1400px) { return 4; }
+        if (w < 1800px) { return 5; }
+        return 6;
+    }
+    // gutter: Breakpoints aus den Media-Queries (CSS-px)
+    pure function gutter-at(w: length) -> length {
+        if (w < 800px) { return w * 0.04; }
+        if (w < 1400px) { return 36px; }
+        if (w < 1800px) { return w * 0.03; }
+        return 60px;
+    }
+}
+
+// ---- Hinweise zur Übersetzung (nicht oder nur genähert übersetzbar) ----
+// - LENZ//84: Verlauf --lfx-retro-scan (Scanlines) hat kein Slint-Gegenstück als Token; Umsetzung später als Bild/Shader
+// - LENZ+: --lfx-gutter (gutter) = "3.7vw" bei Referenzbreite 1920 px aufgelöst: 71.04px
+// - LENZPRIME: --lfx-shadow-card (shadow-card) hat 2 Schatten-Schichten; Slint kennt nur eine (Schicht 1 übernommen), Spread wird von Slint ignoriert
+// - LENZPRIME: --lfx-prime-gutter (prime-gutter) = "clamp(20px, 3.75vw, 72px)" bei Referenzbreite 1920 px aufgelöst: 72px
+// - LENZPRIME: --lfx-prime-shadow (prime-shadow) hat 2 Schatten-Schichten; Slint kennt nur eine (Schicht 1 übernommen), Spread wird von Slint ignoriert
+// - LENZ//84: --lfx-shadow-card (shadow-card) hat 2 Schatten-Schichten; Slint kennt nur eine (Schicht 2 übernommen), Spread wird von Slint ignoriert
+// - LENZ//84: --lfx-shadow-modal (shadow-modal) hat 3 Schatten-Schichten; Slint kennt nur eine (Schicht 2 übernommen), Spread wird von Slint ignoriert
+// - LENZ//84: --lfx-retro-glow (retro-glow) hat 2 Schatten-Schichten; Slint kennt nur eine (Schicht 1 übernommen), Spread wird von Slint ignoriert
+// - LENZ//84: --lfx-retro-glow-strong (retro-glow-strong) hat 3 Schatten-Schichten; Slint kennt nur eine (Schicht 1 übernommen), Spread wird von Slint ignoriert
+// - LENZ//84: --lfx-retro-box-glow (retro-box-glow) hat 3 Schatten-Schichten; Slint kennt nur eine (Schicht 2 übernommen), Spread wird von Slint ignoriert
+// - LENZ//84: --lfx-retro-gutter (retro-gutter) = "clamp(16px, 3.4vw, 64px)" bei Referenzbreite 1920 px aufgelöst: 64px

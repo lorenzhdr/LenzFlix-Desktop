@@ -1,0 +1,12 @@
+[package]
+name = "lfx-tv-schedule"
+description = "Deterministischer TV-Planer (Port von src/js/tv/schedule des Web-Themes)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+
+[lints]
+workspace = true

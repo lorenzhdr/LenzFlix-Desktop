@@ -1,0 +1,20 @@
+# Gepinnte libmpv-Pakete (nur LGPL-Builds). Hash wird nach dem Download geprüft.
+# Aktualisieren: neues Release wählen, Tag/Datei/SHA-256 hier eintragen.
+
+[targets.aarch64-pc-windows-msvc]
+url = "https://github.com/zhongfly/mpv-winbuild/releases/download/2026-11-19-b7339522cd/mpv-dev-lgpl-aarch64-20261119-git-b7339522cd.7z"
+file = "mpv-dev-lgpl-aarch64-20261119-git-b7339522cd.7z"
+sha256 = "3c5e0eee6b3db9c542d75be3512a86c0fd185c982d3d2be238381a80dac2997e"
+kind = "7z"
+
+[targets.x86_64-pc-windows-msvc]
+url = "https://github.com/zhongfly/mpv-winbuild/releases/download/2026-11-19-b7339522cd/mpv-dev-lgpl-x86_64-20261119-git-b7339522cd.7z"
+file = "mpv-dev-lgpl-x86_64-20261119-git-b7339522cd.7z"
+sha256 = "c48d6d4c689669de054a8c1be9b795d951aa14e45cb0330b1c9146e541ced5e8"
+kind = "7z"
+
+[targets.aarch64-apple-darwin]
+url = "https://github.com/media-kit/libmpv-darwin-build/releases/download/v0.7.3/libmpv-libs_v0.7.3_macos-arm64-video-default.tar.gz"
+file = "libmpv-libs_v0.7.3_macos-arm64-video-default.tar.gz"
+sha256 = "9137a736c97dd8429a51b2dbbf061b69e879b0b69dc88b9d3a200d2354166af5"
+kind = "tar.gz"

@@ -1,0 +1,13 @@
+/target/
+/.tmp/
+/reference/
+/vendor/mpv/
+*.dll
+*.dylib
+*.7z
+*.pdb
+.DS_Store
+/.claude/settings.local.json
+
+# Golden-Vektoren werden aus dem Web-Theme erzeugt (tools/golden/gen.mjs), nicht eingecheckt
+/crates/lfx-tv-schedule/tests/golden/

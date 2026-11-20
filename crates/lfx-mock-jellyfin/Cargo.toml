@@ -1,0 +1,24 @@
+[package]
+name = "lfx-mock-jellyfin"
+description = "Synthetischer Jellyfin-Mock-Server für Tests von LENZFLIX Desktop"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
+
+[lib]
+name = "lfx_mock_jellyfin"
+
+[[bin]]
+name = "lfx-mock-jellyfin"
+path = "src/main.rs"
+
+[dependencies]
+axum = "0.8"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = ["net", "time", "rt-multi-thread", "macros", "signal", "sync"] }
