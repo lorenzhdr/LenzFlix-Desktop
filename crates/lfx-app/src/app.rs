@@ -51,6 +51,7 @@ pub struct State {
     pub geo: Option<focus::HomeGeo>,
     pub images: Option<ImageLoader>,
     pub toast_gen: u64,
+    pub lib: crate::library::LibState, // W2-library
 }
 
 /// Zeitgeber, die leben müssen, solange die App läuft.
@@ -247,6 +248,8 @@ impl App {
                 ctx = InputContext::Player;
                 self.st.borrow_mut().graph = FocusGraph::new();
             }
+            // W2-library
+            r if crate::library::is_library_route(r) => ctx = self.render_library_route(r),
             Route::Settings => {
                 ui.set_page(Page::Settings);
                 self.set_graph(focus::settings_graph(), None);
@@ -307,6 +310,7 @@ impl App {
                 ui.set_focus_index(idx);
             }
             Route::Settings => ui.set_simple_slot(focus::slot_of(f, 4)),
+            r if crate::library::is_library_route(r) => self.lib_show_focus(), // W2-library
             Route::Player { .. } => ui.set_player_slot(-1),
             _ => ui.set_simple_slot(focus::slot_of(f, 0)),
         }
@@ -356,6 +360,9 @@ impl App {
     fn on_focus_moved(self: &Rc<Self>, to: Target) {
         // Textfelder bekommen beim Betreten den Textcursor, damit sofort getippt werden kann.
         let route = self.st.borrow().router.current().clone();
+        if self.library_focus_moved(&route, to) {
+            return; // W2-library
+        }
         let text_slot = match route {
             Route::AddServer => to.index == 0,
             Route::Login { .. } => to.index <= 1,
@@ -374,6 +381,9 @@ impl App {
     }
 
     fn back_action(self: &Rc<Self>, route: &Route) {
+        if self.library_back(route) {
+            return; // W2-library
+        }
         match route {
             Route::Login { server, .. } => self.show_profiles(server.clone()),
             Route::Profiles { .. } => self.go_reset(Route::AddServer),
@@ -421,6 +431,7 @@ impl App {
                 }
             },
             Route::Home => self.home_activate(t),
+            r if crate::library::is_library_route(&r) => self.library_activate(t), // W2-library
             Route::Settings => {
                 let slot = focus::slot_of(Some(t), 4);
                 match slot {

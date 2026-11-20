@@ -39,6 +39,11 @@ pub enum Route {
     },
     MyList,
     NewPopular,
+    /// W2-library: Sammlung, Ordner oder Bibliothek (Boxsets, Heimvideos, Mischinhalt, Wiedergabelisten).
+    Collection {
+        id: String,
+        name: String,
+    },
     TvMode,
     Settings,
     Admin,
@@ -59,6 +64,7 @@ impl Route {
             Self::Library { .. } => "library",
             Self::MyList => "mylist",
             Self::NewPopular => "newpopular",
+            Self::Collection { .. } => "collection", // W2-library
             Self::TvMode => "tvmode",
             Self::Settings => "settings",
             Self::Admin => "admin",

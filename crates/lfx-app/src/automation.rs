@@ -243,7 +243,12 @@ impl App {
                 ok(json!({}));
                 self.shell.close();
             }
-            _ => fail("unbekannter Befehl"),
+            // W2-library
+            _ => match self.lib_automation(cmd, msg) {
+                Some(Ok(v)) => ok(v),
+                Some(Err(e)) => fail(&e),
+                None => fail("unbekannter Befehl"),
+            },
         }
     }
 
@@ -311,6 +316,7 @@ impl App {
             "add_error": ui.get_add_error().to_string(),
             "users": st.users.iter().map(|u| u.name.clone()).collect::<Vec<_>>(),
             "player": player,
+            "library": self.lib_state_json(), // W2-library
             "window": {"width": pw, "height": ph, "dpr": dpr},
         })
     }

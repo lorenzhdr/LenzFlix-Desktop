@@ -9,6 +9,8 @@
 pub mod catalog;
 mod extra;
 pub mod media;
+mod w2_library;
+pub use w2_library::{VIEW_BOXSETS, set_extra_titles};
 
 pub use extra::{
     VIEW_BOOKS, VIEW_LIVETV, VIEW_MUSIC, VIEW_PHOTOS, album_id, artist_id, book_id, channel_id,
@@ -271,7 +273,11 @@ pub async fn start_with(config: MockConfig) -> (SocketAddr, MockHandle) {
         ..Dyn::default()
     };
     let shared = Arc::new(Shared {
-        catalog: catalog::build(),
+        catalog: {
+            let mut c = catalog::build();
+            w2_library::extend(&mut c); // W2-library
+            c
+        },
         dynamic: Mutex::new(dynamic),
     });
     let app = router(shared.clone());
@@ -742,6 +748,7 @@ async fn items(State(shared): S, Query(params): Params) -> Response {
         .get("genres")
         .map(|g| g.split('|').map(str::to_lowercase).collect())
         .unwrap_or_default();
+    let genres = w2_library::merge_genre_ids(&shared.catalog, &params, genres); // W2-library
     let term = params.get("searchterm").map(|t| t.to_lowercase());
     let min_rating: f64 = params
         .get("mincommunityrating")
@@ -806,7 +813,9 @@ async fn items(State(shared): S, Query(params): Params) -> Response {
         .unwrap_or_default();
     match sort.as_str() {
         "SortName" => out.sort_by_key(|i| name_key(i)),
-        "DateCreated" => out.sort_by(|a, b| a.created.cmp(&b.created)),
+        "DateCreated" | "DateLastContentAdded" => {
+            out.sort_by(|a, b| a.created.cmp(&b.created));
+        }
         "ProductionYear" | "PremiereDate" => out.sort_by_key(|i| i.year),
         "CommunityRating" => out.sort_by(|a, b| a.rating.total_cmp(&b.rating)),
         "Runtime" => out.sort_by_key(|i| i.runtime_min),

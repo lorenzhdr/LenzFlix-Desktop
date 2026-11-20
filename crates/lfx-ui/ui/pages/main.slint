@@ -6,6 +6,7 @@ import { Page, RowData, HeroData, HomeGeometry } from "types.slint";
 import { AddServerPage, ProfilesPage, LoginPage } from "auth.slint";
 import { HomePage } from "home.slint";
 import { PlayerPage } from "player.slint";
+import { LibraryPage } from "library.slint"; // W2-library
 import { SoonPage, SettingsPage, AboutPage } from "misc.slint";
 
 // Hauptfenster von LENZFLIX Desktop. Rust (lfx-app) hält Router, Zustand und Fokus und setzt die Properties;
@@ -184,6 +185,7 @@ export component MainWindow inherits Window {
                 leave => { root.leave-player(); }
                 activity => { root.player-activity(); }
             }
+            if root.page == Page.library: LibraryPage { } // W2-library
             if root.page == Page.soon: SoonPage {
                 title: root.soon-title;
                 focus-slot: root.simple-slot;
