@@ -8,6 +8,7 @@
 
 pub mod catalog;
 mod extra;
+pub mod media;
 
 pub use extra::{
     VIEW_BOOKS, VIEW_LIVETV, VIEW_MUSIC, VIEW_PHOTOS, album_id, artist_id, book_id, channel_id,
@@ -319,7 +320,7 @@ fn router(shared: Arc<Shared>) -> Router {
         .route("/Items/{id}/Similar", get(similar))
         .route("/Items/{id}/PlaybackInfo", post(playback_info))
         .route("/Items/{id}/Images/{kind}", get(image))
-        .route("/Videos/{id}/stream", get(stream))
+        .route("/Videos/{id}/stream", get(media::stream))
         .route(
             "/Videos/{id}/{source}/Subtitles/{index}/0/{file}",
             get(subtitle_file),

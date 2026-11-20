@@ -1,0 +1,218 @@
+import { Theme, Design } from "../theme/theme.slint";
+import { ButtonKind } from "../components/types.slint";
+import { LfxText } from "../components/text.slint";
+import { LfxButton } from "../components/button.slint";
+import { LfxRow } from "../components/row.slint";
+import { LfxTabs } from "../components/controls.slint";
+import { LfxSkeleton, LfxSpinner } from "../components/feedback.slint";
+import { Icons } from "../icons.slint";
+import { HeroData, RowData, HomeGeometry } from "types.slint";
+
+// LENZFLIX-Startseite: Navigationsleiste, Billboard und Zeilen.
+// Fokus (von lfx-nav): focus-row -2 = Navigationsleiste, -1 = Billboard-Knöpfe (index 0 Abspielen, 1 Mehr Infos),
+// >= 0 = Zeile mit Kartenindex focus-index.
+export component HomePage inherits Rectangle {
+    in property <HeroData> hero;
+    in property <[RowData]> rows;
+    in property <bool> loading: false;
+    in property <string> error;
+    in property <int> focus-row: -1;
+    in property <int> focus-index: 0;
+    in property <[string]> nav-labels;
+    in property <int> nav-current: 0;
+    callback nav-selected(int);
+    callback hero-play();
+    callback hero-info();
+    callback card-clicked(int, int);
+    callback geometry-changed(HomeGeometry);
+
+    property <length> gutter: Theme.gutter-at(root.width);
+    property <int> n: Theme.cards-visible-at(root.width);
+    property <length> gap: Theme.t.card-gap;
+    property <length> wide-w: (root.width - root.gutter - root.n * root.gap - Theme.t.card-peek) / root.n;
+    property <length> card-h: root.wide-w * 9 / 16;
+    property <length> row-h: 24px + Theme.t.row-title-gap + root.card-h + 28px;
+    property <length> nav-h: 52px;
+    property <length> hero-h: max(300px, min(root.width * 0.36, 520px));
+    property <length> btn-h: Theme.t.btn-h;
+    property <length> play-w: 170px;
+    property <length> info-w: 190px;
+    property <length> btn-y: root.hero-h - root.btn-h - 36px;
+
+    out property <HomeGeometry> geometry: {
+        width: root.width,
+        nav-h: root.nav-h,
+        hero-h: root.hero-h,
+        row-h: root.row-h,
+        gutter: root.gutter,
+        pitch: root.wide-w + root.gap,
+        card-w: root.wide-w,
+        card-h: root.card-h,
+        play-x: root.gutter,
+        play-y: root.nav-h + root.btn-y,
+        play-w: root.play-w,
+        info-x: root.gutter + root.play-w + 14px,
+        info-w: root.info-w,
+        btn-h: root.btn-h,
+    };
+    changed geometry => { root.geometry-changed(root.geometry); }
+
+    // Hält die fokussierte Zeile im sichtbaren Bereich (Ziel-Scrollwert, positiv nach unten).
+    pure function target-scroll(row: int, cur: length, view-h: length) -> length {
+        if (row < 0) { return 0px; }
+        return (root.hero-h + row * root.row-h - 30px < cur)
+            ? max(0px, root.hero-h + row * root.row-h - 30px)
+            : ((root.hero-h + (row + 1) * root.row-h + 20px > cur + view-h)
+                ? root.hero-h + (row + 1) * root.row-h + 20px - view-h
+                : cur);
+    }
+    function scroll-to-focus() {
+        flick.content-y = -root.target-scroll(root.focus-row, -flick.content-y, flick.height);
+    }
+    changed focus-row => { root.scroll-to-focus(); }
+    init => { root.geometry-changed(root.geometry); }
+
+    flick := Flickable {
+        y: root.nav-h;
+        width: parent.width;
+        height: parent.height - root.nav-h;
+        content-width: self.width;
+        content-height: root.hero-h + max(1, root.rows.length) * root.row-h + 60px;
+        animate content-y { duration: Theme.t.dur * 2; easing: Theme.t.ease-out; }
+
+        // Billboard
+        Rectangle {
+            x: 0px;
+            y: 0px;
+            width: root.width;
+            height: root.hero-h;
+            clip: true;
+            background: @linear-gradient(135deg, Theme.t.surface-2 0%, Theme.t.bg 100%);
+            if root.hero.has-backdrop: Image {
+                width: 100%;
+                height: 100%;
+                source: root.hero.backdrop;
+                image-fit: cover;
+            }
+            Rectangle {
+                background: @linear-gradient(90deg, #000000d9 0%, #00000099 38%, #00000000 75%);
+            }
+            Rectangle {
+                background: @linear-gradient(180deg, #00000000 55%, Theme.t.bg 100%);
+            }
+            VerticalLayout {
+                x: root.gutter;
+                y: 20px;
+                width: min(620px, root.width * 0.55);
+                height: root.btn-y - 36px;
+                alignment: end;
+                spacing: 10px;
+                if root.hero.has-logo: Image {
+                    source: root.hero.logo;
+                    height: min(120px, root.hero-h * 0.28);
+                    image-fit: contain;
+                    horizontal-alignment: left;
+                }
+                if !root.hero.has-logo && root.hero.has-item: LfxText {
+                    text: root.hero.title;
+                    font-size: 42px;
+                    font-weight: 800;
+                    wrap: word-wrap;
+                    overflow: elide;
+                    max-height: 110px;
+                }
+                if root.hero.meta != "": LfxText {
+                    text: root.hero.meta;
+                    font-size: Theme.t.fs-meta;
+                    font-weight: 600;
+                    color: Theme.t.text-body;
+                }
+                if root.hero.genres != "": LfxText {
+                    text: root.hero.genres;
+                    font-size: Theme.t.fs-meta;
+                    color: Theme.t.text-muted;
+                }
+            }
+            if root.hero.has-item: LfxButton {
+                x: root.gutter;
+                y: root.btn-y;
+                width: root.play-w;
+                kind: ButtonKind.primary;
+                text: "Abspielen";
+                icon: Icons.play;
+                has-icon: true;
+                focused: root.focus-row == -1 && root.focus-index == 0;
+                clicked => { root.hero-play(); }
+            }
+            if root.hero.has-item: LfxButton {
+                x: root.gutter + root.play-w + 14px;
+                y: root.btn-y;
+                width: root.info-w;
+                kind: ButtonKind.secondary;
+                text: "Mehr Infos";
+                icon: Icons.info;
+                has-icon: true;
+                focused: root.focus-row == -1 && root.focus-index == 1;
+                clicked => { root.hero-info(); }
+            }
+            if !root.hero.has-item && root.loading: LfxSpinner {
+                x: (parent.width - self.width) / 2;
+                y: (parent.height - self.height) / 2;
+            }
+        }
+
+        for row[r] in root.rows: LfxRow {
+            x: 0px;
+            y: root.hero-h + r * root.row-h;
+            width: root.width;
+            height: root.row-h;
+            title: row.title;
+            items: row.items;
+            aspect: row.aspect;
+            focused-index: r == root.focus-row ? root.focus-index : -1;
+            card-clicked(i) => { root.card-clicked(r, i); }
+        }
+
+        if root.rows.length == 0 && root.loading: Rectangle {
+            y: root.hero-h;
+            width: root.width;
+            height: 3 * root.row-h;
+            for s in 3: Rectangle {
+                y: s * root.row-h;
+                height: root.row-h;
+                LfxSkeleton {
+                    x: root.gutter;
+                    y: 40px;
+                    width: root.wide-w * 3;
+                    height: root.card-h;
+                    radius: Theme.t.card-radius;
+                }
+            }
+        }
+        if root.rows.length == 0 && !root.loading && root.error != "": LfxText {
+            y: root.hero-h + 24px;
+            x: root.gutter;
+            width: root.width - 2 * root.gutter;
+            text: root.error;
+            color: Theme.t.text-muted;
+            wrap: word-wrap;
+        }
+    }
+
+    // Navigationsleiste (fest)
+    Rectangle {
+        x: 0px;
+        y: 0px;
+        width: parent.width;
+        height: root.nav-h;
+        background: Theme.design == Design.retro ? Theme.t.retro-bg : Theme.t.bg;
+        LfxTabs {
+            x: root.gutter;
+            y: (parent.height - self.height) / 2;
+            labels: root.nav-labels;
+            current: root.nav-current;
+            focused-index: root.focus-row == -2 ? root.focus-index : -1;
+            selected(i) => { root.nav-selected(i); }
+        }
+    }
+}

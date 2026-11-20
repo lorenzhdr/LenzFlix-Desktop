@@ -4,14 +4,17 @@
 // weil Slint für exportierte Nicht-Window-Komponenten Warnungen ausgibt.
 import {
     Shadow, DesignTokens, TokensFlix, TokensPlus, TokensPrime, TokensRetro
-} from "lfx-tokens.slint";
+} from "theme/tokens.slint";
 import { Design, Theme } from "theme/theme.slint";
 import { CardAspect, CardData, ButtonKind, ToastKind, HitRect, TitleBarHit, AvatarData } from "components/types.slint";
 import { Gallery } from "gallery.slint";
+import { MainWindow } from "pages/main.slint";
+import { Page, RowData, HeroData, HomeGeometry } from "pages/types.slint";
 
 export {
     Shadow, DesignTokens, TokensFlix, TokensPlus, TokensPrime, TokensRetro, Design, Theme,
-    CardAspect, CardData, ButtonKind, ToastKind, HitRect, TitleBarHit, AvatarData, Gallery
+    CardAspect, CardData, ButtonKind, ToastKind, HitRect, TitleBarHit, AvatarData, Gallery,
+    MainWindow, Page, RowData, HeroData, HomeGeometry
 }
 
 // Minimales Fenster, das Theme-Werte sichtbar macht (Tests).

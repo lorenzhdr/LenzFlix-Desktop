@@ -1,0 +1,59 @@
+[package]
+name = "lfx-app"
+description = "LENZFLIX Desktop: die Anwendung (verbindet Shell, Oberfläche, Sitzung, Player und Navigation)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
+
+[lib]
+name = "lfx_app"
+
+[[bin]]
+name = "lenzflix"
+path = "src/main.rs"
+
+[features]
+default = []
+# Entwickler-Steuerung über einen lokalen TCP-Port (nur 127.0.0.1) für Tests und Screenshots.
+dev-automation = []
+
+[dependencies]
+lfx-api = { path = "../lfx-api" }
+lfx-core = { path = "../lfx-core" }
+lfx-images = { path = "../lfx-images" }
+lfx-nav = { path = "../lfx-nav", features = ["gamepad"] }
+lfx-platform = { path = "../lfx-platform" }
+lfx-player = { path = "../lfx-player" }
+lfx-session = { path = "../lfx-session" }
+lfx-shell = { path = "../lfx-shell" }
+lfx-store = { path = "../lfx-store" }
+lfx-ui = { path = "../lfx-ui" }
+png = "0.17"
+serde_json = "1"
+slint = { version = "1.19", default-features = false, features = ["std", "compat-1-2"] }
+tokio = { version = "1", features = ["rt-multi-thread", "sync", "time", "macros", "net", "io-util"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", default-features = false, features = ["fmt", "std"] }
+
+[target.'cfg(windows)'.dependencies.windows]
+version = "0.62"
+features = [
+    "Win32_Foundation",
+    "Win32_Graphics_Gdi",
+    "Win32_UI_WindowsAndMessaging",
+]
+
+[dev-dependencies]
+lfx-app = { path = ".", features = ["dev-automation"] }
+lfx-mock-jellyfin = { path = "../lfx-mock-jellyfin" }
+tempfile = "3"
+tokio = { version = "1", features = ["rt-multi-thread", "sync", "time", "macros", "net", "io-util"] }
+
+[[test]]
+name = "e2e"
+required-features = ["dev-automation"]
