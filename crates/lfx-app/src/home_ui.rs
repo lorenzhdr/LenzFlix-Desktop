@@ -357,6 +357,7 @@ impl App {
     pub fn on_home_event(self: &Rc<Self>, name: &str, arg: i32) {
         match name {
             "nav" => self.nav_selected(arg),
+            n if n.starts_with("plus-") => self.plus_event(n, arg), // W3-plus
             "logo" => self.logo_clicked(),
             "hero-play" => self.hero_clicked(false),
             "hero-info" => self.hero_clicked(true),

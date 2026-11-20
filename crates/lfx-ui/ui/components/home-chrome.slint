@@ -1,6 +1,8 @@
 import { HomeUi } from "../pages/home-types.slint";
 import { HomeHeader } from "home-header.slint";
 import { ProfileMenu, DsPanel, SecretPanel } from "home-menus.slint";
+import { Theme, Design } from "../theme/theme.slint"; // W3-plus
+import { PlusHeader, PlusSwitcher, PlusProfileMenu } from "plus-header.slint"; // W3-plus
 
 // Kopfleiste samt Menüs (Profil, Datensparmodus, Geheimmenü): gemeinsam für Startseite und Bibliotheksseiten.
 // Alle Ereignisse laufen über `event`/`event-f` zu den Startseiten-Handlern in Rust (`on_home_event`).
@@ -12,6 +14,8 @@ export component HomeChrome inherits Rectangle {
     in property <bool> scrolled;
     in property <int> focus-index: -1;
     in property <int> current: 0;
+    // W3-plus: Umschalter-Pille („Für dich“ | Filme | Serien) unter der LENZ+-Kopfleiste
+    in property <bool> switcher: false;
     callback event(string, int);
     callback event-f(string, float);
 
@@ -20,7 +24,7 @@ export component HomeChrome inherits Rectangle {
         clicked => { root.event("menu-close", 0); }
     }
 
-    HomeHeader {
+    if Theme.design != Design.plus: HomeHeader { // W3-plus
         x: 0px;
         y: 0px;
         width: root.width;
@@ -35,7 +39,36 @@ export component HomeChrome inherits Rectangle {
         logo-clicked => { root.event("logo", 0); }
     }
 
-    if root.ui.menu == 1: ProfileMenu {
+    if Theme.design == Design.plus: PlusHeader { // W3-plus
+        x: 0px;
+        y: 0px;
+        width: root.width;
+        scrolled: root.scrolled;
+        focus-index: root.focus-index;
+        current: root.current;
+        ds-on: root.ui.ds-on;
+        initial: root.ui.user-initial;
+        user-name: root.ui.user-name;
+        pick(i) => { root.event("nav", i); }
+        logo-clicked => { root.event("logo", 0); }
+    }
+    if Theme.design == Design.plus && root.switcher: PlusSwitcher { // W3-plus
+        x: (root.width - self.width) / 2;
+        y: 84px;
+        opacity: root.scrolled ? 0.0 : 1.0;
+        visible: !root.scrolled;
+        animate opacity { duration: 300ms; easing: Theme.t.ease; }
+        tabs: ["Für dich", "Filme", "Serien"];
+        current: 0;
+        pick(i) => { root.event("plus-tab", i); }
+    }
+    if root.ui.menu == 1 && Theme.design == Design.plus: PlusProfileMenu { // W3-plus
+        x: 17px + 4px + 96px + 8px;
+        y: root.header-h - 6px;
+        index: root.ui.menu-index;
+        pick(i) => { root.event("profile-item", i); }
+    }
+    if root.ui.menu == 1 && Theme.design != Design.plus: ProfileMenu {
         x: root.width - root.gutter - self.width + 8px;
         y: root.header-h - 18px;
         user-name: root.ui.user-name;
@@ -43,7 +76,7 @@ export component HomeChrome inherits Rectangle {
         pick(i) => { root.event("profile-item", i); }
     }
     if root.ui.menu == 2: DsPanel {
-        x: root.width - root.gutter - self.width - 52px;
+        x: Theme.design == Design.plus ? root.width - self.width - 130px : root.width - root.gutter - self.width - 52px; // W3-plus
         y: root.header-h - 18px;
         on: root.ui.ds-on;
         parts: root.ui.ds-parts;

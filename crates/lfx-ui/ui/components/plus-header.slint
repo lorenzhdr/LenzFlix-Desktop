@@ -1,0 +1,294 @@
+// W3-plus: Kopfleiste, Umschalter-Pille und Profilmenü von LENZ+ (Web: features/plus/header.js, switcher.js,
+// css/themes/plus/header.css, switcher.css). Indizes für Fokus und Klicks wie in `HomeHeader`:
+// 0..4 Links in Anzeigereihenfolge (Startseite, Meine Liste, Filme, Serien, Neu & beliebt), 5 Suche, 6 TV,
+// 7 Datensparmodus, 8 Profil. Rust (plus.rs) bildet diese Positionen auf die Seiten ab.
+import { Theme } from "../theme/theme.slint";
+import { LfxText } from "text.slint";
+import { LfxIcon } from "icon.slint";
+import { Icons } from "../icons.slint";
+
+global PlusIcons {
+    out property <image> home: @image-url("../../../../assets/icons/plus-home.svg");
+    out property <image> list: @image-url("../../../../assets/icons/plus-list.svg");
+    out property <image> movies: @image-url("../../../../assets/icons/plus-movies.svg");
+    out property <image> tv: @image-url("../../../../assets/icons/plus-tv.svg");
+    out property <image> star: @image-url("../../../../assets/icons/plus-star.svg");
+    out property <image> search: @image-url("../../../../assets/icons/plus-search.svg");
+}
+
+// Schlichter Fokusring der Kopfleiste (Web: outline 2 px weiß, Abstand 3 px).
+component PlusRing inherits Rectangle {
+    in property <bool> active;
+    in property <length> radius: 8px;
+    visible: root.active;
+    Rectangle {
+        x: -3px;
+        y: -3px;
+        width: parent.width + 6px;
+        height: parent.height + 6px;
+        border-radius: root.radius + 3px;
+        border-width: 2px;
+        border-color: #ffffff;
+    }
+}
+
+component PlusNavItem inherits Rectangle {
+    in property <image> icon;
+    in property <string> text;
+    in property <bool> active;
+    in property <bool> focused;
+    in property <bool> show-label: true;
+    callback clicked();
+    height: 24px;
+    width: 22px + (root.show-label ? 8px + label.preferred-width : 0px);
+    property <color> ink: (root.active || ta.has-hover) ? #ffffff : Theme.t.plus-nav-idle;
+    animate ink { duration: 200ms; easing: Theme.t.ease; }
+    LfxIcon {
+        x: 0px;
+        y: 1px;
+        source: root.icon;
+        size: 22px;
+        tint: root.ink;
+    }
+    label := LfxText {
+        visible: root.show-label;
+        x: 30px;
+        height: parent.height;
+        text: root.text;
+        font-size: Theme.t.fs-nav;
+        font-weight: Theme.t.fw-nav;
+        color: root.ink;
+        vertical-alignment: center;
+    }
+    ta := TouchArea {
+        mouse-cursor: pointer;
+        clicked => { root.clicked(); }
+    }
+    PlusRing { active: root.focused; radius: 6px; }
+}
+
+// Runder Knopf rechts (36 px; Hover #3a3a42).
+component PlusCircle inherits Rectangle {
+    in property <image> icon;
+    in property <bool> focused;
+    in property <bool> lit;
+    in property <bool> active;
+    callback clicked();
+    width: 36px;
+    height: 36px;
+    border-radius: 18px;
+    background: root.active ? #ffffff : (ta.has-hover ? #3a3a42 : (root.lit ? #ffffff00 : Theme.t.plus-circle));
+    animate background { duration: 200ms; easing: Theme.t.ease; }
+    LfxIcon {
+        x: 8px;
+        y: 8px;
+        source: root.icon;
+        size: 20px;
+        tint: root.active ? #101010 : (root.lit ? Theme.t.red : (ta.has-hover ? #ffffff : #ffffffb3));
+    }
+    ta := TouchArea {
+        mouse-cursor: pointer;
+        clicked => { root.clicked(); }
+    }
+    PlusRing { active: root.focused; radius: 18px; }
+}
+
+export component PlusHeader inherits Rectangle {
+    in property <bool> scrolled;
+    in property <int> focus-index: -1;
+    // Position des aktiven Links (0..4), -1 = keiner; 5 = Suche
+    in property <int> current: 0;
+    in property <bool> ds-on;
+    in property <string> initial;
+    in property <string> user-name;
+    callback pick(int);
+    callback logo-clicked();
+
+    property <bool> compact: root.width < 1100px;
+    property <bool> narrow: root.width < 800px;
+    property <length> pad-l: 17px;
+    property <length> pad-r: max(16px, min(36px, root.width * 0.019));
+    height: Theme.t.header-h;
+
+    // Verlauf, solange die Leiste über dem Hero liegt; danach schwarz mit feiner Linie
+    Rectangle {
+        height: root.height + 40px;
+        opacity: root.scrolled ? 0.0 : 1.0;
+        animate opacity { duration: 300ms; easing: Theme.t.ease; }
+        background: @linear-gradient(180deg, #0000008c 0%, #00000000 100%);
+    }
+    Rectangle {
+        opacity: root.scrolled ? 1.0 : 0.0;
+        animate opacity { duration: 300ms; easing: Theme.t.ease; }
+        background: #000000;
+        Rectangle {
+            y: parent.height - 1px;
+            height: 1px;
+            background: #ffffff14;
+        }
+    }
+
+    // links: Wortmarke und Profil-Chip
+    if !root.narrow: Image {
+        x: root.pad-l + 4px;
+        y: (parent.height - self.height) / 2;
+        width: 96px;
+        height: 30px;
+        source: @image-url("../../../../assets/logo/lenzplus.svg");
+        image-fit: contain;
+        horizontal-alignment: left;
+        TouchArea { clicked => { root.logo-clicked(); } }
+    }
+    chip := Rectangle {
+        x: root.narrow ? root.pad-l : root.pad-l + 4px + 96px + 8px;
+        y: (parent.height - self.height) / 2;
+        height: 52px;
+        width: 8px + 36px + (root.narrow ? 4px : 10px + min(150px, name.preferred-width)) + 14px;
+        border-radius: 26px;
+        background: chip-ta.has-hover ? #ffffff14 : transparent;
+        animate background { duration: 200ms; easing: Theme.t.ease; }
+        Rectangle {
+            x: 8px;
+            y: 8px;
+            width: 36px;
+            height: 36px;
+            border-radius: 18px;
+            background: Theme.t.plus-circle;
+            LfxText {
+                width: 100%;
+                height: 100%;
+                text: root.initial;
+                font-size: 15px;
+                font-weight: 700;
+                horizontal-alignment: center;
+                vertical-alignment: center;
+            }
+        }
+        name := LfxText {
+            visible: !root.narrow;
+            x: 54px;
+            width: min(150px, self.preferred-width);
+            height: parent.height;
+            text: root.user-name;
+            font-size: 15px;
+            color: chip-ta.has-hover ? #ffffff : Theme.t.text-body;
+            vertical-alignment: center;
+            overflow: elide;
+        }
+        chip-ta := TouchArea {
+            mouse-cursor: pointer;
+            clicked => { root.pick(8); }
+        }
+        PlusRing { active: root.focus-index == 8; radius: 26px; }
+    }
+
+    // Mitte: Navigation, zentriert
+    HorizontalLayout {
+        x: (parent.width - self.preferred-width) / 2;
+        y: (parent.height - 24px) / 2;
+        height: 24px;
+        spacing: root.compact ? 22px : max(16px, min(36px, root.width * 0.019));
+        PlusNavItem { icon: PlusIcons.home; text: "Startseite"; show-label: !root.compact; active: root.current == 0; focused: root.focus-index == 0; clicked => { root.pick(0); } }
+        PlusNavItem { icon: PlusIcons.list; text: "Meine Liste"; show-label: !root.compact; active: root.current == 1; focused: root.focus-index == 1; clicked => { root.pick(1); } }
+        PlusNavItem { icon: PlusIcons.movies; text: "Filme"; show-label: !root.compact; active: root.current == 2; focused: root.focus-index == 2; clicked => { root.pick(2); } }
+        PlusNavItem { icon: PlusIcons.tv; text: "Serien"; show-label: !root.compact; active: root.current == 3; focused: root.focus-index == 3; clicked => { root.pick(3); } }
+        PlusNavItem { icon: PlusIcons.star; text: "Neu & beliebt"; show-label: !root.compact; active: root.current == 4; focused: root.focus-index == 4; clicked => { root.pick(4); } }
+    }
+
+    // rechts: Datensparmodus (nur aktiv), TV, Suche
+    HorizontalLayout {
+        x: parent.width - root.pad-r - self.preferred-width;
+        y: (parent.height - 36px) / 2;
+        height: 36px;
+        spacing: 10px;
+        if root.ds-on: PlusCircle { icon: Icons.datasaver; lit: true; focused: root.focus-index == 7; clicked => { root.pick(7); } }
+        PlusCircle { icon: Icons.tvmode; focused: root.focus-index == 6; clicked => { root.pick(6); } }
+        PlusCircle { icon: PlusIcons.search; active: root.current == 5; focused: root.focus-index == 5; clicked => { root.pick(5); } }
+    }
+}
+
+// Umschalter-Pille unter der Kopfleiste (Web: `#lfx-plus-switcher`): aktiver Tab weiß mit schwarzer Schrift.
+export component PlusSwitcher inherits Rectangle {
+    in property <[string]> tabs;
+    in property <int> current: 0;
+    callback pick(int);
+    height: 52px;
+    width: row.preferred-width + 12px;
+    border-radius: 26px;
+    background: #2d2f36b5;
+    border-width: 1px;
+    border-color: #ffffff1a;
+    drop-shadow-color: #00000040;
+    drop-shadow-blur: 34px;
+    drop-shadow-offset-y: 22px;
+    row := HorizontalLayout {
+        x: 6px;
+        y: 5px;
+        height: 40px;
+        for t[i] in root.tabs: Rectangle {
+            height: 40px;
+            width: lbl.preferred-width + 48px;
+            border-radius: 20px;
+            background: i == root.current ? #ffffff : (ta.has-hover ? #ffffff1f : transparent);
+            animate background { duration: 200ms; easing: Theme.t.ease; }
+            lbl := LfxText {
+                width: 100%;
+                height: 100%;
+                text: t;
+                font-size: 14px;
+                font-weight: 700;
+                color: i == root.current ? #000000 : #ffffff;
+                horizontal-alignment: center;
+                vertical-alignment: center;
+            }
+            ta := TouchArea {
+                mouse-cursor: pointer;
+                clicked => { root.pick(i); }
+            }
+        }
+    }
+}
+
+component PlusMenuItem inherits Rectangle {
+    in property <string> text;
+    in property <bool> hot;
+    in property <color> ink: Theme.t.text-body;
+    callback clicked();
+    height: 40px;
+    background: (root.hot || ta.has-hover) ? #ffffff1a : transparent;
+    LfxText {
+        x: 20px;
+        width: parent.width - 40px;
+        height: 100%;
+        text: root.text;
+        font-size: 15px;
+        color: (root.hot || ta.has-hover) ? (root.ink == Theme.t.text-body ? #ffffff : root.ink) : root.ink;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+    ta := TouchArea {
+        mouse-cursor: pointer;
+        clicked => { root.clicked(); }
+    }
+}
+
+// Profilmenü (Web: `.lfx-plus-menu`): 240 px breit, #131313, Rand grau, Radius 4, keine Überschrift.
+export component PlusProfileMenu inherits Rectangle {
+    in property <int> index: -1;
+    callback pick(int);
+    width: 240px;
+    height: 8px + 5 * 40px + 12px;
+    background: Theme.t.plus-menu-bg;
+    border-width: 1px;
+    border-color: Theme.t.plus-menu-border;
+    border-radius: 4px;
+    VerticalLayout {
+        y: 8px;
+        height: 5 * 40px;
+        PlusMenuItem { text: "Profil wechseln"; hot: root.index == 0; clicked => { root.pick(0); } }
+        PlusMenuItem { text: "Einstellungen"; hot: root.index == 1; clicked => { root.pick(1); } }
+        PlusMenuItem { text: "Statistik"; ink: Theme.t.gold; hot: root.index == 2; clicked => { root.pick(2); } }
+        PlusMenuItem { text: "Über"; hot: root.index == 3; clicked => { root.pick(3); } }
+        PlusMenuItem { text: "Abmelden"; hot: root.index == 4; clicked => { root.pick(4); } }
+    }
+}

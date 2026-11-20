@@ -1,0 +1,277 @@
+// W3-plus: Titel-Vollseite von LENZ+ (Web: features/plus/title.js, css/themes/plus/title.css): Vollbild-Hintergrund mit
+// Schattierung von links, Logo oder Name, Meta, Beschreibung, weiße Pille „ABSPIELEN“ und runde Knöpfe.
+// Folgen, Spurwahl, Ähnliche Titel und Info darunter kommen aus `DetailView` (ohne Kopf), Daten und Fokus wie die
+// Detailseite (`DetailState`, Abschnitt 0 = Knöpfe: 0 Abspielen, 1 Liste, 2 Gefällt mir, 3 Gesehen, 4 Download, 5 Menü).
+import { Theme } from "../theme/theme.slint";
+import { LfxText } from "../components/text.slint";
+import { LfxIcon } from "../components/icon.slint";
+import { LfxFocusRing } from "../components/focus-ring.slint";
+import { LfxSpinner } from "../components/feedback.slint";
+import { Icons } from "../icons.slint";
+import { DetailState } from "detail-state.slint";
+import { DetailView, RoundBtn } from "detail-view.slint";
+
+component PlusCircleBtn inherits Rectangle {
+    in property <image> icon;
+    in property <bool> on;
+    in property <bool> focused;
+    callback clicked();
+    width: 48px;
+    height: 48px;
+    border-radius: 24px;
+    background: root.on ? #ffffff3d : (ta.has-hover ? #ffffff38 : #ffffff1a);
+    animate background { duration: 200ms; easing: Theme.t.ease; }
+    LfxIcon {
+        x: 12px;
+        y: 12px;
+        source: root.icon;
+        size: 24px;
+        tint: #ffffff;
+    }
+    ta := TouchArea {
+        mouse-cursor: pointer;
+        clicked => { root.clicked(); }
+    }
+    LfxFocusRing { active: root.focused; radius: 24px; }
+}
+
+export component PlusTitlePage inherits Rectangle {
+    background: Theme.t.bg;
+    property <length> side: max(20px, min(71px, root.width * 0.037));
+    property <length> hero-h: max(600px, root.height * 0.7);
+    property <length> scroll-y: -flick.content-y;
+
+    pure function scroll-target(cur: length, fy: length, fh: length, view-h: length, flick-h: length) -> length {
+        if (DetailState.focus-sec <= 0) { return 0px; }
+        return max(-max(0px, view-h - flick-h),
+            fy < -cur + 120px ? min(0px, -(fy - 120px))
+            : (fy + fh > -cur + flick-h - 24px ? min(0px, -(fy + fh - flick-h + 24px)) : cur));
+    }
+    function scroll-to-focus() {
+        flick.content-y = root.scroll-target(flick.content-y, root.hero-h + view.focus-y, view.focus-h, root.hero-h + view.height, flick.height);
+    }
+    property <int> focus-watch: DetailState.focus-sec * 10000 + DetailState.focus-idx;
+    changed focus-watch => { root.scroll-to-focus(); }
+
+    // Hintergrund (fest) mit Schattierung von links und unten; beim Scrollen dunkelt er ab
+    if DetailState.data.has-backdrop: Image {
+        width: root.width;
+        height: root.height;
+        source: DetailState.data.backdrop;
+        image-fit: cover;
+    }
+    Rectangle {
+        background: @linear-gradient(90deg, #10131ff0 0%, #10131f99 36%, #10131f00 68%);
+    }
+    Rectangle {
+        y: parent.height * 0.64;
+        height: parent.height * 0.36;
+        background: @linear-gradient(0deg, Theme.t.bg 0%, #10131f00 100%);
+    }
+    Rectangle {
+        height: 160px;
+        background: @linear-gradient(180deg, #0000008c 0%, #00000000 100%);
+    }
+    Rectangle {
+        background: #080a12e0;
+        opacity: min(1.0, max(0.0, root.scroll-y / (root.hero-h * 0.55)));
+    }
+    if DetailState.loading && !DetailState.data.has-item: LfxSpinner {
+        x: (parent.width - self.width) / 2;
+        y: (parent.height - self.height) / 2;
+    }
+
+    flick := Flickable {
+        width: parent.width;
+        height: parent.height;
+        content-width: self.width;
+        content-height: root.hero-h + view.height;
+        animate content-y { duration: Theme.t.dur * 2; easing: Theme.t.ease-out; }
+
+        // Kopf
+        VerticalLayout {
+            x: root.side;
+            y: root.hero-h - self.height - 40px;
+            width: min(560px, root.width - 2 * root.side);
+            height: self.preferred-height;
+            spacing: 14px;
+            alignment: end;
+            if DetailState.data.has-logo: Image {
+                source: DetailState.data.logo;
+                height: 170px;
+                width: min(440px, parent.width);
+                image-fit: contain;
+                horizontal-alignment: left;
+                vertical-alignment: bottom;
+            }
+            if !DetailState.data.has-logo && DetailState.data.has-item: LfxText {
+                text: DetailState.data.title;
+                font-size: 44px;
+                font-weight: 700;
+                wrap: word-wrap;
+                overflow: elide;
+                max-height: 150px;
+            }
+            if DetailState.data.subtitle != "": LfxText {
+                text: DetailState.data.subtitle;
+                font-size: 20px;
+                font-weight: 700;
+                wrap: word-wrap;
+            }
+            HorizontalLayout {
+                height: 20px;
+                spacing: 10px;
+                alignment: start;
+                if DetailState.data.year != "": LfxText { text: DetailState.data.year; font-size: 12px; color: Theme.t.text-body; vertical-alignment: center; }
+                if DetailState.data.length != "": LfxText { text: DetailState.data.length; font-size: 12px; color: Theme.t.text-body; vertical-alignment: center; }
+                if DetailState.data.quality != "": Rectangle {
+                    width: q.preferred-width + 10px;
+                    border-radius: 3px;
+                    background: #ffffff2e;
+                    q := LfxText { text: DetailState.data.quality; font-size: 12px; font-weight: 700; horizontal-alignment: center; vertical-alignment: center; }
+                }
+                if DetailState.data.rating != "": Rectangle {
+                    width: ra.preferred-width + 10px;
+                    border-radius: 3px;
+                    background: #ffffff2e;
+                    ra := LfxText { text: DetailState.data.rating; font-size: 12px; font-weight: 700; horizontal-alignment: center; vertical-alignment: center; }
+                }
+            }
+            if DetailState.data.tagline != "": LfxText {
+                text: DetailState.data.tagline;
+                font-size: 16px;
+                font-weight: 700;
+                wrap: word-wrap;
+            }
+            if DetailState.data.overview != "": LfxText {
+                text: DetailState.data.overview;
+                font-size: 20px;
+                color: #ffffff;
+                wrap: word-wrap;
+                overflow: elide;
+                max-height: 145px;
+            }
+            if DetailState.error != "": LfxText {
+                text: DetailState.error;
+                color: Theme.t.text-muted;
+                wrap: word-wrap;
+            }
+            if DetailState.data.progress > 0: Rectangle {
+                height: 4px;
+                Rectangle {
+                    x: 0px;
+                    width: min(267px, parent.width);
+                    border-radius: 2px;
+                    background: Theme.t.progress-rail;
+                    clip: true;
+                    Rectangle {
+                        width: parent.width * min(1.0, DetailState.data.progress);
+                        background: Theme.t.progress;
+                    }
+                }
+            }
+            HorizontalLayout {
+                height: 48px;
+                spacing: 20px;
+                alignment: start;
+                if DetailState.data.can-play: Rectangle {
+                    width: pl.preferred-width + 72px;
+                    height: 48px;
+                    border-radius: 24px;
+                    background: pl-ta.has-hover ? #d9d9de : #ffffff;
+                    animate background { duration: 200ms; easing: Theme.t.ease; }
+                    pl := HorizontalLayout {
+                        padding-left: 20px;
+                        padding-right: 28px;
+                        spacing: 10px;
+                        LfxIcon {
+                            source: Icons.play;
+                            size: 24px;
+                            tint: #000000;
+                            y: (parent.height - self.height) / 2;
+                        }
+                        LfxText {
+                            text: DetailState.data.play-label.to-uppercase();
+                            color: #000000;
+                            font-size: 15px;
+                            font-weight: 700;
+                            vertical-alignment: center;
+                        }
+                    }
+                    pl-ta := TouchArea {
+                        mouse-cursor: pointer;
+                        clicked => { DetailState.play(); }
+                    }
+                    LfxFocusRing {
+                        active: DetailState.focus-sec == 0 && DetailState.focus-idx == 0;
+                        radius: 24px;
+                    }
+                }
+                PlusCircleBtn {
+                    icon: DetailState.data.fav ? Icons.check : Icons.plus;
+                    on: DetailState.data.fav;
+                    focused: DetailState.focus-sec == 0 && DetailState.focus-idx == 1;
+                    clicked => { DetailState.toggle-fav(); }
+                }
+                if DetailState.data.can-like: PlusCircleBtn {
+                    icon: DetailState.data.like ? Icons.like : Icons.like-outline;
+                    on: DetailState.data.like;
+                    focused: DetailState.focus-sec == 0 && DetailState.focus-idx == 2;
+                    clicked => { DetailState.toggle-like(); }
+                }
+                if DetailState.data.can-played: PlusCircleBtn {
+                    icon: DetailState.data.played ? Icons.eye-check : Icons.eye;
+                    on: DetailState.data.played;
+                    focused: DetailState.focus-sec == 0 && DetailState.focus-idx == 3;
+                    clicked => { DetailState.toggle-played(); }
+                }
+                if DetailState.data.can-download: PlusCircleBtn {
+                    icon: Icons.download;
+                    focused: DetailState.focus-sec == 0 && DetailState.focus-idx == 4;
+                    clicked => { DetailState.download(); }
+                }
+                PlusCircleBtn {
+                    icon: Icons.more;
+                    focused: DetailState.focus-sec == 0 && DetailState.focus-idx == 5;
+                    clicked => { DetailState.open-menu(); }
+                }
+            }
+            if DetailState.data.cast-line != "": LfxText {
+                text: "Besetzung: " + DetailState.data.cast-line;
+                font-size: 14px;
+                color: Theme.t.text-body;
+                wrap: word-wrap;
+            }
+            if DetailState.data.genres-line != "": LfxText {
+                text: "Genres: " + DetailState.data.genres-line;
+                font-size: 14px;
+                color: Theme.t.text-body;
+                wrap: word-wrap;
+            }
+            if DetailState.data.studios-line != "": LfxText {
+                text: "Studio: " + DetailState.data.studios-line;
+                font-size: 14px;
+                color: Theme.t.text-body;
+                wrap: word-wrap;
+            }
+        }
+
+        view := DetailView {
+            x: 0px;
+            y: root.hero-h;
+            width: parent.width;
+            page-mode: true;
+            hide-head: true;
+        }
+    }
+
+    RoundBtn {
+        x: 24px;
+        y: 20px;
+        size: 40px;
+        icon-size: 22px;
+        icon: Icons.back;
+        tip: "Zurück";
+        clicked => { DetailState.back(); }
+    }
+}

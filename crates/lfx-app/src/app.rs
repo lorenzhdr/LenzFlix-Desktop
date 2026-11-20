@@ -328,7 +328,11 @@ impl App {
                 ui.set_profile_slot(focus::slot_of(f, n));
             }
             Route::Home => {
-                let (row, idx) = focus::home_props(f);
+                let (row, idx) = if st.design == crate::cli::DesignId::Plus {
+                    crate::plus::home_props(f) // W3-plus
+                } else {
+                    focus::home_props(f)
+                };
                 ui.set_focus_row(row);
                 ui.set_focus_index(idx);
             }

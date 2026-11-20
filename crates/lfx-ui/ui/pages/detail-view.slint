@@ -145,6 +145,8 @@ component TrackPick inherits Rectangle {
 export component DetailView inherits Rectangle {
     // true: Detailseite (breiter, ohne Schließen-Knopf), false: Modal
     in property <bool> page-mode: false;
+    // W3-plus: Kopf und Beschreibung weglassen (die LENZ+-Titelseite malt beides selbst)
+    in property <bool> hide-head: false;
     // Y und Höhe des fokussierten Eintrags im Inhalt (für das Mitscrollen des Besitzers)
     out property <length> focus-y: root.compute-focus-y();
     out property <length> focus-h: root.compute-focus-h();
@@ -185,7 +187,8 @@ export component DetailView inherits Rectangle {
         alignment: start;
         // ---------------------------------------------------------------- Kopf
         hero := Rectangle {
-            height: root.hero-h;
+            visible: !root.hide-head; // W3-plus
+            height: root.hide-head ? 0px : root.hero-h; // W3-plus
             clip: true;
             background: Theme.t.surface-3;
             if DetailState.data.has-backdrop: Image {
@@ -315,6 +318,8 @@ export component DetailView inherits Rectangle {
 
         // ---------------------------------------------------------------- Beschreibung
         HorizontalLayout {
+            visible: !root.hide-head; // W3-plus
+            height: root.hide-head ? 0px : self.preferred-height; // W3-plus
             padding-left: root.pad;
             padding-right: root.pad;
             padding-top: 18px;
