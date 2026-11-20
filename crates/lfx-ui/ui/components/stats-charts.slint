@@ -1,0 +1,283 @@
+// W5-stats: Bausteine der Statistik-Seite (Kennzahlen, Panels, Balkendiagramm mit Linie, Heatmap, Anteilsbalken).
+// Alles nativ aus Rechtecken und einem Path, keine Web-View. Farben nur aus den Theme-Tokens des aktiven Designs.
+import { Theme, Design } from "../theme/theme.slint";
+import { LfxText } from "text.slint";
+
+// Ein Balken des Verlaufs: Höhe 0..1, optionale Achsenbeschriftung, Text für die Detailzeile.
+export struct StBar {
+    frac: float,
+    label: string,
+    tip: string,
+    hot: bool,
+}
+
+// Eine Zeile mit Anteilsbalken (Geräte, Wiedergabeart) oder Rangliste (Top-Serien/-Filme).
+export struct StShare {
+    name: string,
+    meta: string,
+    frac: float,
+}
+
+// Kennzahl.
+export struct StKpi {
+    label: string,
+    value: string,
+}
+
+// Akzentfarbe des Designs.
+export global StInk {
+    out property <color> accent: Theme.design == Design.retro ? Theme.t.retro-amber
+        : Theme.design == Design.prime ? Theme.t.link
+        : Theme.design == Design.plus ? Theme.t.accent
+        : Theme.t.red;
+    out property <color> panel-bg: Theme.design == Design.retro ? Theme.t.retro-panel : Theme.t.surface;
+    out property <color> panel-line: Theme.design == Design.retro ? Theme.t.retro-amber-lo : Theme.t.border;
+    out property <color> cell-empty: Theme.design == Design.retro ? Theme.t.retro-amber-lo.transparentize(0.8) : Theme.t.surface-3;
+    out property <length> radius: Theme.design == Design.retro ? 2px : (Theme.design == Design.plus ? 16px : Theme.design == Design.prime ? 8px : 10px);
+    out property <color> text: Theme.design == Design.retro ? Theme.t.retro-amber : Theme.t.text;
+    out property <color> muted: Theme.design == Design.retro ? Theme.t.retro-amber.transparentize(0.35) : Theme.t.text-muted;
+}
+
+// Fläche mit Überschrift und Unterzeile; der Inhalt hat die feste Höhe `content-h` (kein Layout-Raten).
+export component StPanel inherits Rectangle {
+    in property <string> title;
+    in property <string> sub;
+    in property <length> content-h: 100px;
+    property <length> head: root.sub != "" ? 58px : 38px;
+    background: StInk.panel-bg;
+    border-radius: StInk.radius;
+    border-width: 1px;
+    border-color: StInk.panel-line;
+    height: root.head + root.content-h + 32px;
+    LfxText {
+        x: 18px;
+        y: 14px;
+        width: parent.width - 36px;
+        height: 24px;
+        text: Theme.design == Design.retro ? "> " + root.title : root.title;
+        font-size: Theme.t.fs-row-title;
+        font-weight: 700;
+        color: StInk.text;
+        overflow: elide;
+    }
+    if root.sub != "": LfxText {
+        x: 18px;
+        y: 38px;
+        width: parent.width - 36px;
+        height: 18px;
+        text: root.sub;
+        font-size: Theme.t.fs-meta;
+        color: StInk.muted;
+        overflow: elide;
+    }
+    Rectangle {
+        x: 18px;
+        y: 14px + root.head;
+        width: parent.width - 36px;
+        height: root.content-h;
+        @children
+    }
+}
+
+// Kennzahl-Kachel.
+export component StKpiCard inherits Rectangle {
+    in property <StKpi> kpi;
+    background: StInk.panel-bg;
+    border-radius: StInk.radius;
+    border-width: 1px;
+    border-color: StInk.panel-line;
+    height: 84px;
+    VerticalLayout {
+        padding: 14px;
+        spacing: 4px;
+        alignment: center;
+        LfxText {
+            text: root.kpi.value;
+            font-size: 26px;
+            font-weight: 800;
+            color: StInk.text;
+            overflow: elide;
+        }
+        LfxText {
+            text: root.kpi.label;
+            font-size: Theme.t.fs-meta;
+            color: StInk.muted;
+            overflow: elide;
+        }
+    }
+}
+
+// Balkendiagramm (Watchtime je Zeitabschnitt) mit gleitendem Durchschnitt als Linie. Die Linie liegt als
+// Path-Befehlstext vor (Viewbox 1000 x 100). Zeigen/Tippen auf einen Balken füllt die Detailzeile.
+export component StBars inherits Rectangle {
+    in property <[StBar]> bars;
+    in property <string> line;
+    in property <string> empty-text: "Keine Daten im Zeitraum.";
+    in property <length> chart-h: 150px;
+    property <string> tip: "Zeige auf einen Balken für Details.";
+    height: root.chart-h + 60px;
+    if root.bars.length == 0: LfxText {
+        text: root.empty-text;
+        color: StInk.muted;
+        font-size: Theme.t.fs-meta;
+    }
+    if root.bars.length > 0: Rectangle {
+        // Hilfslinien
+        for g[i] in 4: Rectangle {
+            y: root.chart-h * i / 4;
+            height: 1px;
+            background: StInk.panel-line;
+            opacity: 0.6;
+        }
+        HorizontalLayout {
+            height: root.chart-h + 20px;
+            spacing: root.bars.length > 60 ? 1px : 3px;
+            for b[i] in root.bars: Rectangle {
+                height: parent.height;
+                Rectangle {
+                    y: root.chart-h - self.height;
+                    height: max(b.frac > 0 ? 2px : 0px, root.chart-h * b.frac);
+                    background: b.hot ? Theme.t.gold : StInk.accent;
+                    opacity: ta.has-hover ? 1.0 : 0.82;
+                    border-radius: Theme.design == Design.retro ? 0px : 2px;
+                }
+                if b.label != "": LfxText {
+                    x: (parent.width - self.width) / 2;
+                    y: root.chart-h + 4px;
+                    width: 56px;
+                    height: 16px;
+                    text: b.label;
+                    font-size: 11px;
+                    color: StInk.muted;
+                    horizontal-alignment: center;
+                }
+                ta := TouchArea {
+                    changed has-hover => {
+                        if self.has-hover {
+                            root.tip = b.tip;
+                        }
+                    }
+                    clicked => { root.tip = b.tip; }
+                }
+            }
+        }
+        if root.line != "": Path {
+            y: 0px;
+            width: parent.width;
+            height: root.chart-h;
+            viewbox-width: 1000;
+            viewbox-height: 100;
+            commands: root.line;
+            stroke: Theme.t.gold;
+            stroke-width: 2px;
+            fill: transparent;
+        }
+        LfxText {
+            y: root.chart-h + 36px;
+            width: parent.width;
+            text: root.tip;
+            font-size: Theme.t.fs-meta;
+            color: StInk.text;
+            overflow: elide;
+        }
+    }
+}
+
+// Heatmap 7 Wochentage (Mo..So) x 24 Stunden; Werte 0..1 in Zeilenreihenfolge (Tag * 24 + Stunde).
+export component StHeat inherits Rectangle {
+    in property <[float]> cells;
+    in property <string> best;
+    property <[string]> days: ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
+    property <length> lw: 30px;
+    property <length> cw: (self.width - root.lw) / 24;
+    property <length> ch: min(root.cw, 22px);
+    height: 200px;
+    for d[di] in root.days: LfxText {
+        x: 0px;
+        y: di * root.ch;
+        height: root.ch;
+        width: root.lw;
+        text: d;
+        font-size: 11px;
+        color: StInk.muted;
+        vertical-alignment: center;
+    }
+    for c[i] in root.cells: Rectangle {
+        x: root.lw + mod(i, 24) * root.cw;
+        y: floor(i / 24) * root.ch;
+        width: root.cw - 2px;
+        height: root.ch - 2px;
+        border-radius: Theme.design == Design.retro ? 0px : 3px;
+        background: c <= 0.0 ? StInk.cell-empty : StInk.cell-empty.mix(StInk.accent, 0.25 + 0.75 * c);
+    }
+    for h in [0, 6, 12, 18, 23]: LfxText {
+        x: root.lw + h * root.cw - 4px;
+        y: 7 * root.ch + 2px;
+        width: 40px;
+        text: h + " Uhr";
+        font-size: 11px;
+        color: StInk.muted;
+    }
+    LfxText {
+        y: 7 * root.ch + 22px;
+        width: parent.width;
+        text: root.best;
+        font-size: Theme.t.fs-meta;
+        color: StInk.text;
+        overflow: elide;
+    }
+}
+
+// Liste mit Anteilsbalken: Name, Zusatztext rechts, Balken darunter.
+export component StShares inherits Rectangle {
+    in property <[StShare]> items;
+    in property <string> empty-text: "Keine Daten im Zeitraum.";
+    property <length> row-h: 44px;
+    height: max(root.items.length, 1) * root.row-h;
+    if root.items.length == 0: LfxText {
+        text: root.empty-text;
+        color: StInk.muted;
+        font-size: Theme.t.fs-meta;
+    }
+    for it[i] in root.items: Rectangle {
+        y: i * root.row-h;
+        height: root.row-h;
+        LfxText {
+            x: 0px;
+            y: 0px;
+            width: parent.width - 230px;
+            height: 22px;
+            vertical-alignment: center;
+            horizontal-alignment: left;
+            text: it.name;
+            font-size: Theme.t.fs-body;
+            color: StInk.text;
+            overflow: elide;
+        }
+        LfxText {
+            x: parent.width - 226px;
+            y: 0px;
+            width: 226px;
+            height: 22px;
+            vertical-alignment: center;
+            text: it.meta;
+            font-size: Theme.t.fs-meta;
+            color: StInk.muted;
+            horizontal-alignment: right;
+            overflow: elide;
+        }
+        Rectangle {
+            x: 0px;
+            y: 28px;
+            width: parent.width;
+            height: 8px;
+            border-radius: Theme.design == Design.retro ? 0px : 4px;
+            background: StInk.cell-empty;
+            Rectangle {
+                width: max(4px, parent.width * it.frac);
+                border-radius: parent.border-radius;
+                background: StInk.accent;
+            }
+        }
+    }
+}

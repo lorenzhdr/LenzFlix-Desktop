@@ -62,6 +62,7 @@ pub struct State {
     pub couch: crate::picker_couch::CouchCtl, // W3-picker
     /// W4-account: Einstellungen, Konten/Server, Verwaltung.
     pub account: crate::account::AccountCtl, // W4-account
+    pub stats: crate::stats::StatsCtl, // W5-stats
 }
 
 /// Zeitgeber, die leben müssen, solange die App läuft.
@@ -222,6 +223,7 @@ impl App {
         self.tv_leave(); // W2-tvui
         self.detail_leave_route(); // W2-detail
         self.account_leave(); // W4-account
+        self.stats_leave(); // W5-stats
         self.stop_trailer(); // W2-home: Trailer endet bei jedem Seitenwechsel und beim Wiedergabe-Start
         let task = self.st.borrow_mut().qc_task.take();
         if let Some(t) = task {
@@ -283,6 +285,12 @@ impl App {
             // W2-library
             r if crate::library::is_library_route(r) => ctx = self.render_library_route(r),
             Route::Media(m) => self.render_media_route(m), // W4-media
+            Route::Stats => {
+                // W5-stats
+                ui.set_page(Page::Stats);
+                self.st.borrow_mut().graph = FocusGraph::new();
+                self.render_stats();
+            }
             // W4-account: Einstellungen und Verwaltung teilen die Seite
             Route::Settings | Route::Admin => {
                 ui.set_page(Page::Settings);
@@ -357,6 +365,7 @@ impl App {
                 ui.set_focus_index(idx);
             }
             Route::Settings | Route::Admin => self.acc_push(), // W4-account
+            Route::Stats => self.stats_push(),                 // W5-stats
             r if crate::library::is_library_route(r) => self.lib_show_focus(), // W2-library
             Route::Player { .. } => {} // W2-player: Fokus liegt im Player-Zustand
             _ => ui.set_simple_slot(focus::slot_of(f, 0)),
@@ -384,6 +393,9 @@ impl App {
         }
         if matches!(route, Route::Settings | Route::Admin) && self.account_handle_action(action) {
             return; // W4-account
+        }
+        if matches!(route, Route::Stats) && self.stats_handle_action(action) {
+            return; // W5-stats
         }
         if matches!(route, Route::TvMode) && self.tv_action(action) {
             return; // W2-tvui

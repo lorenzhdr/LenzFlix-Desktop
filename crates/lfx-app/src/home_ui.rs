@@ -288,10 +288,7 @@ impl App {
                 }
             }
             1 => self.go(Route::Settings),
-            2 => self.toast(
-                "Die Statistik folgt in einer späteren Version.",
-                ToastKind::Info,
-            ),
+            2 => self.go(Route::Stats), // W5-stats
             3 => self.go(Route::About),
             4 => self.sign_out(),
             5 => self.picker_open(), // W3-picker

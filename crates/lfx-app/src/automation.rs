@@ -271,6 +271,11 @@ impl App {
                 Ok(v) => ok(v),
                 Err(e) => fail(&e),
             },
+            // W5-stats
+            c if c.starts_with("stats_") => match self.stats_automation(c, msg) {
+                Ok(v) => ok(v),
+                Err(e) => fail(&e),
+            },
             c if c.starts_with("detail_") => self.detail_automation(c, msg, reply), // W2-detail
             c if c.starts_with("media") => match self.media_automation(c, msg) {
                 // W4-media
@@ -367,6 +372,7 @@ impl App {
             "detail": self.detail_state_json(), // W2-detail
             "retro": self.retro_state_json(), // W3-retro
             "account": self.account_state_json(), // W4-account
+            "stats": self.stats_state_json(), // W5-stats
         })
     }
 }
