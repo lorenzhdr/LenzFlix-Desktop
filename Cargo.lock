@@ -1662,6 +1662,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "lfx-mpv-sys"
+version = "0.1.0"
+dependencies = [
+ "libloading 0.8.9",
+]
+
+[[package]]
 name = "lfx-tv-schedule"
 version = "0.1.0"
 dependencies = [
