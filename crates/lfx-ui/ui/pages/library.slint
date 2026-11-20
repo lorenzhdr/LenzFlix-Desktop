@@ -17,6 +17,8 @@ import { LfxFocusRing } from "../components/focus-ring.slint";
 import { LfxSpinner, LfxSkeleton } from "../components/feedback.slint";
 import { Icons } from "../icons.slint";
 import { RowData, HeroData } from "types.slint";
+import { HomeUi } from "home-types.slint"; // W2-integrate: Kopfleiste der Startseite auch hier
+import { HomeChrome } from "../components/home-chrome.slint";
 
 // Eintrag der Werkzeugleiste. kind: 0 Chip, 1 Sortierung, 2 Ansicht „Zeilen“, 3 Ansicht „Raster“, 4 Auswahlmenü.
 export struct LibTool {
@@ -71,6 +73,11 @@ export global LibraryState {
     in property <string> count-text;
     in property <[string]> nav-labels;
     in property <int> nav-current: -1;
+    // W2-integrate: Zustand der gemeinsamen Kopfleiste (Profil, Datensparmodus) und ihre Ereignisse
+    in property <HomeUi> chrome;
+    in property <string> version;
+    callback chrome-event(string, int);
+    callback chrome-event-f(string, float);
     in property <[LibTool]> tools-l;
     in property <[LibTool]> tools-r;
     in property <[string]> alpha;
@@ -933,7 +940,7 @@ export component LibraryPage inherits Rectangle {
     property <length> row-h: 24px + Theme.t.row-title-gap + root.row-card-w * 9 / 16 + 28px;
     property <length> hero-h: max(240px, min(root.width * 0.3, 420px));
     property <length> btn-y: root.hero-h - Theme.t.btn-h - 28px;
-    property <length> nav-h: 52px;
+    property <length> nav-h: Theme.t.header-h;
     property <int> mode: LibraryState.mode;
     property <length> head-h: root.mode == 5 ? 76px + (LibraryState.kbd-open ? 5 * 44px + 16px : 0px)
         : (root.mode == 4 ? 60px : (root.mode == 3 ? 96px : 56px));
@@ -959,21 +966,6 @@ export component LibraryPage inherits Rectangle {
     };
     changed geom => { LibraryState.geometry(root.geom); }
     init => { LibraryState.geometry(root.geom); }
-
-    // Navigationsleiste (Platzhalter in der Art der Startseite; die Startseiten-Kopfleiste ersetzt sie später)
-    Rectangle {
-        y: 0px;
-        height: root.nav-h;
-        background: Theme.design == Design.retro ? Theme.t.retro-bg : Theme.t.bg;
-        LfxTabs {
-            x: root.gutter;
-            y: (parent.height - self.height) / 2;
-            labels: LibraryState.nav-labels;
-            current: LibraryState.nav-current;
-            focused-index: LibraryState.focus-zone == 0 ? LibraryState.focus-index : -1;
-            selected(i) => { LibraryState.event("nav", i, 0); }
-        }
-    }
 
     // Kopfbereich
     if root.mode == 5: Rectangle {
@@ -1056,5 +1048,22 @@ export component LibraryPage inherits Rectangle {
         text: LibraryState.note;
         color: Theme.t.text-muted;
         horizontal-alignment: center;
+    }
+
+    // Kopfleiste wie auf der Startseite (gemeinsame Komponente); Fokuszone 0, Indizes 0..8
+    HomeChrome {
+        x: 0px;
+        y: 0px;
+        width: root.width;
+        height: root.height;
+        ui: LibraryState.chrome;
+        version: LibraryState.version;
+        gutter: root.gutter;
+        header-h: root.nav-h;
+        scrolled: true;
+        current: LibraryState.nav-current;
+        focus-index: LibraryState.focus-zone == 0 ? LibraryState.focus-index : -1;
+        event(k, v) => { LibraryState.chrome-event(k, v); }
+        event-f(k, v) => { LibraryState.chrome-event-f(k, v); }
     }
 }

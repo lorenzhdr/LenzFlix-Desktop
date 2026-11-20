@@ -23,9 +23,9 @@ use tokio::task::JoinSet;
 
 use crate::app::{App, NAV_LABELS, post};
 use crate::library::{
-    EmptyAction, GridSrc, LibGeo, LibRow, LibState, MENU_COLS_THRESHOLD, Menu, Mode, Tool, ToolAct,
-    Z_ALPHA, Z_BODY, Z_FIELD, Z_HERO, Z_MENU, Z_NAV, Z_ROW0, Z_TOOL, card_data, is_library_route,
-    nav_index_for, rng_from_clock, to_buffer, tool_width,
+    EmptyAction, GridSrc, LibGeo, LibRow, LibState, MENU_COLS_THRESHOLD, Menu, Mode, NAV_TARGETS,
+    Tool, ToolAct, Z_ALPHA, Z_BODY, Z_FIELD, Z_HERO, Z_MENU, Z_NAV, Z_ROW0, Z_TOOL, card_data,
+    is_library_route, nav_index_for, rng_from_clock, to_buffer, tool_width,
 };
 use crate::route::{LibraryView, Route};
 
@@ -204,6 +204,7 @@ impl App {
                     .collect::<Vec<_>>(),
             )));
             g.set_nav_current(nav_index_for(route));
+            g.set_version(env!("CARGO_PKG_VERSION").into());
             g.set_items(ModelRc::new(VecModel::<CardData>::default()));
             g.set_rows(ModelRc::new(VecModel::<RowData>::default()));
             g.set_entries(ModelRc::new(VecModel::<NpEntry>::default()));
@@ -225,6 +226,7 @@ impl App {
             g.set_focus_index(0);
             g.set_alpha_current(-1);
         });
+        self.push_home_ui(); // W2-integrate: Kopfleiste (Profil, Datensparmodus)
         if self.st.borrow().images.is_none()
             && let Some(a) = self.session.active()
         {
@@ -1174,7 +1176,7 @@ impl App {
         let geo = self.lib_geo();
         let tool_rects = self.lib_tool_rects();
         let mut g = FocusGraph::new();
-        let nav: Vec<Rect> = (0..NAV_LABELS.len())
+        let nav: Vec<Rect> = (0..NAV_TARGETS)
             .map(|i| Rect::new(geo.gutter + i as f32 * 130.0, 6.0, 120.0, geo.nav_h - 12.0))
             .collect();
         g.register_zone(

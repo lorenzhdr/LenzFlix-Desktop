@@ -9,12 +9,12 @@
 pub mod catalog;
 mod extra;
 pub mod media;
-pub mod w2_tvui; // W2-tvui
 mod w2_library;
+pub mod w2_tvui; // W2-tvui
 pub use w2_library::{VIEW_BOXSETS, set_extra_titles};
-pub mod w2_player; // W2-player
 mod w2_detail; // W2-detail
-pub mod w2_home; // W2-home
+pub mod w2_home;
+pub mod w2_player; // W2-player // W2-home
 
 pub use extra::{
     VIEW_BOOKS, VIEW_LIVETV, VIEW_MUSIC, VIEW_PHOTOS, album_id, artist_id, book_id, channel_id,

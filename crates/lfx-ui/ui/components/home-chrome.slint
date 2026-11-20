@@ -1,0 +1,69 @@
+import { HomeUi } from "../pages/home-types.slint";
+import { HomeHeader } from "home-header.slint";
+import { ProfileMenu, DsPanel, SecretPanel } from "home-menus.slint";
+
+// Kopfleiste samt Menüs (Profil, Datensparmodus, Geheimmenü): gemeinsam für Startseite und Bibliotheksseiten.
+// Alle Ereignisse laufen über `event`/`event-f` zu den Startseiten-Handlern in Rust (`on_home_event`).
+export component HomeChrome inherits Rectangle {
+    in property <HomeUi> ui;
+    in property <string> version;
+    in property <length> gutter;
+    in property <length> header-h;
+    in property <bool> scrolled;
+    in property <int> focus-index: -1;
+    in property <int> current: 0;
+    callback event(string, int);
+    callback event-f(string, float);
+
+    // Klick daneben schließt Profilmenü und Datensparmodus-Panel
+    if root.ui.menu == 1 || root.ui.menu == 2: TouchArea {
+        clicked => { root.event("menu-close", 0); }
+    }
+
+    HomeHeader {
+        x: 0px;
+        y: 0px;
+        width: root.width;
+        gutter: root.gutter;
+        scrolled: root.scrolled;
+        focus-index: root.focus-index;
+        current: root.current;
+        ds-on: root.ui.ds-on;
+        initial: root.ui.user-initial;
+        narrow: root.width < 900px;
+        pick(i) => { root.event("nav", i); }
+        logo-clicked => { root.event("logo", 0); }
+    }
+
+    if root.ui.menu == 1: ProfileMenu {
+        x: root.width - root.gutter - self.width + 8px;
+        y: root.header-h - 18px;
+        user-name: root.ui.user-name;
+        index: root.ui.menu-index;
+        pick(i) => { root.event("profile-item", i); }
+    }
+    if root.ui.menu == 2: DsPanel {
+        x: root.width - root.gutter - self.width - 52px;
+        y: root.header-h - 18px;
+        on: root.ui.ds-on;
+        parts: root.ui.ds-parts;
+        labels: root.ui.ds-labels;
+        index: root.ui.menu-index;
+        main-toggled => { root.event("ds-main", 0); }
+        part-toggled(i) => { root.event("ds-part", i); }
+        reset => { root.event("ds-reset", 0); }
+    }
+    if root.ui.menu == 3: SecretPanel {
+        x: 0px;
+        y: 0px;
+        width: root.width;
+        height: root.height;
+        ui: root.ui;
+        version: root.version;
+        close => { root.event("menu-close", 0); }
+        scale(k, v) => { root.event-f(k, v); }
+        ds-part(i) => { root.event("ds-part", i); }
+        ds-reset => { root.event("ds-reset", 0); }
+        clear-cache => { root.event("clear-cache", 0); }
+    }
+}

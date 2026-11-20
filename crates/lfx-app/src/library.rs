@@ -20,6 +20,8 @@ use crate::route::{LibraryView, Route};
 
 // Fokuszonen (wie in library.slint).
 pub const Z_NAV: ZoneId = ZoneId(0);
+/// Ziele der Kopfleiste (wie auf der Startseite): 5 Links, Suche, TV, Datensparmodus, Profil.
+pub const NAV_TARGETS: usize = 9;
 pub const Z_TOOL: ZoneId = ZoneId(1);
 pub const Z_HERO: ZoneId = ZoneId(2);
 pub const Z_ALPHA: ZoneId = ZoneId(3);

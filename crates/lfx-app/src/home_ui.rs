@@ -9,7 +9,7 @@ use lfx_core::datasaver::{DataSaver, Effects, ImageScales, Part, available_for_d
 use lfx_core::trend::TrendInfo;
 use lfx_nav::NavAction;
 use lfx_ui::{HomeLayout, HomeUi, ToastKind};
-use slint::{Color, ModelRc, SharedString, VecModel};
+use slint::{Color, ComponentHandle, ModelRc, SharedString, VecModel};
 
 use crate::app::App;
 use crate::home_trailer::TrailerState;
@@ -173,7 +173,7 @@ impl App {
             dpr_h
         );
         let t = &x.trailer;
-        ui.set_home_ui(HomeUi {
+        let chrome = HomeUi {
             ambient: Color::from_rgb_u8(r, g, b),
             ds_on: x.ds.is_active(avail),
             ds_parts: ModelRc::new(VecModel::from(parts)),
@@ -192,7 +192,11 @@ impl App {
             info_text: info.into(),
             badge: badge.into(),
             primary: primary.into(),
-        });
+        };
+        // W2-integrate: dieselbe Kopfleiste steht auf den Bibliotheksseiten
+        ui.global::<lfx_ui::LibraryState>()
+            .set_chrome(chrome.clone());
+        ui.set_home_ui(chrome);
     }
 
     pub fn set_ambient(&self, rgb: [u8; 3]) {

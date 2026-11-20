@@ -48,12 +48,13 @@ impl App {
                 ok(json!({}));
             }
             "detail_hover" | "detail_unhover" => {
-                let Some(g) = self.st.borrow().geo else {
+                // W2-integrate: Geometrie der neuen Startseite (ungescrollt)
+                let Some(g) = self.st.borrow().home.x.layout.clone() else {
                     return fail("keine Startseitengeometrie");
                 };
                 let rect = RectF {
                     x: g.gutter + idx as f32 * g.pitch,
-                    y: g.nav_h + g.hero_h + row as f32 * g.row_h + 36.0,
+                    y: g.rows_top + row as f32 * g.row_h + g.head_h,
                     w: g.card_w,
                     h: g.card_h,
                 };

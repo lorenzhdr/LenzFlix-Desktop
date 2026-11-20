@@ -310,6 +310,12 @@ fn tv_mode_watch_zap_epg_info_error() {
     }
     assert!(found, "kein Film im Fokus");
     app.nav("Activate");
+    // Integration: Kartenklick öffnet das Detail-Modal; „Abspielen“ startet den Film.
+    app.wait_state(15, "Modal offen", |s| {
+        s["detail"]["modal_open"] == true && s["detail"]["loading"] == false
+    });
+    let r = app.cmd(json!({"cmd": "detail_click", "what": "play"}));
+    assert_eq!(r["ok"], true, "{r}");
     app.wait_state(30, "Film läuft", |s| {
         s["route"] == "player"
             && s["player"]["loaded"] == true

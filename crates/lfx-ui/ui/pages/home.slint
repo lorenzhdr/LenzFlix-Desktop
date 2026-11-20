@@ -3,10 +3,9 @@ import { LfxText } from "../components/text.slint";
 import { LfxSkeleton, LfxSpinner } from "../components/feedback.slint";
 import { HeroData } from "types.slint";
 import { HRow, HomeLayout, HomeUi } from "home-types.slint";
-import { HomeHeader } from "../components/home-header.slint";
+import { HomeChrome } from "../components/home-chrome.slint";
 import { HomeBillboard } from "../components/home-billboard.slint";
 import { HomeRow } from "../components/home-row.slint";
-import { ProfileMenu, DsPanel, SecretPanel } from "../components/home-menus.slint";
 import { DetailState } from "detail-state.slint"; // W2-detail
 
 // Ambient-Verlauf (Web: `#lfx-ambient`): oben 35 %, bei 170 px 85 %, bei 55 % 70 %, unten transparent.
@@ -291,53 +290,18 @@ export component HomePage inherits Rectangle {
         fill: Theme.t.bg.mix(root.amb, 0.3);
     }
 
-    if root.ui.menu == 1 || root.ui.menu == 2: TouchArea {
-        clicked => { root.event("menu-close", 0); }
-    }
-
-    HomeHeader {
-        x: 0px;
-        y: 0px;
-        width: root.width;
-        gutter: root.gutter;
-        scrolled: root.scrolled;
-        focus-index: root.focus-row == -2 ? root.focus-index : -1;
-        ds-on: root.ui.ds-on;
-        initial: root.ui.user-initial;
-        narrow: root.width < 900px;
-        pick(i) => { root.event("nav", i); }
-        logo-clicked => { root.event("logo", 0); }
-    }
-
-    if root.ui.menu == 1: ProfileMenu {
-        x: root.width - root.gutter - self.width + 8px;
-        y: root.header-h - 18px;
-        user-name: root.ui.user-name;
-        index: root.ui.menu-index;
-        pick(i) => { root.event("profile-item", i); }
-    }
-    if root.ui.menu == 2: DsPanel {
-        x: root.width - root.gutter - self.width - 52px;
-        y: root.header-h - 18px;
-        on: root.ui.ds-on;
-        parts: root.ui.ds-parts;
-        labels: root.ui.ds-labels;
-        index: root.ui.menu-index;
-        main-toggled => { root.event("ds-main", 0); }
-        part-toggled(i) => { root.event("ds-part", i); }
-        reset => { root.event("ds-reset", 0); }
-    }
-    if root.ui.menu == 3: SecretPanel {
+    HomeChrome { // Kopfleiste und Menüs (geteilt mit den Bibliotheksseiten)
         x: 0px;
         y: 0px;
         width: root.width;
         height: root.height;
         ui: root.ui;
         version: root.version;
-        close => { root.event("menu-close", 0); }
-        scale(k, v) => { root.event-f(k, v); }
-        ds-part(i) => { root.event("ds-part", i); }
-        ds-reset => { root.event("ds-reset", 0); }
-        clear-cache => { root.event("clear-cache", 0); }
+        gutter: root.gutter;
+        header-h: root.header-h;
+        scrolled: root.scrolled;
+        focus-index: root.focus-row == -2 ? root.focus-index : -1;
+        event(k, v) => { root.event(k, v); }
+        event-f(k, v) => { root.event-f(k, v); }
     }
 }

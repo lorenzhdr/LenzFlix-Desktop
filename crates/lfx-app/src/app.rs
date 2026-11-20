@@ -51,7 +51,7 @@ pub struct State {
     pub geo: Option<focus::HomeGeo>,
     pub images: Option<ImageLoader>,
     pub toast_gen: u64,
-    pub tv: crate::tvui::TvUi, // W2-tvui
+    pub tv: crate::tvui::TvUi,         // W2-tvui
     pub lib: crate::library::LibState, // W2-library
     /// W2-detail: Detail-Modal/-Seite, Kontextmenü, Hovercard.
     pub detail: crate::detail::DetailCtl, // W2-detail

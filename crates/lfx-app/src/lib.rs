@@ -17,12 +17,12 @@ pub mod detail_automation; // W2-detail
 pub mod detail_logic; // W2-detail
 pub mod focus;
 pub mod home;
-pub mod hovercard; // W2-detail
 #[cfg(feature = "dev-automation")]
 pub mod home_automation; // W2-home
 pub mod home_focus; // W2-home
 pub mod home_trailer; // W2-home
 pub mod home_ui; // W2-home
+pub mod hovercard; // W2-detail
 pub mod keys;
 pub mod library; // W2-library
 mod library_impl; // W2-library
@@ -131,8 +131,8 @@ pub fn run(opts: Options) -> Result<(), String> {
             geo: None,
             images: None,
             toast_gen: 0,
-            tv: tvui::TvUi::default(), // W2-tvui
-            lib: library::LibState::default(), // W2-library
+            tv: tvui::TvUi::default(),            // W2-tvui
+            lib: library::LibState::default(),    // W2-library
             detail: detail::DetailCtl::default(), // W2-detail
         }),
         timers: Timers::default(),
@@ -254,6 +254,10 @@ fn wire(app: &Rc<App>, ui: &MainWindow, shell: &Shell) {
         lib.on_event(move |k, x, y| a1.lib_event(&k, x, y));
         let a2 = app.clone();
         lib.on_geometry(move |g| a2.lib_on_geometry(g));
+        let a3 = app.clone();
+        lib.on_chrome_event(move |k, v| a3.on_home_event(&k, v));
+        let a4 = app.clone();
+        lib.on_chrome_event_f(move |k, v| a4.on_home_event_f(&k, v));
     }
 
     detail::wire(app, ui); // W2-detail
