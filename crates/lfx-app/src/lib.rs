@@ -16,6 +16,12 @@ pub mod home;
 pub mod keys;
 pub mod logging;
 pub mod play;
+#[cfg(feature = "dev-automation")]
+pub mod play_auto; // W2-player
+pub mod play_extras; // W2-player
+pub mod play_hdr; // W2-player
+pub mod play_osd; // W2-player
+pub mod play_ui; // W2-player
 pub mod route;
 pub mod video;
 
@@ -221,15 +227,7 @@ fn wire(app: &Rc<App>, ui: &MainWindow, shell: &Shell) {
     ui.on_home_geometry(move |g| a.on_home_geometry(g));
 
     let a = app.clone();
-    ui.on_toggle_pause(move || a.toggle_pause());
-    let a = app.clone();
-    ui.on_seek_by(move |d| a.seek_by(d));
-    let a = app.clone();
-    ui.on_seek_to(move |v| a.seek_to_fraction(v));
-    let a = app.clone();
-    ui.on_leave_player(move || a.leave_player());
-    let a = app.clone();
-    ui.on_player_activity(move || a.player_activity());
+    ui.on_player_cmd(move |n, v| a.player_cmd(&n, v)); // W2-player
 
     let a = app.clone();
     ui.on_simple_back(move || a.apply_action(lfx_nav::NavAction::Back));

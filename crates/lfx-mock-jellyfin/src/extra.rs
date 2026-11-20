@@ -1918,7 +1918,7 @@ fn user_json(shared: &Shared, id: &str, name: &str) -> Value {
         .unwrap_or_else(|| default_policy(admin));
     json!({ "Id": id, "Name": name, "ServerId": SERVER_ID, "HasPassword": true,
             "LastLoginDate": "2026-01-01T12:00:00.0000000Z", "Policy": policy,
-            "Configuration": { "PlayDefaultAudioTrack": true, "SubtitleMode": "Default" } })
+            "Configuration": { "PlayDefaultAudioTrack": true, "SubtitleMode": "Default", "EnableNextEpisodeAutoPlay": true } })
 }
 
 fn all_users(shared: &Shared) -> Vec<(String, String)> {

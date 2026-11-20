@@ -307,7 +307,7 @@ impl App {
                 ui.set_focus_index(idx);
             }
             Route::Settings => ui.set_simple_slot(focus::slot_of(f, 4)),
-            Route::Player { .. } => ui.set_player_slot(-1),
+            Route::Player { .. } => {} // W2-player: Fokus liegt im Player-Zustand
             _ => ui.set_simple_slot(focus::slot_of(f, 0)),
         }
     }
@@ -440,6 +440,11 @@ impl App {
             return;
         };
         let ctx = self.st.borrow().ctx;
+        // W2-player: Tab öffnet im Player den Bedienfokus.
+        if ctx == InputContext::Player && key == lfx_nav::keyboard::Key::Tab {
+            self.apply_action(NavAction::Menu);
+            return;
+        }
         if let Some(action) = lfx_nav::map_key(key, crate::keys::modifiers(ctrl, shift, alt), ctx) {
             // Aus einem Textfeld hinaus: Escape/Enter wirken auf die Seite, der Fokus kehrt zur Wurzel zurück.
             if ctx == InputContext::TextInput {

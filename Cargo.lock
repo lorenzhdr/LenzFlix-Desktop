@@ -3031,6 +3031,7 @@ name = "lfx-mock-jellyfin"
 version = "0.1.0"
 dependencies = [
  "axum",
+ "png 0.17.16",
  "serde",
  "serde_json",
  "tokio",
@@ -3063,6 +3064,7 @@ dependencies = [
  "tempfile",
  "thiserror 2.0.21",
  "uuid",
+ "windows",
  "windows-native-keyring-store",
 ]
 

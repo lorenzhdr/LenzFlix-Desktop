@@ -1,147 +1,728 @@
 import { Theme, Design } from "../theme/theme.slint";
 import { ButtonKind } from "../components/types.slint";
 import { LfxText } from "../components/text.slint";
+import { LfxIcon } from "../components/icon.slint";
 import { LfxButton } from "../components/button.slint";
 import { LfxSlider } from "../components/controls.slint";
 import { LfxSpinner } from "../components/feedback.slint";
+import { LfxFocusRing } from "../components/focus-ring.slint";
 import { Icons } from "../icons.slint";
+import { PlayerView, MenuRow } from "player-types.slint";
 
-// Player-Oberfläche über dem Video: Titel, Zurück, Play/Pause, ±10 s und Spulleiste mit Zeit.
-// Die Seite ist durchsichtig (das Video liegt in einer eigenen Ebene darunter).
-// Slots (von lfx-nav): 0 Zurück, 1 −10 s, 2 Play/Pause, 3 +10 s, 4 Spulleiste.
+// Player-Symbole (W2-player), weiß, per colorize einfärbbar.
+global PlayerIcons {
+    out property <image> replay: @image-url("../../../../assets/icons/player-replay.svg");
+    out property <image> forward: @image-url("../../../../assets/icons/player-forward.svg");
+    out property <image> next: @image-url("../../../../assets/icons/player-next.svg");
+    out property <image> audio: @image-url("../../../../assets/icons/player-audio.svg");
+    out property <image> speed: @image-url("../../../../assets/icons/player-speed.svg");
+}
+
+// Symbolknopf ohne Fläche (Web: weiß, Hover scale 1.2).
+component OsdIcon inherits Rectangle {
+    in property <image> icon;
+    in property <length> size: 40px;
+    in property <bool> focused;
+    in property <string> overlay;
+    in property <bool> dim: false;
+    callback clicked();
+    width: root.size + 12px;
+    height: root.size + 12px;
+    transform-scale: ta.has-hover || root.focused ? 1.2 : 1.0;
+    animate transform-scale { duration: Theme.t.dur-fast; easing: Theme.t.ease; }
+    opacity: root.dim ? 0.4 : 1.0;
+    LfxIcon {
+        x: (parent.width - self.width) / 2;
+        y: (parent.height - self.height) / 2;
+        source: root.icon;
+        size: root.size;
+        tint: Theme.design == Design.retro ? Theme.t.retro-amber : #ffffff;
+    }
+    if root.overlay != "": LfxText {
+        width: 100%;
+        height: 100%;
+        text: root.overlay;
+        font-size: root.size * 0.28;
+        font-weight: 700;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+    }
+    ta := TouchArea { clicked => { root.clicked(); } }
+    LfxFocusRing { active: root.focused; radius: root.height / 2; }
+}
+
+// Runde Knöpfe der Bildmitte (Web osdcenter: 60 px, Play 88 px, halbdurchsichtig).
+component CenterBtn inherits Rectangle {
+    in property <image> icon;
+    in property <length> d: 60px;
+    in property <string> overlay;
+    in property <bool> focused;
+    callback clicked();
+    width: root.d;
+    height: root.d;
+    border-radius: root.d / 2;
+    background: ta.has-hover ? #000000b3 : #00000080;
+    transform-scale: ta.pressed ? 0.94 : (ta.has-hover ? 1.06 : 1.0);
+    animate background, transform-scale { duration: 150ms; easing: Theme.t.ease; }
+    LfxIcon {
+        x: (parent.width - self.width) / 2;
+        y: (parent.height - self.height) / 2;
+        source: root.icon;
+        size: root.d * 0.62;
+        tint: #ffffff;
+    }
+    if root.overlay != "": LfxText {
+        width: 100%;
+        height: 100%;
+        text: root.overlay;
+        font-size: root.d * 0.2;
+        font-weight: 700;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+        y: root.d * 0.04;
+    }
+    ta := TouchArea { clicked => { root.clicked(); } }
+    LfxFocusRing { active: root.focused; radius: root.d / 2; }
+}
+
+// Player-Oberfläche über dem Video (die Seite ist durchsichtig, das Video liegt in einer Ebene darunter).
+// Alle Aktionen gehen über `cmd(name, wert)`; Namen siehe lfx-app `play_ui.rs`.
 export component PlayerPage inherits Rectangle {
-    in property <string> title;
-    in property <string> pos-text: "0:00";
-    in property <string> dur-text: "0:00";
-    in property <float> progress: 0.0;
-    in property <float> buffered: 0.0;
-    in property <bool> paused: false;
-    in property <bool> osd: true;
-    in property <bool> buffering: false;
-    in property <string> note;
-    in property <int> focus-slot: 2;
-    callback toggle-pause();
-    callback seek-by(float);
-    callback seek-to(float);
-    callback leave();
-    callback activity();
+    in property <PlayerView> pv;
+    callback cmd(string, float);
+    property <bool> show-rest: false;
+    property <length> pad: max(16px, min(36px, root.width * 0.03));
+    property <length> bar-h: 200px;
+    property <bool> bottom-on: root.pv.osd && !root.pv.loading && root.pv.note == "";
+    property <length> sl-x: root.pad + 64px;
+    property <length> sl-w: root.width - 2 * root.pad - 64px - 84px;
 
     background: transparent;
 
-    TouchArea {
+    // Hintergrund: Bewegung zeigt das OSD, Klick pausiert, Doppelklick Vollbild; ohne OSD kein Mauszeiger.
+    bg-ta := TouchArea {
+        mouse-cursor: root.pv.osd ? MouseCursor.default : MouseCursor.none;
         pointer-event(e) => {
-            if (e.kind == PointerEventKind.move) { root.activity(); }
+            if (e.kind == PointerEventKind.move) { root.cmd("activity", 0.0); }
         }
-        clicked => { root.toggle-pause(); }
+        clicked => {
+            if (root.pv.menu-open) { root.cmd("menu-close", 0.0); }
+            else { root.cmd("toggle", 0.0); }
+        }
+        double-clicked => { root.cmd("fullscreen", 0.0); }
     }
 
-    if root.note != "": Rectangle {
-        background: Theme.t.bg;
-        LfxText {
+    // Startbild (Backdrop) während des Ladens
+    if root.pv.loading && root.pv.note == "": Rectangle {
+        background: #000000;
+        if root.pv.has-cover: Image {
             width: 100%;
             height: 100%;
-            text: root.note;
-            horizontal-alignment: center;
-            vertical-alignment: center;
-            font-size: 22px;
-            wrap: word-wrap;
+            source: root.pv.cover;
+            image-fit: cover;
+            opacity: 0.55;
+        }
+        Rectangle {
+            background: @linear-gradient(0deg, #000000cc 0%, #00000000 55%);
+        }
+        LfxText {
+            x: root.pad;
+            y: parent.height - 150px;
+            width: parent.width - 2 * root.pad;
+            text: root.pv.title;
+            font-size: 34px;
+            font-weight: 700;
+            overflow: elide;
+        }
+        LfxText {
+            x: root.pad;
+            y: parent.height - 100px;
+            width: parent.width - 2 * root.pad;
+            text: root.pv.subtitle;
+            color: Theme.t.text-muted;
+            font-size: 18px;
+            overflow: elide;
+        }
+        LfxSpinner {
+            x: (parent.width - self.width) / 2;
+            y: (parent.height - self.height) / 2;
+            size: 56px;
         }
     }
 
-    if root.buffering: LfxSpinner {
+    if root.pv.buffering && !root.pv.loading && root.pv.note == "": LfxSpinner {
         x: (parent.width - self.width) / 2;
         y: (parent.height - self.height) / 2;
-        size: 48px;
+        size: 56px;
     }
 
-    if root.osd: Rectangle {
+    // Fehler
+    if root.pv.note != "": Rectangle {
+        background: Theme.t.bg;
+        VerticalLayout {
+            alignment: center;
+            spacing: 14px;
+            padding: 40px;
+            LfxText {
+                text: "Wiedergabe nicht möglich";
+                font-size: 28px;
+                font-weight: 700;
+                horizontal-alignment: center;
+            }
+            LfxText {
+                text: root.pv.note;
+                color: Theme.t.text-muted;
+                font-size: 18px;
+                horizontal-alignment: center;
+                wrap: word-wrap;
+            }
+            if root.pv.error-code != "": LfxText {
+                text: "Fehlercode: " + root.pv.error-code;
+                color: Theme.t.text-muted;
+                font-size: 14px;
+                horizontal-alignment: center;
+            }
+            Rectangle {
+                height: Theme.t.btn-h + 24px;
+                LfxButton {
+                    x: (parent.width - self.width) / 2;
+                    y: 12px;
+                    width: 220px;
+                    kind: ButtonKind.primary;
+                    text: "Zurück";
+                    focused: true;
+                    clicked => { root.cmd("leave", 0.0); }
+                }
+            }
+        }
+    }
+
+    // Obere Leiste: Zurück, Titel, Folge
+    if root.pv.osd && root.pv.note == "": Rectangle {
         x: 0px;
         y: 0px;
         width: parent.width;
-        height: 110px;
-        background: @linear-gradient(180deg, #000000b0 0%, #00000000 100%);
-        LfxButton {
-            x: 20px;
-            y: 14px;
-            width: Theme.t.btn-h;
-            kind: ButtonKind.round;
+        height: 120px;
+        background: @linear-gradient(180deg, #000000b3 0%, #00000000 100%);
+        TouchArea { }
+        OsdIcon {
+            x: root.pad - 6px;
+            y: 12px;
             icon: Icons.back;
-            has-icon: true;
-            focused: root.focus-slot == 0;
-            clicked => { root.leave(); }
+            size: 40px;
+            focused: root.pv.focus-slot == 0;
+            clicked => { root.cmd("leave", 0.0); }
+        }
+        if !root.pv.loading: LfxText {
+            x: root.pad + 56px;
+            y: 18px;
+            width: parent.width - root.pad * 2 - 56px;
+            text: root.pv.title;
+            font-size: 18px;
+            font-weight: 700;
+            overflow: elide;
+        }
+        if root.pv.subtitle != "" && !root.pv.loading: LfxText {
+            x: root.pad + 56px;
+            y: 42px;
+            width: parent.width - root.pad * 2 - 56px;
+            text: root.pv.subtitle;
+            font-size: 14px;
+            color: Theme.t.text-muted;
+            overflow: elide;
+        }
+    }
+
+    // Bildmitte: ⟲10, Play/Pause, ⟳30
+    if root.bottom-on && !root.pv.menu-open && !root.pv.resume-open: HorizontalLayout {
+        x: 0px;
+        y: (parent.height - 88px) / 2 - 20px;
+        width: parent.width;
+        height: 88px;
+        alignment: center;
+        spacing: parent.width < 700px ? 28px : 40px;
+        Rectangle {
+            width: 60px;
+            CenterBtn {
+                y: 14px;
+                icon: PlayerIcons.replay;
+                overlay: "10";
+                focused: root.pv.focus-slot == 1;
+                clicked => { root.cmd("seek-by", -10.0); }
+            }
+        }
+        CenterBtn {
+            d: 88px;
+            icon: root.pv.paused ? Icons.play : Icons.pause;
+            focused: root.pv.focus-slot == 2;
+            clicked => { root.cmd("toggle", 0.0); }
+        }
+        Rectangle {
+            width: 60px;
+            CenterBtn {
+                y: 14px;
+                icon: PlayerIcons.forward;
+                overlay: "30";
+                focused: root.pv.focus-slot == 3;
+                clicked => { root.cmd("seek-by", 30.0); }
+            }
+        }
+    }
+
+    // Untere Leiste
+    if root.bottom-on: bar := Rectangle {
+        x: 0px;
+        y: parent.height - root.bar-h;
+        width: parent.width;
+        height: root.bar-h;
+        background: @linear-gradient(0deg, #000000b3 0%, #00000000 100%);
+        TouchArea { }
+
+        // Zeitleiste
+        LfxText {
+            x: root.pad;
+            y: 96px;
+            width: 60px;
+            height: 24px;
+            text: root.pv.pos-text;
+            font-size: 14px;
+            color: Theme.t.text-muted;
+            vertical-alignment: center;
+        }
+        seek := Rectangle {
+            x: root.sl-x;
+            y: 96px;
+            width: root.sl-w;
+            height: 24px;
+            property <bool> hot: seek-ta.has-hover || seek-ta.pressed || root.pv.focus-slot == 4;
+            property <float> drag: 0.0;
+            property <float> shown: seek-ta.pressed ? self.drag : root.pv.progress;
+            property <color> fill: Theme.design == Design.retro ? Theme.t.retro-amber : Theme.t.progress;
+            Rectangle {
+                y: (parent.height - self.height) / 2;
+                height: seek.hot ? 6px : 4px;
+                border-radius: self.height / 2;
+                background: #ffffff4d;
+                clip: true;
+                animate height { duration: Theme.t.dur-fast; easing: Theme.t.ease; }
+                Rectangle {
+                    x: 0px;
+                    width: parent.width * clamp(root.pv.buffered, 0.0, 1.0);
+                    background: #ffffff73;
+                }
+                Rectangle {
+                    x: 0px;
+                    width: parent.width * clamp(seek.shown, 0.0, 1.0);
+                    background: seek.fill;
+                }
+            }
+            for m in root.pv.chapter-marks: Rectangle {
+                x: parent.width * m - 1px;
+                y: (parent.height - 8px) / 2;
+                width: 2px;
+                height: 8px;
+                background: #ffffff99;
+            }
+            Rectangle {
+                width: seek.hot ? 16px : 0px;
+                height: self.width;
+                x: parent.width * clamp(seek.shown, 0.0, 1.0) - self.width / 2;
+                y: (parent.height - self.height) / 2;
+                border-radius: self.width / 2;
+                background: seek.fill;
+                animate width { duration: Theme.t.dur-fast; easing: Theme.t.ease; }
+            }
+            seek-ta := TouchArea {
+                pointer-event(e) => {
+                    if (e.kind == PointerEventKind.move || e.kind == PointerEventKind.down) {
+                        seek.drag = clamp(self.mouse-x / self.width, 0.0, 1.0);
+                        root.cmd("scrub", seek.drag);
+                    }
+                    if (e.kind == PointerEventKind.up) {
+                        root.cmd("seek-to", seek.drag);
+                    }
+                }
+                changed has-hover => {
+                    if (!self.has-hover) { root.cmd("scrub-end", 0.0); }
+                }
+            }
+            LfxFocusRing { active: root.pv.focus-slot == 4; radius: 6px; }
         }
         LfxText {
-            x: 20px + Theme.t.btn-h + 16px;
-            y: 14px;
-            height: Theme.t.btn-h;
-            width: parent.width - 20px - Theme.t.btn-h - 16px - 20px;
-            text: root.title;
-            font-size: 20px;
-            font-weight: 700;
+            x: parent.width - root.pad - 80px;
+            y: 96px;
+            width: 80px;
+            height: 24px;
+            text: root.show-rest ? "−" + root.pv.rest-text : root.pv.dur-text;
+            font-size: 16px;
+            horizontal-alignment: right;
+            vertical-alignment: center;
+            TouchArea { clicked => { root.show-rest = !root.show-rest; } }
+        }
+
+        // Knopfreihe links: Play, ⟲10, ⟳30, Lautstärke
+        Rectangle {
+            x: root.pad - 6px;
+            y: 134px;
+            height: 52px;
+            width: 520px;
+            OsdIcon {
+                x: 0px;
+                icon: root.pv.paused ? Icons.play : Icons.pause;
+                clicked => { root.cmd("toggle", 0.0); }
+            }
+            OsdIcon {
+                x: 56px;
+                icon: PlayerIcons.replay;
+                overlay: "10";
+                clicked => { root.cmd("seek-by", -10.0); }
+            }
+            OsdIcon {
+                x: 112px;
+                icon: PlayerIcons.forward;
+                overlay: "30";
+                clicked => { root.cmd("seek-by", 30.0); }
+            }
+            OsdIcon {
+                x: 176px;
+                icon: root.pv.muted || root.pv.volume <= 0.0 ? Icons.mute : Icons.volume;
+                focused: root.pv.focus-slot == 5;
+                clicked => { root.cmd("mute", 0.0); }
+            }
+            LfxSlider {
+                x: 238px;
+                y: (parent.height - self.height) / 2;
+                width: 100px;
+                value: root.pv.muted ? 0.0 : root.pv.volume;
+                focused: root.pv.focus-slot == 5;
+                seeked(v) => { root.cmd("volume", v); }
+            }
+        }
+
+        // Titel mittig (nur bei breitem Fenster)
+        if root.width >= 1100px: Rectangle {
+            x: (parent.width - self.width) / 2;
+            y: 134px;
+            width: min(parent.width * 0.3, parent.width - 900px);
+            height: 52px;
+            LfxText {
+                y: root.pv.subtitle != "" ? 2px : 14px;
+                width: 100%;
+                text: root.pv.title;
+                font-size: 18px;
+                font-weight: 700;
+                horizontal-alignment: center;
+                overflow: elide;
+            }
+            if root.pv.subtitle != "": LfxText {
+                y: 26px;
+                width: 100%;
+                text: root.pv.subtitle;
+                font-size: 14px;
+                color: Theme.t.text-muted;
+                horizontal-alignment: center;
+                overflow: elide;
+            }
+        }
+
+        // Knopfreihe rechts: Nächste Folge, Untertitel, Ton, Tempo, Info, Vollbild
+        HorizontalLayout {
+            x: parent.width - root.pad + 6px - self.preferred-width;
+            y: 134px;
+            height: 52px;
+            spacing: 4px;
+            OsdIcon {
+                icon: PlayerIcons.next;
+                focused: root.pv.focus-slot == 6;
+                dim: !root.pv.has-next;
+                visible: root.pv.has-next;
+                width: root.pv.has-next ? self.preferred-width : 0px;
+                clicked => { root.cmd("next", 0.0); }
+            }
+            OsdIcon {
+                icon: Icons.subtitles;
+                focused: root.pv.focus-slot == 7;
+                clicked => { root.cmd("menu:subtitles", 0.0); }
+            }
+            OsdIcon {
+                icon: PlayerIcons.audio;
+                focused: root.pv.focus-slot == 8;
+                clicked => { root.cmd("menu:audio", 0.0); }
+            }
+            OsdIcon {
+                icon: PlayerIcons.speed;
+                focused: root.pv.focus-slot == 9;
+                clicked => { root.cmd("menu:speed", 0.0); }
+            }
+            OsdIcon {
+                icon: Icons.settings;
+                focused: root.pv.focus-slot == 10;
+                clicked => { root.cmd("menu:quality", 0.0); }
+            }
+            OsdIcon {
+                icon: Icons.fullscreen;
+                focused: root.pv.focus-slot == 11;
+                clicked => { root.cmd("fullscreen", 0.0); }
+            }
+        }
+    }
+
+    // Trickplay-Vorschau
+    if root.bottom-on && root.pv.trick-visible: Rectangle {
+        property <length> bw: 240px;
+        width: self.bw;
+        height: 135px + 30px;
+        x: clamp(root.sl-x + root.sl-w * root.pv.trick-frac - self.bw / 2, 8px, root.width - self.bw - 8px);
+        y: root.height - root.bar-h + 96px - self.height - 10px;
+        background: #141414f2;
+        border-radius: 4px;
+        border-width: 1px;
+        border-color: #ffffff40;
+        clip: true;
+        if root.pv.trick-has-image: Image {
+            width: 100%;
+            height: 135px;
+            source: root.pv.trick-image;
+            source-clip-x: root.pv.trick-clip-x;
+            source-clip-y: root.pv.trick-clip-y;
+            source-clip-width: root.pv.trick-clip-w;
+            source-clip-height: root.pv.trick-clip-h;
+            image-fit: fill;
+        }
+        if !root.pv.trick-has-image: Rectangle { height: 135px; background: #1f1f1f; }
+        LfxText {
+            y: 135px;
+            width: 100%;
+            height: 30px;
+            text: root.pv.chapter-title != "" ? root.pv.trick-time + " · " + root.pv.chapter-title : root.pv.trick-time;
+            font-size: 13px;
+            horizontal-alignment: center;
             vertical-alignment: center;
             overflow: elide;
         }
     }
 
-    if root.osd: Rectangle {
-        x: 0px;
-        y: parent.height - self.height;
-        width: parent.width;
+    // Überspringen (Intro, Abspann, Rückblick)
+    if root.pv.skip-label != "" && !root.pv.up-next-visible && root.pv.note == "" && !root.pv.loading: Rectangle {
+        width: skip-txt.preferred-width + 48px;
+        height: 48px;
+        x: parent.width - self.width - root.pad;
+        y: parent.height - (root.pv.osd ? root.bar-h + 10px : 90px) - self.height;
+        background: skip-ta.has-hover ? #ffffffe6 : #000000a6;
+        border-width: 2px;
+        border-color: #ffffff;
+        border-radius: 4px;
+        animate y { duration: 200ms; easing: Theme.t.ease; }
+        skip-txt := LfxText {
+            text: root.pv.skip-label;
+            color: skip-ta.has-hover ? #000000 : #ffffff;
+            font-size: 16px;
+            font-weight: 700;
+            horizontal-alignment: center;
+            vertical-alignment: center;
+            width: 100%;
+            height: 100%;
+        }
+        skip-ta := TouchArea { clicked => { root.cmd("skip", 0.0); } }
+        LfxFocusRing { active: false; radius: 4px; }
+    }
+
+    // Nächste Folge
+    if root.pv.up-next-visible && root.pv.note == "": Rectangle {
+        width: 400px;
         height: 150px;
-        background: @linear-gradient(180deg, #00000000 0%, #000000c0 100%);
+        x: parent.width - self.width - root.pad;
+        y: parent.height - (root.pv.osd ? root.bar-h + 10px : 70px) - self.height;
+        background: #181818f2;
+        border-width: 1px;
+        border-color: Theme.t.border;
+        border-radius: Theme.t.popup-radius;
+        animate y { duration: 200ms; easing: Theme.t.ease; }
+        TouchArea { }
         LfxText {
-            x: 24px;
-            y: 30px;
-            width: 70px;
-            height: 24px;
-            text: root.pos-text;
-            horizontal-alignment: left;
-            vertical-alignment: center;
-        }
-        LfxSlider {
-            x: 24px + 70px;
-            y: 30px;
-            width: parent.width - 2 * 24px - 2 * 70px;
-            value: root.progress;
-            buffered: root.buffered;
-            focused: root.focus-slot == 4;
-            seeked(v) => { root.seek-to(v); }
+            x: 20px;
+            y: 14px;
+            width: parent.width - 40px;
+            text: "Nächste Folge";
+            font-size: 16px;
+            font-weight: 700;
         }
         LfxText {
-            x: parent.width - 24px - 70px;
-            y: 30px;
-            width: 70px;
-            height: 24px;
-            text: root.dur-text;
-            horizontal-alignment: right;
+            x: 20px;
+            y: 40px;
+            width: parent.width - 40px;
+            text: root.pv.up-next-sub != "" ? root.pv.up-next-sub : root.pv.up-next-title;
+            font-size: 14px;
+            color: Theme.t.text-muted;
+            overflow: elide;
+        }
+        LfxText {
+            x: 20px;
+            y: 62px;
+            width: parent.width - 40px;
+            text: "Startet in " + root.pv.up-next-secs + " s";
+            font-size: 14px;
+            color: Theme.t.text-muted;
+        }
+        Rectangle {
+            x: 20px;
+            y: 92px;
+            width: (parent.width - 52px) / 2;
+            height: 40px;
+            border-radius: 4px;
+            background: now-ta.has-hover ? #ffffffd9 : #ffffff;
+            LfxText {
+                text: "Jetzt abspielen";
+                color: #000000;
+                font-size: 15px;
+                font-weight: 600;
+                width: 100%;
+                height: 100%;
+                horizontal-alignment: center;
+                vertical-alignment: center;
+            }
+            now-ta := TouchArea { clicked => { root.cmd("up-next-now", 0.0); } }
+            LfxFocusRing { active: root.pv.up-next-focus == 0; radius: 4px; }
+        }
+        Rectangle {
+            x: 32px + (parent.width - 52px) / 2;
+            y: 92px;
+            width: (parent.width - 52px) / 2;
+            height: 40px;
+            border-radius: 4px;
+            background: can-ta.has-hover ? #6d6d6e66 : #6d6d6eb3;
+            LfxText {
+                text: "Abbrechen";
+                font-size: 15px;
+                font-weight: 600;
+                width: 100%;
+                height: 100%;
+                horizontal-alignment: center;
+                vertical-alignment: center;
+            }
+            can-ta := TouchArea { clicked => { root.cmd("up-next-cancel", 0.0); } }
+            LfxFocusRing { active: root.pv.up-next-focus == 1; radius: 4px; }
+        }
+    }
+
+    // Menü (Ton, Untertitel, Tempo, Qualität, Info)
+    if root.pv.menu-open: Rectangle {
+        property <length> row-h: 46px;
+        width: min(360px, root.width - 2 * root.pad);
+        height: min(root.height - 140px, 62px + root.pv.menu-items.length * self.row-h);
+        x: parent.width - self.width - root.pad;
+        y: parent.height - (root.pv.osd ? root.bar-h : 24px) - self.height;
+        background: #181818f2;
+        border-width: 1px;
+        border-color: Theme.t.border;
+        border-radius: Theme.t.popup-radius;
+        clip: true;
+        TouchArea { }
+        LfxText {
+            x: 20px;
+            y: 0px;
+            height: 54px;
+            text: root.pv.menu-title;
+            font-size: 16px;
+            font-weight: 700;
             vertical-alignment: center;
         }
-        HorizontalLayout {
-            x: 0px;
-            y: 70px;
-            width: parent.width;
-            height: Theme.t.btn-h;
-            alignment: center;
-            spacing: 16px;
-            LfxButton {
-                kind: ButtonKind.secondary;
-                text: "−10 s";
-                focused: root.focus-slot == 1;
-                clicked => { root.seek-by(-10.0); }
+        Flickable {
+            y: 54px;
+            height: parent.height - 62px;
+            content-height: root.pv.menu-items.length * 46px;
+            for r[i] in root.pv.menu-items: Rectangle {
+                y: i * 46px;
+                height: 46px;
+                background: m-ta.has-hover || i == root.pv.menu-focus ? #ffffff1f : transparent;
+                if r.selected: LfxIcon {
+                    x: 16px;
+                    y: (parent.height - self.height) / 2;
+                    source: Icons.check;
+                    size: 20px;
+                    tint: #ffffff;
+                }
+                LfxText {
+                    x: 48px;
+                    width: parent.width - 48px - 16px - (r.detail != "" ? 120px : 0px);
+                    height: 100%;
+                    text: r.label;
+                    font-size: 15px;
+                    font-weight: r.selected ? 700 : 400;
+                    vertical-alignment: center;
+                    overflow: elide;
+                }
+                if r.detail != "": LfxText {
+                    x: parent.width - 16px - 120px;
+                    width: 120px;
+                    height: 100%;
+                    text: r.detail;
+                    font-size: 13px;
+                    color: Theme.t.text-muted;
+                    horizontal-alignment: right;
+                    vertical-alignment: center;
+                    overflow: elide;
+                }
+                m-ta := TouchArea { clicked => { root.cmd("menu-pick", i); } }
+                if i == root.pv.menu-focus: Rectangle {
+                    border-width: 2px;
+                    border-color: Theme.design == Design.retro ? Theme.t.retro-amber : #ffffff;
+                }
+            }
+        }
+    }
+
+    // Fortsetzen-Abfrage
+    if root.pv.resume-open: Rectangle {
+        background: #000000a6;
+        TouchArea { }
+        Rectangle {
+            width: min(480px, root.width - 48px);
+            height: 240px;
+            x: (parent.width - self.width) / 2;
+            y: (parent.height - self.height) / 2;
+            background: #181818f5;
+            border-width: 1px;
+            border-color: Theme.t.border;
+            border-radius: Theme.t.popup-radius;
+            LfxText {
+                y: 24px;
+                width: 100%;
+                height: 32px;
+                text: root.pv.title;
+                font-size: 20px;
+                font-weight: 700;
+                horizontal-alignment: center;
+                overflow: elide;
+            }
+            LfxText {
+                y: 60px;
+                width: 100%;
+                height: 24px;
+                text: "Du hast diesen Titel schon angefangen.";
+                font-size: 14px;
+                color: Theme.t.text-muted;
+                horizontal-alignment: center;
             }
             LfxButton {
-                width: Theme.t.btn-h;
-                kind: ButtonKind.round;
-                icon: root.paused ? Icons.play : Icons.pause;
+                x: 28px;
+                y: 104px;
+                width: parent.width - 56px;
+                kind: ButtonKind.primary;
+                text: root.pv.resume-text;
                 has-icon: true;
-                focused: root.focus-slot == 2;
-                clicked => { root.toggle-pause(); }
+                icon: Icons.play;
+                focused: root.pv.resume-focus == 0;
+                clicked => { root.cmd("resume-pick", 0.0); }
             }
             LfxButton {
+                x: 28px;
+                y: 168px;
+                width: parent.width - 56px;
                 kind: ButtonKind.secondary;
-                text: "+10 s";
-                focused: root.focus-slot == 3;
-                clicked => { root.seek-by(10.0); }
+                text: "Von vorne";
+                focused: root.pv.resume-focus == 1;
+                clicked => { root.cmd("resume-pick", 1.0); }
             }
         }
     }

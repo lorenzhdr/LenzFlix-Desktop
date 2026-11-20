@@ -1,0 +1,66 @@
+// Datentypen des Players (W2-player). Rust füllt `PlayerView` zyklisch (Zeitgeber), die Oberfläche meldet
+// alles über den einen Rückruf `player-cmd(name, wert)`.
+
+export struct MenuRow {
+    label: string,
+    detail: string,
+    selected: bool,
+}
+
+export struct PlayerView {
+    title: string,
+    // Zweite Zeile, z. B. "S1:F3 Der Nebel" (leer bei Filmen).
+    subtitle: string,
+    pos-text: string,
+    dur-text: string,
+    rest-text: string,
+    progress: float,
+    buffered: float,
+    paused: bool,
+    osd: bool,
+    buffering: bool,
+    // Startbild (Backdrop) und Titel, solange das Bild noch nicht läuft.
+    loading: bool,
+    cover: image,
+    has-cover: bool,
+    // Fehlertext mit Code, leer = kein Fehler.
+    note: string,
+    error-code: string,
+    has-next: bool,
+    // 0..1 (1 = 100 %)
+    volume: float,
+    muted: bool,
+    fullscreen: bool,
+    // Fokus der Bedienelemente (-1 = keiner), siehe play_osd::control_slot.
+    focus-slot: int,
+    // Überspringen-Knopf (leer = keiner).
+    skip-label: string,
+    // Nächste Folge
+    up-next-visible: bool,
+    up-next-title: string,
+    up-next-sub: string,
+    up-next-secs: int,
+    up-next-focus: int,
+    // Menü
+    menu-open: bool,
+    menu-title: string,
+    menu-items: [MenuRow],
+    menu-focus: int,
+    // Fortsetzen-Abfrage
+    resume-open: bool,
+    resume-text: string,
+    resume-focus: int,
+    // Trickplay-Vorschau über der Zeitleiste
+    trick-visible: bool,
+    trick-frac: float,
+    trick-time: string,
+    trick-has-image: bool,
+    trick-image: image,
+    trick-clip-x: int,
+    trick-clip-y: int,
+    trick-clip-w: int,
+    trick-clip-h: int,
+    // Kapitelmarken (0..1) und aktueller Kapitelname
+    chapter-marks: [float],
+    chapter-title: string,
+}
