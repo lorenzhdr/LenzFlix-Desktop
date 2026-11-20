@@ -13,6 +13,7 @@ pub mod w2_tvui; // W2-tvui
 mod w2_library;
 pub use w2_library::{VIEW_BOXSETS, set_extra_titles};
 pub mod w2_player; // W2-player
+mod w2_detail; // W2-detail
 
 pub use extra::{
     VIEW_BOOKS, VIEW_LIVETV, VIEW_MUSIC, VIEW_PHOTOS, album_id, artist_id, book_id, channel_id,
@@ -739,6 +740,9 @@ fn name_key(i: &Item) -> String {
 
 async fn items(State(shared): S, Query(params): Params) -> Response {
     let params = lower(params);
+    if let Some(response) = w2_detail::try_person_items(&shared, &params) {
+        return response; // W2-detail
+    }
     if let Some(response) = extra::try_items(&shared, &params) {
         return response;
     }
@@ -868,9 +872,9 @@ async fn item(State(shared): S, Path(id): Path<String>, Query(params): Params) -
             i,
             params.get("fields").map(String::as_str).unwrap_or(""),
         )),
-        None => {
-            extra::try_item(&shared, &id).unwrap_or_else(|| StatusCode::NOT_FOUND.into_response())
-        }
+        None => extra::try_item(&shared, &id)
+            .or_else(|| w2_detail::try_person(&id)) // W2-detail
+            .unwrap_or_else(|| StatusCode::NOT_FOUND.into_response()),
     }
 }
 
@@ -1185,13 +1189,33 @@ async fn stopped(State(shared): S, Json(body): Json<Value>) -> Response {
     StatusCode::NO_CONTENT.into_response()
 }
 
-async fn image(State(shared): S, Path((id, _kind)): Path<(String, String)>) -> Response {
+async fn image(
+    State(shared): S,
+    Path((id, kind)): Path<(String, String)>,
+    Query(params): Params,
+) -> Response {
     if find(&shared, &id).is_none() && !extra::has_image(&shared, &id) {
         return StatusCode::NOT_FOUND.into_response();
     }
+    // W2-detail: Querformat-Platzhalter-Cover statt 24x36-Bild; Logos gibt es nicht (Titel erscheint als Text).
+    if kind.eq_ignore_ascii_case("Logo") {
+        return StatusCode::NOT_FOUND.into_response();
+    }
+    // Ohne maxWidth oder mit maxHeight bleibt es beim kleinen Platzhalter (Tests der API); die App fragt nur mit maxWidth.
+    let has = |n: &str| params.keys().any(|k| k.eq_ignore_ascii_case(n));
+    if !has("maxwidth") || has("maxheight") {
+        return (
+            [(header::CONTENT_TYPE, "image/png")],
+            extra::placeholder_png().to_vec(),
+        )
+            .into_response();
+    }
+    let seed = id
+        .bytes()
+        .fold(7u32, |a, b| a.wrapping_mul(31).wrapping_add(u32::from(b)));
     (
         [(header::CONTENT_TYPE, "image/png")],
-        extra::placeholder_png().to_vec(),
+        media::cover_png(320, 180, seed),
     )
         .into_response()
 }

@@ -486,7 +486,7 @@ impl App {
         } else if t.zone == focus::Z_HERO {
             match (t.index, self.hero_item()) {
                 (0, Some(item)) => self.open_item(&item),
-                (_, Some(item)) => self.go(Route::Detail { id: item.id }),
+                (_, Some(item)) => self.on_card_activate(&item.id), // W2-detail: Mehr Infos = Modal
                 _ => {}
             }
         } else if let Some(r) = focus::zone_row(t.zone) {
@@ -498,7 +498,7 @@ impl App {
                 .get(r)
                 .and_then(|row| row.items.get(t.index).cloned());
             if let Some(item) = item {
-                self.open_item(&item);
+                self.on_card_activate(&item.id); // W2-detail: Kartenklick = Detail-Modal (Web: Info-Fenster)
             }
         }
     }

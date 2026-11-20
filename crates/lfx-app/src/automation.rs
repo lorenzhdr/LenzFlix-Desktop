@@ -252,6 +252,7 @@ impl App {
                 Ok(v) => ok(v),
                 Err(e) => fail(&e),
             },
+            c if c.starts_with("detail_") => self.detail_automation(c, msg, reply), // W2-detail
             // W2-library
             _ => match self.lib_automation(cmd, msg) {
                 Some(Ok(v)) => ok(v),
@@ -263,10 +264,13 @@ impl App {
 
     /// Bildschirmfoto des Fensters; unter Windows aus dem Desktop (mit Video), sonst der UI-Schnappschuss.
     pub fn screenshot(&self, path: &Path) -> Result<Value, String> {
+        // W2-detail: LFX_SHOT_UI_ONLY=1 nimmt den UI-Schnappschuss statt des Desktops (parallele Fenster stören sonst)
         #[cfg(windows)]
         let _top = crate::play_auto::TopmostGuard::new(self.shell.hwnd_raw()); // W2-player
         #[cfg(windows)]
-        if let Some((w, h, rgba)) = crate::capture::capture_hwnd(self.shell.hwnd_raw()) {
+        if std::env::var_os("LFX_SHOT_UI_ONLY").is_none()
+            && let Some((w, h, rgba)) = crate::capture::capture_hwnd(self.shell.hwnd_raw())
+        {
             crate::capture::write_png(path, w, h, &rgba)?;
             return Ok(json!({"width": w, "height": h, "source": "desktop"}));
         }
@@ -331,6 +335,7 @@ impl App {
             "library": self.lib_state_json(), // W2-library
             "play_ui": self.player_state_json(), // W2-player
             "window": {"width": pw, "height": ph, "dpr": dpr},
+            "detail": self.detail_state_json(), // W2-detail
         })
     }
 }

@@ -213,6 +213,11 @@ fn login_home_play_back() {
     }
     assert!(found, "kein Film im Fokus gefunden");
     app.nav("Activate");
+    // W2-detail: Ein Kartenklick öffnet das Detail-Modal; dort startet Abspielen (Fokus liegt darauf).
+    app.wait_state(20, "Detail-Modal", |s| {
+        s["detail"]["modal_open"] == true && s["detail"]["loading"] == false
+    });
+    app.nav("Activate");
 
     // Wiedergabe: Zeit steigt, Bilder werden gezeichnet.
     let s = app.wait_state(30, "Wiedergabe läuft", |s| {

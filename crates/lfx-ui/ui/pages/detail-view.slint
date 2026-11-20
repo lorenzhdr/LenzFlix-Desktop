@@ -1,0 +1,844 @@
+// W2-detail: Inhalt von Detail-Modal und Detailseite (Kopf mit Aktionen, Beschreibung, Spuren, Staffel + Folgen,
+// Ähnliche Titel, Info). Maße und Farben nach src/css/js-ui/modal.css der Web-Vorlage.
+import { Theme, Design } from "../theme/theme.slint";
+import { LfxText } from "../components/text.slint";
+import { LfxIcon } from "../components/icon.slint";
+import { LfxFocusRing } from "../components/focus-ring.slint";
+import { LfxSpinner } from "../components/feedback.slint";
+import { Icons } from "../icons.slint";
+import { DetailState } from "detail-state.slint";
+
+// Runder (oder bei „Gesehen“ abgerundet eckiger) Icon-Knopf. tone: 0 normal, 1 Gefällt mir (rot), 2 Liste (grün),
+// 3 Gesehen (weiß gefüllt). `tip` zeigt beim Überfahren eine weiße Sprechblase darüber (Hovercard).
+export component RoundBtn inherits Rectangle {
+    in property <image> icon;
+    in property <bool> active: false;
+    in property <int> tone: 0;
+    in property <length> size: 42px;
+    in property <length> icon-size: 22px;
+    in property <bool> square: false;
+    in property <bool> solid: false;
+    in property <bool> focused: false;
+    in property <string> tip;
+    callback clicked();
+    callback hover-changed(bool);
+
+    property <bool> hot: ta.has-hover;
+    changed hot => { root.hover-changed(root.hot); }
+    property <color> accent: root.tone == 1 ? Theme.t.red : (root.tone == 2 ? Theme.t.green : #ffffff);
+    width: root.size;
+    height: root.size;
+    border-radius: root.square ? 10px : root.size / 2;
+    border-width: 2px;
+    background: root.solid ? (root.hot ? #ffffffd9 : #ffffff)
+        : (root.active
+            ? (root.tone == 1 ? #e5091a1f : (root.tone == 2 ? Theme.t.green-soft : #ffffff))
+            : (root.hot ? #ffffff26 : Theme.t.icon-circle));
+    border-color: root.solid ? #ffffff
+        : (root.active ? root.accent : (root.hot ? #ffffff : Theme.t.icon-circle-border));
+    animate background { duration: Theme.t.dur-fast; easing: Theme.t.ease; }
+    animate border-color { duration: Theme.t.dur-fast; easing: Theme.t.ease; }
+
+    LfxIcon {
+        x: (parent.width - self.width) / 2;
+        y: (parent.height - self.height) / 2;
+        source: root.icon;
+        size: root.icon-size;
+        tint: root.solid ? #000000
+            : (root.active ? (root.tone == 3 ? #141414 : root.accent) : #ffffff);
+    }
+    ta := TouchArea {
+        mouse-cursor: pointer;
+        clicked => { root.clicked(); }
+    }
+    LfxFocusRing {
+        active: root.focused;
+        radius: root.square ? 10px : root.size / 2;
+    }
+    if root.tip != "" && root.hot: Rectangle {
+        y: -self.height - 10px;
+        x: (root.width - self.width) / 2;
+        width: tip-text.preferred-width + 24px;
+        height: 30px;
+        background: #ffffff;
+        border-radius: 4px;
+        tip-text := LfxText {
+            x: 12px;
+            width: parent.width - 24px;
+            height: parent.height;
+            text: root.tip;
+            color: #000000;
+            font-size: 14px;
+            font-weight: 600;
+            vertical-alignment: center;
+            horizontal-alignment: center;
+        }
+    }
+}
+
+// Fertig gestaltete Einzelteile des Detailkopfs.
+component MetaBadge inherits Rectangle {
+    in property <string> text;
+    height: 20px;
+    width: t.preferred-width + 12px;
+    border-width: 1px;
+    border-color: #ffffff66;
+    border-radius: 3px;
+    t := LfxText {
+        x: 6px;
+        width: parent.width - 12px;
+        height: parent.height;
+        text: root.text;
+        font-size: 13px;
+        vertical-alignment: center;
+    }
+}
+
+component SectionTitle inherits LfxText {
+    font-size: 24px;
+    font-weight: 700;
+    height: 32px;
+    vertical-alignment: center;
+}
+
+// Auswahlzeile für Version, Ton oder Untertitel.
+component TrackPick inherits Rectangle {
+    in property <string> label;
+    in property <string> value;
+    in property <bool> focused;
+    callback clicked();
+    height: 38px;
+    width: 250px;
+    background: #242424;
+    border-width: 1px;
+    border-color: #4d4d4d;
+    border-radius: 4px;
+    HorizontalLayout {
+        padding-left: 12px;
+        padding-right: 10px;
+        spacing: 8px;
+        LfxText {
+            text: root.label + ":";
+            color: #777777;
+            font-size: 14px;
+            vertical-alignment: center;
+        }
+        LfxText {
+            text: root.value;
+            font-size: 14px;
+            overflow: elide;
+            vertical-alignment: center;
+        }
+        LfxIcon {
+            source: Icons.chevron-down;
+            size: 18px;
+            y: (parent.height - self.height) / 2;
+        }
+    }
+    TouchArea {
+        mouse-cursor: pointer;
+        clicked => { root.clicked(); }
+    }
+    LfxFocusRing { active: root.focused; radius: 4px; }
+}
+
+export component DetailView inherits Rectangle {
+    // true: Detailseite (breiter, ohne Schließen-Knopf), false: Modal
+    in property <bool> page-mode: false;
+    // Y und Höhe des fokussierten Eintrags im Inhalt (für das Mitscrollen des Besitzers)
+    out property <length> focus-y: root.compute-focus-y();
+    out property <length> focus-h: root.compute-focus-h();
+
+    property <length> pad: root.page-mode ? max(32px, min(64px, root.width * 0.05)) : 48px;
+    property <length> hero-h: root.page-mode ? max(280px, min(root.width * 0.46, 520px)) : root.width * 9 / 16;
+    property <length> ep-h: 104px;
+    property <length> sim-gap: 16px;
+    property <int> sim-cols: root.width > 700px ? 3 : 2;
+    property <length> sim-w: (root.width - 2 * root.pad - (root.sim-cols - 1) * root.sim-gap) / root.sim-cols;
+    property <length> sim-h: root.sim-w * 9 / 16 + 112px;
+    property <int> ppl-cols: root.width > 700px ? 4 : 2;
+    property <length> ppl-w: (root.width - 2 * root.pad - (root.ppl-cols - 1) * 12px) / root.ppl-cols;
+    property <length> ppl-h: 64px;
+    property <bool> has-eps: DetailState.episodes.length > 0;
+    property <bool> has-tracks: DetailState.audio-text != "" || DetailState.sub-text != "" || DetailState.version-text != "";
+
+    height: vl.preferred-height;
+
+    pure function compute-focus-y() -> length {
+        if (DetailState.focus-sec == 0) { return 0px; }
+        if (DetailState.focus-sec == 1) { return tracks.y; }
+        if (DetailState.focus-sec == 2) { return eps-head.y; }
+        if (DetailState.focus-sec == 3) { return eps-list.y + DetailState.focus-idx * root.ep-h; }
+        if (DetailState.focus-sec == 4) { return sim-sec.y + sim-grid.y + floor(DetailState.focus-idx / root.sim-cols) * (root.sim-h + root.sim-gap); }
+        if (DetailState.focus-sec == 5) { return ppl-sec.y + ppl-grid.y + floor(DetailState.focus-idx / root.ppl-cols) * (root.ppl-h + 12px); }
+        if (DetailState.focus-sec == 6) { return link.y; }
+        return 0px;
+    }
+    pure function compute-focus-h() -> length {
+        if (DetailState.focus-sec == 3) { return root.ep-h; }
+        if (DetailState.focus-sec == 4) { return root.sim-h; }
+        if (DetailState.focus-sec == 5) { return root.ppl-h; }
+        return 46px;
+    }
+
+    vl := VerticalLayout {
+        alignment: start;
+        // ---------------------------------------------------------------- Kopf
+        hero := Rectangle {
+            height: root.hero-h;
+            clip: true;
+            background: Theme.t.surface-3;
+            if DetailState.data.has-backdrop: Image {
+                width: 100%;
+                height: 100%;
+                source: DetailState.data.backdrop;
+                image-fit: cover;
+            }
+            Rectangle {
+                background: @linear-gradient(0deg, Theme.t.surface 0%, #18181800 40%);
+            }
+            if root.page-mode: Rectangle {
+                background: @linear-gradient(90deg, #000000b3 0%, #00000000 60%);
+            }
+            if DetailState.loading && !DetailState.data.has-item: LfxSpinner {
+                x: (parent.width - self.width) / 2;
+                y: (parent.height - self.height) / 2;
+            }
+            hero-content := VerticalLayout {
+                x: root.pad;
+                width: parent.width - 2 * root.pad;
+                y: parent.height - self.preferred-height - (root.page-mode ? 36px : 40px);
+                height: self.preferred-height;
+                spacing: 14px;
+                if DetailState.data.has-logo: Image {
+                    source: DetailState.data.logo;
+                    height: 110px;
+                    width: min(parent.width * 0.4, 360px);
+                    image-fit: contain;
+                    horizontal-alignment: left;
+                }
+                if !DetailState.data.has-logo && DetailState.data.has-item: LfxText {
+                    text: DetailState.data.title;
+                    font-size: 32px;
+                    font-weight: 700;
+                    wrap: word-wrap;
+                    overflow: elide;
+                    max-height: 90px;
+                }
+                if DetailState.data.subtitle != "": LfxText {
+                    text: DetailState.data.subtitle;
+                    font-size: 16px;
+                    color: #d2d2d2;
+                }
+                actions := HorizontalLayout {
+                    height: 46px;
+                    spacing: 8px;
+                    alignment: start;
+                    if DetailState.data.can-play: Rectangle {
+                        width: pl.preferred-width + 42px;
+                        height: 46px;
+                        background: pl-ta.has-hover ? #ffffffbf : #ffffff;
+                        border-radius: Theme.t.btn-radius;
+                        pl := HorizontalLayout {
+                            padding-left: 18px;
+                            padding-right: 24px;
+                            spacing: 8px;
+                            LfxIcon {
+                                source: Icons.play;
+                                size: 24px;
+                                tint: #000000;
+                                y: (parent.height - self.height) / 2;
+                            }
+                            LfxText {
+                                text: DetailState.data.play-label;
+                                color: #000000;
+                                font-size: 19px;
+                                font-weight: Theme.t.fw-button;
+                                vertical-alignment: center;
+                            }
+                        }
+                        pl-ta := TouchArea {
+                            mouse-cursor: pointer;
+                            clicked => { DetailState.play(); }
+                        }
+                        LfxFocusRing {
+                            active: DetailState.focus-sec == 0 && DetailState.focus-idx == 0;
+                            radius: Theme.t.btn-radius;
+                        }
+                    }
+                    RoundBtn {
+                        icon: DetailState.data.fav ? Icons.check : Icons.plus;
+                        active: DetailState.data.fav;
+                        tone: 2;
+                        focused: DetailState.focus-sec == 0 && DetailState.focus-idx == 1;
+                        clicked => { DetailState.toggle-fav(); }
+                    }
+                    if DetailState.data.can-like: RoundBtn {
+                        icon: DetailState.data.like ? Icons.like : Icons.like-outline;
+                        active: DetailState.data.like;
+                        tone: 1;
+                        focused: DetailState.focus-sec == 0 && DetailState.focus-idx == 2;
+                        clicked => { DetailState.toggle-like(); }
+                    }
+                    if DetailState.data.can-played: RoundBtn {
+                        icon: DetailState.data.played ? Icons.eye-check : Icons.eye;
+                        active: DetailState.data.played;
+                        tone: 3;
+                        square: true;
+                        focused: DetailState.focus-sec == 0 && DetailState.focus-idx == 3;
+                        clicked => { DetailState.toggle-played(); }
+                    }
+                    if DetailState.data.can-download: RoundBtn {
+                        icon: Icons.download;
+                        focused: DetailState.focus-sec == 0 && DetailState.focus-idx == 4;
+                        clicked => { DetailState.download(); }
+                    }
+                    RoundBtn {
+                        icon: Icons.more;
+                        focused: DetailState.focus-sec == 0 && DetailState.focus-idx == 5;
+                        clicked => { DetailState.open-menu(); }
+                    }
+                }
+            }
+            if DetailState.data.progress > 0: Rectangle {
+                x: root.pad;
+                y: parent.height - 12px;
+                width: min(260px, parent.width - 2 * root.pad);
+                height: 3px;
+                background: #ffffff4d;
+                Rectangle {
+                    width: parent.width * min(1.0, DetailState.data.progress);
+                    background: Theme.t.red;
+                }
+            }
+        }
+
+        // ---------------------------------------------------------------- Beschreibung
+        HorizontalLayout {
+            padding-left: root.pad;
+            padding-right: root.pad;
+            padding-top: 18px;
+            spacing: 32px;
+            VerticalLayout {
+                horizontal-stretch: 2;
+                spacing: 12px;
+                alignment: start;
+                HorizontalLayout {
+                    spacing: 12px;
+                    alignment: start;
+                    height: 22px;
+                    if DetailState.data.year != "": LfxText {
+                        text: DetailState.data.year;
+                        color: #bcbcbc;
+                        font-size: 16px;
+                        vertical-alignment: center;
+                    }
+                    if DetailState.data.length != "": LfxText {
+                        text: DetailState.data.length;
+                        color: #bcbcbc;
+                        font-size: 16px;
+                        vertical-alignment: center;
+                    }
+                    if DetailState.data.quality != "": MetaBadge { text: DetailState.data.quality; }
+                    if DetailState.data.rating != "": MetaBadge { text: DetailState.data.rating; }
+                }
+                if DetailState.data.tagline != "": LfxText {
+                    text: DetailState.data.tagline;
+                    font-size: 16px;
+                    font-weight: 700;
+                    wrap: word-wrap;
+                }
+                if DetailState.data.overview != "": LfxText {
+                    text: DetailState.data.overview;
+                    font-size: 16px;
+                    wrap: word-wrap;
+                }
+                if DetailState.error != "": LfxText {
+                    text: DetailState.error;
+                    color: Theme.t.text-muted;
+                    wrap: word-wrap;
+                }
+            }
+            VerticalLayout {
+                horizontal-stretch: 1;
+                spacing: 8px;
+                alignment: start;
+                if DetailState.data.cast-line != "": LfxText {
+                    text: "Besetzung: " + DetailState.data.cast-line;
+                    font-size: 14px;
+                    color: #dddddd;
+                    wrap: word-wrap;
+                }
+                if DetailState.data.genres-line != "": LfxText {
+                    text: "Genres: " + DetailState.data.genres-line;
+                    font-size: 14px;
+                    color: #dddddd;
+                    wrap: word-wrap;
+                }
+                if DetailState.data.studios-line != "": LfxText {
+                    text: "Studio: " + DetailState.data.studios-line;
+                    font-size: 14px;
+                    color: #dddddd;
+                    wrap: word-wrap;
+                }
+            }
+        }
+
+        // ---------------------------------------------------------------- Spurwahl vor dem Start
+        tracks := HorizontalLayout {
+            height: root.has-tracks ? 38px + 24px : 0px;
+            padding-left: root.pad;
+            padding-top: 20px;
+            spacing: 12px;
+            alignment: start;
+            visible: root.has-tracks;
+            if DetailState.version-text != "": TrackPick {
+                label: "Version";
+                value: DetailState.version-text;
+                focused: DetailState.focus-sec == 1 && DetailState.focus-idx == 0;
+                clicked => { DetailState.cycle-track(0); }
+            }
+            if DetailState.audio-text != "": TrackPick {
+                label: "Ton";
+                value: DetailState.audio-text;
+                focused: DetailState.focus-sec == 1 && DetailState.focus-idx == 1;
+                clicked => { DetailState.cycle-track(1); }
+            }
+            if DetailState.sub-text != "": TrackPick {
+                label: "Untertitel";
+                value: DetailState.sub-text;
+                focused: DetailState.focus-sec == 1 && DetailState.focus-idx == 2;
+                clicked => { DetailState.cycle-track(2); }
+            }
+        }
+
+        // ---------------------------------------------------------------- Folgen
+        eps-head := HorizontalLayout {
+            height: root.has-eps ? 42px + 48px : 0px;
+            padding-left: root.pad;
+            padding-right: root.pad;
+            padding-top: 32px;
+            visible: root.has-eps;
+            SectionTitle {
+                text: "Folgen";
+                vertical-stretch: 1;
+            }
+            if DetailState.episodes.length > 0: Rectangle {
+                width: 46px;
+                height: 42px;
+                background: DetailState.season-played ? #ffffff : #242424;
+                border-width: 1px;
+                border-color: DetailState.season-played ? #ffffff : #4d4d4d;
+                border-radius: 10px;
+                LfxIcon {
+                    x: (parent.width - self.width) / 2;
+                    y: (parent.height - self.height) / 2;
+                    source: DetailState.season-played ? Icons.eye-check : Icons.eye;
+                    size: 22px;
+                    tint: DetailState.season-played ? #141414 : #ffffff;
+                }
+                TouchArea {
+                    mouse-cursor: pointer;
+                    clicked => { DetailState.toggle-season-played(); }
+                }
+                LfxFocusRing {
+                    active: DetailState.focus-sec == 2 && DetailState.focus-idx == 0;
+                    radius: 10px;
+                }
+            }
+            if DetailState.seasons.length > 1: Rectangle {
+                width: 190px;
+                height: 42px;
+                background: #242424;
+                border-width: 1px;
+                border-color: #4d4d4d;
+                border-radius: 4px;
+                HorizontalLayout {
+                    padding-left: 16px;
+                    padding-right: 12px;
+                    spacing: 8px;
+                    LfxText {
+                        text: DetailState.seasons[DetailState.season-index];
+                        font-size: 18px;
+                        overflow: elide;
+                        vertical-alignment: center;
+                    }
+                    LfxIcon {
+                        source: Icons.chevron-down;
+                        size: 22px;
+                        y: (parent.height - self.height) / 2;
+                    }
+                }
+                TouchArea {
+                    mouse-cursor: pointer;
+                    clicked => { DetailState.toggle-season-list(); }
+                }
+                LfxFocusRing {
+                    active: DetailState.focus-sec == 2 && DetailState.focus-idx == 1;
+                    radius: 4px;
+                }
+            }
+        }
+        eps-list := Rectangle {
+            height: DetailState.episodes.length * root.ep-h;
+            for ep[i] in DetailState.episodes: Rectangle {
+                x: root.pad;
+                y: i * root.ep-h;
+                width: parent.width - 2 * root.pad;
+                height: root.ep-h;
+                background: (ep-ta.has-hover || (DetailState.focus-sec == 3 && DetailState.focus-idx == i)) ? #333333 : transparent;
+                border-radius: 4px;
+                Rectangle {
+                    y: parent.height - 1px;
+                    height: 1px;
+                    background: #404040;
+                }
+                num := LfxText {
+                    x: 0px;
+                    width: parent.width * 0.07;
+                    height: parent.height;
+                    text: ep.number;
+                    font-size: 24px;
+                    color: #d2d2d2;
+                    horizontal-alignment: center;
+                    vertical-alignment: center;
+                }
+                thumb := Rectangle {
+                    x: parent.width * 0.07 + 8px;
+                    y: (parent.height - self.height) / 2;
+                    height: parent.height - 24px;
+                    width: self.height * 16 / 9;
+                    border-radius: 4px;
+                    background: Theme.t.surface-3;
+                    clip: true;
+                    if ep.has-thumb: Image {
+                        width: 100%;
+                        height: 100%;
+                        source: ep.thumb;
+                        image-fit: cover;
+                        opacity: ep.played ? 0.55 : 1.0;
+                    }
+                    Rectangle {
+                        background: #00000066;
+                        opacity: ep-ta.has-hover ? 1.0 : 0.0;
+                        animate opacity { duration: Theme.t.dur-fast; }
+                        LfxIcon {
+                            x: (parent.width - self.width) / 2;
+                            y: (parent.height - self.height) / 2;
+                            source: Icons.play;
+                            size: 24px;
+                            tint: #ffffff;
+                        }
+                    }
+                    if ep.progress > 0 && !ep.played: Rectangle {
+                        y: parent.height - 3px;
+                        height: 3px;
+                        background: #ffffff4d;
+                        Rectangle {
+                            width: parent.width * min(1.0, ep.progress);
+                            background: Theme.t.red;
+                        }
+                    }
+                    if ep.played: Rectangle {
+                        x: 6px;
+                        y: parent.height - 24px;
+                        width: 18px;
+                        height: 18px;
+                        border-radius: 9px;
+                        background: #141414b3;
+                        LfxIcon {
+                            x: 3px;
+                            y: 3px;
+                            source: Icons.check;
+                            size: 12px;
+                            tint: #ffffff;
+                        }
+                    }
+                }
+                VerticalLayout {
+                    x: parent.width * 0.07 + 8px + (parent.height - 24px) * 16 / 9 + 20px;
+                    width: parent.width - self.x - 64px;
+                    y: 14px;
+                    height: parent.height - 28px;
+                    spacing: 6px;
+                    HorizontalLayout {
+                        spacing: 12px;
+                        LfxText {
+                            text: ep.title;
+                            font-size: 16px;
+                            font-weight: 700;
+                            overflow: elide;
+                            horizontal-stretch: 1;
+                        }
+                        LfxText {
+                            text: ep.runtime;
+                            font-size: 16px;
+                        }
+                    }
+                    LfxText {
+                        text: ep.overview;
+                        font-size: 14px;
+                        color: #d2d2d2;
+                        wrap: word-wrap;
+                        overflow: elide;
+                        vertical-stretch: 1;
+                    }
+                }
+                ep-ta := TouchArea {
+                    mouse-cursor: pointer;
+                    clicked => { DetailState.episode-clicked(i); }
+                    pointer-event(e) => {
+                        if (e.button == PointerEventButton.right && e.kind == PointerEventKind.up) {
+                            DetailState.episode-menu(i);
+                        }
+                    }
+                }
+                RoundBtn {
+                    x: parent.width - self.width - 8px;
+                    y: (parent.height - self.height) / 2;
+                    size: 34px;
+                    icon-size: 18px;
+                    square: true;
+                    tone: 3;
+                    active: ep.played;
+                    icon: ep.played ? Icons.eye-check : Icons.eye;
+                    clicked => { DetailState.episode-played(i); }
+                }
+            }
+        }
+
+        // ---------------------------------------------------------------- Ähnliche Titel / Sammlung
+        sim-sec := VerticalLayout {
+            height: DetailState.similar.length > 0 ? self.preferred-height : 0px;
+            visible: DetailState.similar.length > 0;
+            padding-left: root.pad;
+            padding-right: root.pad;
+            padding-top: 32px;
+            spacing: 16px;
+            SectionTitle { text: DetailState.similar-title; }
+            sim-grid := Rectangle {
+                height: ceil(DetailState.similar.length / root.sim-cols) * (root.sim-h + root.sim-gap);
+                for c[i] in DetailState.similar: Rectangle {
+                    x: mod(i, root.sim-cols) * (root.sim-w + root.sim-gap);
+                    y: floor(i / root.sim-cols) * (root.sim-h + root.sim-gap);
+                    width: root.sim-w;
+                    height: root.sim-h;
+                    background: #2f2f2f;
+                    border-radius: 4px;
+                    clip: true;
+                    Rectangle {
+                        x: 0px;
+                        y: 0px;
+                        width: parent.width;
+                        height: parent.width * 9 / 16;
+                        background: Theme.t.surface-3;
+                        if c.has-image: Image {
+                            width: 100%;
+                            height: 100%;
+                            source: c.image;
+                            image-fit: cover;
+                        }
+                        if !c.has-image: LfxText {
+                            x: 12px;
+                            width: parent.width - 24px;
+                            height: parent.height;
+                            text: c.title;
+                            font-size: 16px;
+                            font-weight: 700;
+                            wrap: word-wrap;
+                            horizontal-alignment: center;
+                            vertical-alignment: center;
+                        }
+                        if c.runtime != "": LfxText {
+                            x: parent.width - self.preferred-width - 10px;
+                            y: parent.height - 28px;
+                            text: c.runtime;
+                            font-size: 13px;
+                            font-weight: 600;
+                        }
+                    }
+                    VerticalLayout {
+                        y: parent.width * 9 / 16;
+                        height: parent.height - self.y;
+                        padding: 12px;
+                        spacing: 8px;
+                        HorizontalLayout {
+                            height: 24px;
+                            spacing: 8px;
+                            alignment: start;
+                            if c.rating != "": MetaBadge { text: c.rating; }
+                            if c.year != "": LfxText {
+                                text: c.year;
+                                color: #bcbcbc;
+                                font-size: 14px;
+                                vertical-alignment: center;
+                            }
+                        }
+                        LfxText {
+                            text: c.overview;
+                            font-size: 14px;
+                            color: #d2d2d2;
+                            wrap: word-wrap;
+                            overflow: elide;
+                            vertical-stretch: 1;
+                        }
+                    }
+                    sim-ta := TouchArea {
+                        mouse-cursor: pointer;
+                        clicked => { DetailState.similar-clicked(i); }
+                    }
+                    RoundBtn {
+                        x: parent.width - self.width - 10px;
+                        y: parent.width * 9 / 16 + 8px;
+                        size: 34px;
+                        icon-size: 18px;
+                        tone: 2;
+                        active: c.fav;
+                        icon: c.fav ? Icons.check : Icons.plus;
+                        clicked => { DetailState.similar-fav(i); }
+                    }
+                    Rectangle {
+                        border-width: (sim-ta.has-hover || (DetailState.focus-sec == 4 && DetailState.focus-idx == i)) ? 2px : 0px;
+                        border-color: #ffffff;
+                        border-radius: 4px;
+                    }
+                }
+            }
+        }
+
+        // ---------------------------------------------------------------- Info
+        ppl-sec := VerticalLayout {
+            height: (DetailState.people.length > 0 || DetailState.info-rating != "") ? self.preferred-height : 0px;
+            visible: DetailState.people.length > 0 || DetailState.info-rating != "";
+            padding-left: root.pad;
+            padding-right: root.pad;
+            padding-top: 32px;
+            spacing: 12px;
+            HorizontalLayout {
+                spacing: 8px;
+                alignment: start;
+                SectionTitle { text: "Info zu"; }
+                SectionTitle {
+                    text: DetailState.info-title;
+                    font-weight: 700;
+                    color: #ffffff;
+                }
+            }
+            if DetailState.info-rating != "": LfxText {
+                text: "Altersfreigabe: " + DetailState.info-rating;
+                font-size: 14px;
+                color: #dddddd;
+            }
+            ppl-grid := Rectangle {
+                height: ceil(DetailState.people.length / root.ppl-cols) * (root.ppl-h + 12px);
+                for p[i] in DetailState.people: Rectangle {
+                    x: mod(i, root.ppl-cols) * (root.ppl-w + 12px);
+                    y: floor(i / root.ppl-cols) * (root.ppl-h + 12px);
+                    width: root.ppl-w;
+                    height: root.ppl-h;
+                    background: (p-ta.has-hover || (DetailState.focus-sec == 5 && DetailState.focus-idx == i)) ? #333333 : #242424;
+                    border-radius: 4px;
+                    Rectangle {
+                        x: 10px;
+                        y: (parent.height - self.height) / 2;
+                        width: 40px;
+                        height: 40px;
+                        border-radius: 20px;
+                        background: Theme.t.surface-3;
+                        LfxText {
+                            width: 100%;
+                            height: 100%;
+                            text: p.initial;
+                            font-size: 16px;
+                            font-weight: 700;
+                            horizontal-alignment: center;
+                            vertical-alignment: center;
+                        }
+                    }
+                    VerticalLayout {
+                        x: 60px;
+                        width: parent.width - 70px;
+                        alignment: center;
+                        LfxText {
+                            text: p.name;
+                            font-size: 14px;
+                            font-weight: 600;
+                            overflow: elide;
+                        }
+                        LfxText {
+                            text: p.role != "" ? p.label + " · " + p.role : p.label;
+                            font-size: 12px;
+                            color: #bcbcbc;
+                            overflow: elide;
+                        }
+                    }
+                    p-ta := TouchArea {
+                        mouse-cursor: pointer;
+                        clicked => { DetailState.person-clicked(i); }
+                    }
+                    LfxFocusRing {
+                        active: DetailState.focus-sec == 5 && DetailState.focus-idx == i;
+                        radius: 4px;
+                    }
+                }
+            }
+        }
+
+        // ---------------------------------------------------------------- Fuß
+        link := Rectangle {
+            height: root.page-mode ? 48px : 88px;
+            if !root.page-mode: Rectangle {
+                x: root.pad;
+                y: 32px;
+                width: lk.preferred-width + 32px;
+                height: 40px;
+                background: DetailState.focus-sec == 6 ? #333333 : #242424;
+                border-radius: 4px;
+                lk := LfxText {
+                    x: 16px;
+                    height: parent.height;
+                    text: "Zur Detailseite";
+                    font-size: 15px;
+                    vertical-alignment: center;
+                }
+                TouchArea {
+                    mouse-cursor: pointer;
+                    clicked => { DetailState.open-page(); }
+                }
+                LfxFocusRing { active: DetailState.focus-sec == 6; radius: 4px; }
+            }
+        }
+    }
+
+    // Staffelliste (Auswahlmenü), über allem im Inhalt
+    if DetailState.season-list-open: Rectangle {
+        x: root.width - root.pad - 190px;
+        y: eps-head.y + 32px + 42px + 4px;
+        width: 190px;
+        height: min(320px, DetailState.seasons.length * 38px + 8px);
+        background: #242424;
+        border-width: 1px;
+        border-color: #4d4d4d;
+        border-radius: 4px;
+        clip: true;
+        for s[i] in DetailState.seasons: Rectangle {
+            y: 4px + i * 38px;
+            height: 38px;
+            background: (i == DetailState.season-index || so.has-hover) ? #333333 : transparent;
+            LfxText {
+                x: 16px;
+                width: parent.width - 32px;
+                height: parent.height;
+                text: s;
+                font-size: 16px;
+                color: i == DetailState.season-index ? #ffffff : #dddddd;
+                vertical-alignment: center;
+                overflow: elide;
+            }
+            so := TouchArea {
+                mouse-cursor: pointer;
+                clicked => { DetailState.pick-season(i); }
+            }
+        }
+    }
+}

@@ -320,10 +320,15 @@ impl App {
             return;
         };
         let client = active.client.clone();
+        // W2-detail: Vorauswahl aus Detail/Menü (Ton, Untertitel, Version, von Anfang an)
+        let choice = self.take_play_choice().unwrap_or_default();
         self.rt.spawn(async move {
             let opts = PrepareOptions {
-                start_seconds: start,
+                start_seconds: if choice.from_start { 0.0 } else { start },
                 max_bitrate,
+                media_source_id: choice.source,
+                audio_stream_index: choice.audio,
+                subtitle_stream_index: choice.sub,
                 ..PrepareOptions::default()
             };
             match prepare(&client, &item.id, &opts).await {

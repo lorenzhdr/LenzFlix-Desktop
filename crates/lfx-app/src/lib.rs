@@ -11,8 +11,13 @@ pub mod auth;
 pub mod automation;
 pub mod capture;
 pub mod cli;
+pub mod detail; // W2-detail
+#[cfg(feature = "dev-automation")]
+pub mod detail_automation; // W2-detail
+pub mod detail_logic; // W2-detail
 pub mod focus;
 pub mod home;
+pub mod hovercard; // W2-detail
 pub mod keys;
 pub mod library; // W2-library
 mod library_impl; // W2-library
@@ -123,6 +128,7 @@ pub fn run(opts: Options) -> Result<(), String> {
             toast_gen: 0,
             tv: tvui::TvUi::default(), // W2-tvui
             lib: library::LibState::default(), // W2-library
+            detail: detail::DetailCtl::default(), // W2-detail
         }),
         timers: Timers::default(),
         gamepad: RefCell::new(None),
@@ -244,6 +250,8 @@ fn wire(app: &Rc<App>, ui: &MainWindow, shell: &Shell) {
         let a2 = app.clone();
         lib.on_geometry(move |g| a2.lib_on_geometry(g));
     }
+
+    detail::wire(app, ui); // W2-detail
 
     let a = app.clone();
     ui.on_player_cmd(move |n, v| a.player_cmd(&n, v)); // W2-player
