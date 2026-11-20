@@ -32,6 +32,8 @@ lfx-player = { path = "../lfx-player" }
 lfx-session = { path = "../lfx-session" }
 lfx-shell = { path = "../lfx-shell" }
 lfx-store = { path = "../lfx-store" }
+lfx-tv = { path = "../lfx-tv" } # W2-tvui
+lfx-tv-schedule = { path = "../lfx-tv-schedule" } # W2-tvui
 lfx-ui = { path = "../lfx-ui" }
 png = "0.17"
 serde_json = "1"
@@ -56,4 +58,8 @@ tokio = { version = "1", features = ["rt-multi-thread", "sync", "time", "macros"
 
 [[test]]
 name = "e2e"
+required-features = ["dev-automation"]
+
+[[test]] # W2-tvui
+name = "e2e_tvui"
 required-features = ["dev-automation"]

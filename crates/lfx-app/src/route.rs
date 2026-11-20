@@ -81,7 +81,6 @@ impl Route {
             } => Some("Filme"),
             Self::MyList => Some("Meine Liste"),
             Self::NewPopular => Some("Neu und beliebt"),
-            Self::TvMode => Some("TV"),
             Self::Admin => Some("Verwaltung"),
             _ => None,
         }

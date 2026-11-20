@@ -243,6 +243,11 @@ impl App {
                 ok(json!({}));
                 self.shell.close();
             }
+            // W2-tvui
+            "tv" => match self.tv_automation(msg) {
+                Ok(v) => ok(v),
+                Err(e) => fail(&e),
+            },
             _ => fail("unbekannter Befehl"),
         }
     }
@@ -311,6 +316,7 @@ impl App {
             "add_error": ui.get_add_error().to_string(),
             "users": st.users.iter().map(|u| u.name.clone()).collect::<Vec<_>>(),
             "player": player,
+            "tv": self.tv_state_json(), // W2-tvui
             "window": {"width": pw, "height": ph, "dpr": dpr},
         })
     }

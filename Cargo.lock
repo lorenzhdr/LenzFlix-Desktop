@@ -2965,6 +2965,8 @@ dependencies = [
  "lfx-session",
  "lfx-shell",
  "lfx-store",
+ "lfx-tv",
+ "lfx-tv-schedule",
  "lfx-ui",
  "png 0.17.16",
  "serde_json",

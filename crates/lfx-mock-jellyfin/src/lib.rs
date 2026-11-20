@@ -9,6 +9,7 @@
 pub mod catalog;
 mod extra;
 pub mod media;
+pub mod w2_tvui; // W2-tvui
 
 pub use extra::{
     VIEW_BOOKS, VIEW_LIVETV, VIEW_MUSIC, VIEW_PHOTOS, album_id, artist_id, book_id, channel_id,
@@ -1040,6 +1041,9 @@ async fn playback_info(
     Path(id): Path<String>,
     Json(body): Json<Value>,
 ) -> Response {
+    if let Some(response) = w2_tvui::try_playback_info() {
+        return response; // W2-tvui
+    }
     if let Some(response) = extra::try_playback_info(&shared, &id) {
         return response;
     }
