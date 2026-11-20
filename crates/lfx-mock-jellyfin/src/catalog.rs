@@ -230,6 +230,8 @@ pub fn render(catalog: &[Item], it: &Item, st: &UserState, fields: &str) -> Valu
     if it.kind == "CollectionFolder" {
         v["CollectionType"] = json!(if it.id == VIEW_MOVIES {
             "movies"
+        } else if it.id == crate::w2_library::VIEW_BOXSETS {
+            "boxsets" // W2-library
         } else {
             "tvshows"
         });

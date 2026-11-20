@@ -14,6 +14,10 @@ pub mod cli;
 pub mod focus;
 pub mod home;
 pub mod keys;
+pub mod library; // W2-library
+mod library_impl; // W2-library
+pub mod library_np; // W2-library
+pub mod library_search; // W2-library
 pub mod logging;
 pub mod play;
 pub mod route;
@@ -112,6 +116,7 @@ pub fn run(opts: Options) -> Result<(), String> {
             images: None,
             toast_gen: 0,
             tv: tvui::TvUi::default(), // W2-tvui
+            lib: library::LibState::default(), // W2-library
         }),
         timers: Timers::default(),
         gamepad: RefCell::new(None),
@@ -225,6 +230,14 @@ fn wire(app: &Rc<App>, ui: &MainWindow, shell: &Shell) {
     ui.on_card_clicked(move |r, i| a.card_clicked(r, i));
     let a = app.clone();
     ui.on_home_geometry(move |g| a.on_home_geometry(g));
+    {
+        // W2-library
+        let lib = ui.global::<lfx_ui::LibraryState>();
+        let a1 = app.clone();
+        lib.on_event(move |k, x, y| a1.lib_event(&k, x, y));
+        let a2 = app.clone();
+        lib.on_geometry(move |g| a2.lib_on_geometry(g));
+    }
 
     let a = app.clone();
     ui.on_toggle_pause(move || a.toggle_pause());

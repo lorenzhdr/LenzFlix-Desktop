@@ -248,7 +248,12 @@ impl App {
                 Ok(v) => ok(v),
                 Err(e) => fail(&e),
             },
-            _ => fail("unbekannter Befehl"),
+            // W2-library
+            _ => match self.lib_automation(cmd, msg) {
+                Some(Ok(v)) => ok(v),
+                Some(Err(e)) => fail(&e),
+                None => fail("unbekannter Befehl"),
+            },
         }
     }
 
@@ -317,6 +322,7 @@ impl App {
             "users": st.users.iter().map(|u| u.name.clone()).collect::<Vec<_>>(),
             "player": player,
             "tv": self.tv_state_json(), // W2-tvui
+            "library": self.lib_state_json(), // W2-library
             "window": {"width": pw, "height": ph, "dpr": dpr},
         })
     }

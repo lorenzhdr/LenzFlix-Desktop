@@ -1,0 +1,1060 @@
+// W2-library: Bibliotheksseiten (Serien/Filme, Meine Liste, Sammlungen, Neu und beliebt, Suche) in einer Hostkomponente.
+// Rust (lfx-app/src/library*.rs) hält Zustand und Fokus und setzt `LibraryState`; die Oberfläche meldet nur Ereignisse
+// über `LibraryState.event(art, a, b)`.
+//
+// Fokuszonen (Ids, müssen mit library.rs übereinstimmen):
+//   0 Navigation, 1 Werkzeugleiste, 2 Billboard-Knöpfe, 3 Alphabetleiste, 4 Menü, 5 Raster bzw. Neu-Einträge,
+//   6 Suchfeld, 7 Bildschirmtastatur, 10+r Zeile r, 30 Sondertasten, 40+g Chip-Gruppe g.
+import { Theme, Design } from "../theme/theme.slint";
+import { CardData, CardAspect, ButtonKind } from "../components/types.slint";
+import { LfxText } from "../components/text.slint";
+import { LfxButton } from "../components/button.slint";
+import { LfxCard } from "../components/card.slint";
+import { LfxRow } from "../components/row.slint";
+import { LfxTabs } from "../components/controls.slint";
+import { LfxIcon } from "../components/icon.slint";
+import { LfxFocusRing } from "../components/focus-ring.slint";
+import { LfxSpinner, LfxSkeleton } from "../components/feedback.slint";
+import { Icons } from "../icons.slint";
+import { RowData, HeroData } from "types.slint";
+
+// Eintrag der Werkzeugleiste. kind: 0 Chip, 1 Sortierung, 2 Ansicht „Zeilen“, 3 Ansicht „Raster“, 4 Auswahlmenü.
+export struct LibTool {
+    label: string,
+    kind: int,
+    active: bool,
+}
+
+// Eintrag der Liste „Neu bei …“.
+export struct NpEntry {
+    month: string,
+    day: string,
+    title: string,
+    since: string,
+    overview: string,
+    genres: string,
+    image: image,
+    has-image: bool,
+}
+
+// Chip der Such-Startansicht. group: 0 zuletzt gesucht, 1 Genres, 2 Bibliotheken.
+export struct LibChip {
+    label: string,
+    group: int,
+    // Position innerhalb der Gruppe (Fokus-Index)
+    pos: int,
+}
+
+// Maße der Seite in Seitenkoordinaten (Ursprung: Fensterinhalt unter der Titelleiste) für die Fokuszonen.
+export struct LibGeometry {
+    width: length,
+    height: length,
+    nav-h: length,
+    head-h: length,
+    cols: int,
+    gutter: length,
+    card-w: length,
+    card-h: length,
+    gap: length,
+    pitch-y: length,
+    hero-h: length,
+    row-h: length,
+    entry-h: length,
+    btn-y: length,
+    btn-h: length,
+}
+
+export global LibraryState {
+    // 0 Zeilen, 1 Raster, 2 Meine Liste, 3 Sammlung, 4 Neu und beliebt, 5 Suche
+    in property <int> mode: 1;
+    in property <string> title;
+    in property <string> count-text;
+    in property <[string]> nav-labels;
+    in property <int> nav-current: -1;
+    in property <[LibTool]> tools-l;
+    in property <[LibTool]> tools-r;
+    in property <[string]> alpha;
+    in property <int> alpha-current: -1;
+    in property <[CardData]> items;
+    in property <[RowData]> rows;
+    in property <HeroData> hero;
+    in property <[NpEntry]> entries;
+    in property <bool> loading: false;
+    in property <bool> loading-more: false;
+    in property <string> error;
+    in property <string> empty-title;
+    in property <string> empty-hint;
+    in property <string> empty-action;
+    in property <int> focus-zone: -1;
+    in property <int> focus-index: 0;
+    in property <bool> menu-open: false;
+    in property <[string]> menu-items;
+    in property <int> menu-current: -1;
+    in property <int> menu-cols: 1;
+    in property <length> menu-x: 0px;
+    in-out property <string> query;
+    in property <int> field-tick: 0;
+    in property <bool> kbd-open: false;
+    in property <[string]> kbd-keys;
+    in property <[LibChip]> chips;
+    // Bit g gesetzt: Chip-Gruppe g hat Einträge
+    in property <int> chips-mask: 0;
+    in property <int> scroll-row: -1;
+    in property <int> scroll-tick: 0;
+    in property <string> note;
+    // Ereignis aus der Oberfläche: Art ("nav", "tool", "card", "rowcard", "hero", "alpha", "menu", "menu-close",
+    // "retry", "empty-action", "more", "visible", "np-play", "np-info", "np-entry", "chip", "key", "kbd-toggle",
+    // "query", "field"), dazu zwei Zahlen.
+    callback event(string, int, int);
+    callback geometry(LibGeometry);
+}
+
+// ---------------------------------------------------------------- Bausteine
+
+// Suchfeld wie im Web: 44 px hoch, schwarz, 1 px weißer Rand, eckig, Lupe links.
+component LibSearchField inherits Rectangle {
+    in-out property <string> text;
+    in property <bool> focused;
+    in property <int> tick;
+    callback edited();
+    callback accepted();
+    changed tick => { input.focus(); }
+
+    height: 44px;
+    background: Theme.design == Design.retro ? Theme.t.retro-panel : #000000;
+    border-width: 1px;
+    border-color: Theme.design == Design.retro ? Theme.t.retro-amber : #ffffff;
+
+    LfxIcon {
+        x: 12px;
+        y: (parent.height - self.height) / 2;
+        source: Icons.search;
+        size: 22px;
+        tint: Theme.t.text-muted;
+    }
+    input := TextInput {
+        x: 48px;
+        y: (parent.height - self.preferred-height) / 2;
+        width: parent.width - 48px - 44px;
+        text <=> root.text;
+        font-family: Theme.t.font-family;
+        font-size: 16px;
+        color: Theme.design == Design.retro ? Theme.t.retro-amber : #ffffff;
+        single-line: true;
+        edited => { root.edited(); }
+        accepted => { root.accepted(); }
+    }
+    if root.text == "": LfxText {
+        x: 48px;
+        width: parent.width - 96px;
+        height: parent.height;
+        text: "Titel, Serien, Personen";
+        color: Theme.t.text-soft;
+        vertical-alignment: center;
+    }
+    if root.text != "": Rectangle {
+        x: parent.width - 40px;
+        width: 36px;
+        height: parent.height;
+        LfxIcon {
+            x: (parent.width - self.width) / 2;
+            y: (parent.height - self.height) / 2;
+            source: Icons.close;
+            size: 18px;
+            tint: Theme.t.text-muted;
+        }
+        TouchArea { clicked => { root.text = ""; root.edited(); } }
+    }
+    LfxFocusRing { active: root.focused; radius: 0px; }
+}
+
+// Ein Eintrag der Werkzeugleiste.
+component LibToolButton inherits Rectangle {
+    in property <LibTool> tool;
+    in property <bool> focused;
+    callback clicked();
+
+    property <bool> retro: Theme.design == Design.retro;
+    height: root.tool.kind == 1 ? 34px : (root.tool.kind == 2 || root.tool.kind == 3 ? 30px : (root.tool.kind == 4 ? 32px : 34px));
+    preferred-width: root.tool.kind == 2 || root.tool.kind == 3 ? 38px : txt.preferred-width + (root.tool.kind == 4 ? 44px : 32px);
+    border-radius: root.tool.kind == 0 || root.tool.kind == 1 ? self.height / 2 : 0px;
+    background: root.tool.kind == 0 ? (root.tool.active ? #ffffff : (ta.has-hover ? Theme.t.pill-active : transparent))
+        : (root.tool.kind == 2 || root.tool.kind == 3 ? (root.tool.active ? #ffffff40 : (ta.has-hover ? Theme.t.pill-active : transparent))
+        : (root.tool.kind == 4 ? #00000080 : transparent));
+    border-width: root.tool.kind == 0 ? 1px : (root.tool.kind == 1 ? (root.tool.active ? 1px : 0px) : (root.tool.kind == 4 ? 1px : 1px));
+    border-color: root.tool.kind == 0 ? (root.tool.active ? #ffffff : #ffffff66) : (root.tool.kind == 1 ? #ffffff66 : #ffffff99);
+
+    if root.tool.kind == 2 || root.tool.kind == 3: LfxIcon {
+        x: (parent.width - self.width) / 2;
+        y: (parent.height - self.height) / 2;
+        source: root.tool.kind == 2 ? Icons.more : Icons.settings;
+        size: 18px;
+        tint: #ffffff;
+    }
+    // Zeilen-/Rasteransicht als gezeichnete Symbole (keine fremden Piktogramme nötig)
+    if root.tool.kind == 2: Rectangle {
+        x: (parent.width - 18px) / 2;
+        y: (parent.height - 14px) / 2;
+        width: 18px;
+        height: 14px;
+        for i in 3: Rectangle { y: i * 6px; height: 2px; background: #ffffff; border-radius: 1px; }
+    }
+    if root.tool.kind == 3: Rectangle {
+        x: (parent.width - 16px) / 2;
+        y: (parent.height - 16px) / 2;
+        width: 16px;
+        height: 16px;
+        for i in 4: Rectangle {
+            x: mod(i, 2) * 9px;
+            y: floor(i / 2) * 9px;
+            width: 7px;
+            height: 7px;
+            background: #ffffff;
+        }
+    }
+    txt := LfxText {
+        visible: root.tool.kind != 2 && root.tool.kind != 3;
+        x: 16px;
+        width: parent.width - (root.tool.kind == 4 ? 44px : 32px);
+        height: parent.height;
+        text: root.tool.label;
+        font-size: 14px;
+        font-weight: 500;
+        vertical-alignment: center;
+        color: root.tool.kind == 0 ? (root.tool.active ? #000000 : #ffffff)
+            : (root.tool.kind == 1 ? (root.tool.active ? #ffffff : Theme.t.text-muted) : #ffffff);
+    }
+    if root.tool.kind == 4: LfxIcon {
+        x: parent.width - 28px;
+        y: (parent.height - self.height) / 2;
+        source: Icons.chevron-down;
+        size: 16px;
+        tint: #ffffff;
+    }
+    ta := TouchArea { clicked => { root.clicked(); } }
+    LfxFocusRing {
+        active: root.focused;
+        radius: root.tool.kind == 0 || root.tool.kind == 1 ? parent.height / 2 : 2px;
+    }
+}
+
+// Kopfzeile: Titel, linke und rechte Werkzeuge, Zähler. Liegt fest unter der Navigation.
+component LibHead inherits Rectangle {
+    in property <length> gutter;
+    height: 56px;
+    background: Theme.design == Design.retro ? Theme.t.retro-bg : Theme.t.bg;
+
+    HorizontalLayout {
+        x: root.gutter;
+        width: root.width - 2 * root.gutter;
+        height: parent.height;
+        spacing: 16px;
+        if LibraryState.title != "": LfxText {
+            text: Theme.design == Design.retro ? "// " + LibraryState.title : LibraryState.title;
+            font-size: 28px;
+            font-weight: 700;
+            vertical-alignment: center;
+            font-family: Theme.design == Design.retro ? Theme.t.retro-font-pixel : Theme.t.font-family;
+        }
+        HorizontalLayout {
+            horizontal-stretch: 0;
+            spacing: 10px;
+            alignment: start;
+            for t[i] in LibraryState.tools-l: LibToolButton {
+                y: (parent.height - self.height) / 2;
+                tool: t;
+                focused: LibraryState.focus-zone == 1 && LibraryState.focus-index == i;
+                clicked => { LibraryState.event("tool", i, 0); }
+            }
+        }
+        Rectangle { }
+        if LibraryState.count-text != "": LfxText {
+            text: LibraryState.count-text;
+            color: Theme.t.text-muted;
+            font-size: 14px;
+            vertical-alignment: center;
+        }
+        HorizontalLayout {
+            spacing: 10px;
+            alignment: end;
+            for t[i] in LibraryState.tools-r: LibToolButton {
+                y: (parent.height - self.height) / 2;
+                tool: t;
+                focused: LibraryState.focus-zone == 1 && LibraryState.focus-index == LibraryState.tools-l.length + i;
+                clicked => { LibraryState.event("tool", LibraryState.tools-l.length + i, 0); }
+            }
+        }
+    }
+}
+
+// Alphabetleiste (Sammlungen).
+component LibAlpha inherits Rectangle {
+    in property <length> gutter;
+    height: 40px;
+    background: Theme.design == Design.retro ? Theme.t.retro-bg : Theme.t.bg;
+    HorizontalLayout {
+        x: root.gutter;
+        width: root.width - 2 * root.gutter;
+        spacing: 2px;
+        alignment: start;
+        for a[i] in LibraryState.alpha: Rectangle {
+            width: 30px;
+            height: 30px;
+            y: 5px;
+            border-radius: 15px;
+            background: i == LibraryState.alpha-current ? #ffffff : (ata.has-hover ? Theme.t.pill-active : transparent);
+            LfxText {
+                text: a;
+                width: 100%;
+                height: 100%;
+                horizontal-alignment: center;
+                vertical-alignment: center;
+                font-size: 13px;
+                font-weight: 600;
+                color: i == LibraryState.alpha-current ? #000000 : #ffffff;
+            }
+            ata := TouchArea { clicked => { LibraryState.event("alpha", i, 0); } }
+            LfxFocusRing { active: LibraryState.focus-zone == 3 && LibraryState.focus-index == i; radius: 15px; }
+        }
+    }
+}
+
+// Leer-, Lade- und Fehlerzustand in der Mitte des Körpers.
+component LibStatus inherits Rectangle {
+    in property <length> gutter;
+    in property <bool> show-skeleton: true;
+    if LibraryState.loading && root.show-skeleton: LfxSpinner {
+        x: (parent.width - self.width) / 2;
+        y: 80px;
+    }
+    if !LibraryState.loading && LibraryState.error != "": VerticalLayout {
+        x: (parent.width - 460px) / 2;
+        y: 60px;
+        width: 460px;
+        spacing: 14px;
+        LfxText {
+            text: LibraryState.error;
+            color: Theme.t.text-muted;
+            wrap: word-wrap;
+            horizontal-alignment: center;
+        }
+        LfxButton {
+            kind: ButtonKind.secondary;
+            text: "Erneut versuchen";
+            focused: LibraryState.focus-zone == 5 && LibraryState.focus-index == 0;
+            clicked => { LibraryState.event("retry", 0, 0); }
+        }
+    }
+    if !LibraryState.loading && LibraryState.error == "" && LibraryState.empty-title != "": VerticalLayout {
+        x: (parent.width - 520px) / 2;
+        y: 70px;
+        width: 520px;
+        spacing: 10px;
+        LfxText {
+            text: LibraryState.empty-title;
+            font-size: 24px;
+            font-weight: 700;
+            horizontal-alignment: center;
+            wrap: word-wrap;
+        }
+        if LibraryState.empty-hint != "": LfxText {
+            text: LibraryState.empty-hint;
+            color: Theme.t.text-muted;
+            horizontal-alignment: center;
+            wrap: word-wrap;
+        }
+        if LibraryState.empty-action != "": LfxButton {
+            kind: ButtonKind.primary;
+            text: LibraryState.empty-action;
+            focused: LibraryState.focus-zone == 5 && LibraryState.focus-index == 0;
+            clicked => { LibraryState.event("empty-action", 0, 0); }
+        }
+    }
+}
+
+// ---------------------------------------------------------------- Raster (virtualisiert)
+
+component LibGrid inherits Rectangle {
+    in property <int> cols;
+    in property <length> gutter;
+    in property <length> gap;
+    in property <length> card-w;
+    in property <length> card-h;
+    in property <length> pitch-y;
+
+    property <int> n-rows: ceil(LibraryState.items.length / root.cols);
+    property <int> first-row: max(0, floor(-flick.content-y / root.pitch-y));
+    property <int> pool: ceil(root.height / root.pitch-y) + 2;
+    property <int> fi: LibraryState.focus-zone == 5 ? LibraryState.focus-index : -1;
+    property <bool> has-items: LibraryState.items.length > 0;
+
+    changed fi => { root.scroll-to(root.fi); }
+    function scroll-to(idx: int) {
+        if (idx < 0) { return; }
+        // Zeile 0: ganz nach oben
+        if (idx < root.cols) { flick.content-y = 0px; return; }
+        if (floor(idx / root.cols) * root.pitch-y < -flick.content-y) {
+            flick.content-y = -floor(idx / root.cols) * root.pitch-y;
+        } else if (floor(idx / root.cols) * root.pitch-y + root.card-h + 12px > -flick.content-y + root.height) {
+            flick.content-y = -(floor(idx / root.cols) * root.pitch-y + root.card-h + 12px - root.height);
+        }
+    }
+    // Weiter nachladen, wenn das Ende naht.
+    changed first-row => {
+        LibraryState.event("visible", root.first-row * root.cols, (root.first-row + root.pool) * root.cols);
+        if (root.first-row + root.pool + 1 >= root.n-rows) { LibraryState.event("more", 0, 0); }
+    }
+
+    flick := Flickable {
+        width: 100%;
+        height: 100%;
+        content-height: root.n-rows * root.pitch-y + 90px;
+        animate content-y { duration: Theme.t.dur * 2; easing: Theme.t.ease-out; }
+
+        for slot in root.pool: Rectangle {
+            property <int> r: root.first-row + slot;
+            y: r * root.pitch-y + 10px;
+            height: root.card-h;
+            width: root.width;
+            for c in root.cols: Rectangle {
+                property <int> idx: r * root.cols + c;
+                x: root.gutter + c * (root.card-w + root.gap);
+                width: root.card-w;
+                height: root.card-h;
+                if idx < LibraryState.items.length: LfxCard {
+                    width: 100%;
+                    height: 100%;
+                    data: LibraryState.items[idx];
+                    focused: LibraryState.focus-zone == 5 && LibraryState.focus-index == idx;
+                    clicked => { LibraryState.event("card", idx, 0); }
+                }
+            }
+        }
+        // Skelett, solange die erste Seite lädt
+        if LibraryState.loading && !root.has-items: Rectangle {
+            for s in 2: Rectangle {
+                y: s * root.pitch-y + 10px;
+                for c in root.cols: LfxSkeleton {
+                    x: root.gutter + c * (root.card-w + root.gap);
+                    width: root.card-w;
+                    height: root.card-h;
+                    radius: Theme.t.card-radius;
+                }
+            }
+        }
+        if LibraryState.loading-more: LfxSpinner {
+            x: (root.width - self.width) / 2;
+            y: root.n-rows * root.pitch-y + 20px;
+        }
+    }
+    LibStatus {
+        visible: !root.has-items;
+        gutter: root.gutter;
+        show-skeleton: false;
+    }
+}
+
+// ---------------------------------------------------------------- Zeilen mit Billboard
+
+component LibRows inherits Rectangle {
+    in property <length> gutter;
+    in property <length> hero-h;
+    in property <length> row-h;
+    in property <length> btn-y;
+    property <length> btn-h: Theme.t.btn-h;
+    property <int> fz: LibraryState.focus-zone;
+    property <int> fi: LibraryState.focus-index;
+    property <bool> with-hero: LibraryState.mode == 0;
+    property <length> top: root.with-hero ? root.hero-h : 12px;
+
+    changed fz => { root.scroll-to-focus(); }
+    function scroll-to-focus() {
+        if (root.fz == 2 || root.fz < 10) { flick.content-y = 0px; return; }
+        if (root.fz < 10) { return; }
+        if (root.top + (root.fz - 10) * root.row-h - 20px < -flick.content-y) {
+            flick.content-y = -max(0px, root.top + (root.fz - 10) * root.row-h - 20px);
+        } else if (root.top + (root.fz - 9) * root.row-h + 20px > -flick.content-y + root.height) {
+            flick.content-y = -(root.top + (root.fz - 9) * root.row-h + 20px - root.height);
+        }
+    }
+    changed scroll-tick => {
+        if (LibraryState.scroll-row < 0) { flick.content-y = 0px; }
+        else { flick.content-y = -(root.top + LibraryState.scroll-row * root.row-h + LibraryState.entries.length * 0px); }
+    }
+    property <int> scroll-tick: LibraryState.scroll-tick;
+
+    flick := Flickable {
+        width: 100%;
+        height: 100%;
+        content-height: root.top + max(1, LibraryState.rows.length) * root.row-h + 60px;
+        animate content-y { duration: Theme.t.dur * 2; easing: Theme.t.ease-out; }
+
+        if root.with-hero: Rectangle {
+            x: 0px;
+            y: 0px;
+            width: root.width;
+            height: root.hero-h;
+            clip: true;
+            background: @linear-gradient(135deg, Theme.t.surface-2 0%, Theme.t.bg 100%);
+            if LibraryState.hero.has-backdrop: Image {
+                width: 100%;
+                height: 100%;
+                source: LibraryState.hero.backdrop;
+                image-fit: cover;
+            }
+            Rectangle { background: @linear-gradient(90deg, #000000d9 0%, #00000099 38%, #00000000 75%); }
+            Rectangle { background: @linear-gradient(180deg, #00000000 55%, Theme.t.bg 100%); }
+            VerticalLayout {
+                x: root.gutter;
+                y: 16px;
+                width: min(620px, root.width * 0.55);
+                height: root.btn-y - 28px;
+                alignment: end;
+                spacing: 8px;
+                if LibraryState.hero.has-logo: Image {
+                    source: LibraryState.hero.logo;
+                    height: min(100px, root.hero-h * 0.26);
+                    image-fit: contain;
+                    horizontal-alignment: left;
+                }
+                if !LibraryState.hero.has-logo && LibraryState.hero.has-item: LfxText {
+                    text: LibraryState.hero.title;
+                    font-size: 38px;
+                    font-weight: 800;
+                    wrap: word-wrap;
+                    overflow: elide;
+                    max-height: 100px;
+                }
+                if LibraryState.hero.meta != "": LfxText {
+                    text: LibraryState.hero.meta;
+                    font-size: Theme.t.fs-meta;
+                    font-weight: 600;
+                    color: Theme.t.text-body;
+                }
+                if LibraryState.hero.genres != "": LfxText {
+                    text: LibraryState.hero.genres;
+                    font-size: Theme.t.fs-meta;
+                    color: Theme.t.text-muted;
+                }
+            }
+            if LibraryState.hero.has-item: LfxButton {
+                x: root.gutter;
+                y: root.btn-y;
+                width: 170px;
+                kind: ButtonKind.primary;
+                text: "Abspielen";
+                icon: Icons.play;
+                has-icon: true;
+                focused: LibraryState.focus-zone == 2 && LibraryState.focus-index == 0;
+                clicked => { LibraryState.event("hero", 0, 0); }
+            }
+            if LibraryState.hero.has-item: LfxButton {
+                x: root.gutter + 184px;
+                y: root.btn-y;
+                width: 190px;
+                kind: ButtonKind.secondary;
+                text: "Mehr Infos";
+                icon: Icons.info;
+                has-icon: true;
+                focused: LibraryState.focus-zone == 2 && LibraryState.focus-index == 1;
+                clicked => { LibraryState.event("hero", 1, 0); }
+            }
+            if !LibraryState.hero.has-item && LibraryState.loading: LfxSpinner {
+                x: (parent.width - self.width) / 2;
+                y: (parent.height - self.height) / 2;
+            }
+        }
+
+        for row[r] in LibraryState.rows: LfxRow {
+            x: 0px;
+            y: root.top + r * root.row-h;
+            width: root.width;
+            height: root.row-h;
+            title: row.title;
+            items: row.items;
+            aspect: row.aspect;
+            focused-index: LibraryState.focus-zone == 10 + r ? LibraryState.focus-index : -1;
+            card-clicked(i) => { LibraryState.event("rowcard", r, i); }
+        }
+    }
+    LibStatus {
+        visible: LibraryState.rows.length == 0;
+        y: root.top;
+        gutter: root.gutter;
+        show-skeleton: !root.with-hero;
+    }
+}
+
+// ---------------------------------------------------------------- Neu und beliebt
+
+component LibNewPop inherits Rectangle {
+    in property <length> gutter;
+    in property <length> entry-h;
+    in property <length> row-h;
+    property <length> media-w: min(720px, root.width - 2 * root.gutter - 112px);
+    property <length> media-h: root.media-w * 9 / 16;
+    property <length> list-h: LibraryState.entries.length * root.entry-h;
+    property <int> fz: LibraryState.focus-zone;
+    property <int> fi: LibraryState.focus-index;
+    property <int> scroll-tick: LibraryState.scroll-tick;
+
+    changed fz => { root.scroll-to-focus(); }
+    changed fi => { root.scroll-to-focus(); }
+    function scroll-to-focus() {
+        if (root.fz == 5) {
+            if (root.fi * root.entry-h < -flick.content-y) {
+                flick.content-y = -root.fi * root.entry-h;
+            } else if ((root.fi + 1) * root.entry-h > -flick.content-y + root.height) {
+                flick.content-y = -((root.fi + 1) * root.entry-h - root.height);
+            }
+        } else if (root.fz >= 10 && root.fz < 30) {
+            flick.content-y = -(root.list-h + 16px + (root.fz - 10) * root.row-h);
+        }
+    }
+    changed scroll-tick => {
+        if (LibraryState.scroll-row < 0) { flick.content-y = 0px; }
+        else { flick.content-y = -(root.list-h + 16px + LibraryState.scroll-row * root.row-h); }
+    }
+
+    flick := Flickable {
+        width: 100%;
+        height: 100%;
+        content-height: root.list-h + 16px + LibraryState.rows.length * root.row-h + 60px;
+        animate content-y { duration: Theme.t.dur * 2; easing: Theme.t.ease-out; }
+
+        for e[i] in LibraryState.entries: Rectangle {
+            y: i * root.entry-h;
+            width: root.width;
+            height: root.entry-h;
+            // Nur Einträge in Sichtnähe aufbauen
+            if abs(i * root.entry-h - (-flick.content-y)) < root.height * 1.5 + root.entry-h: Rectangle {
+                LfxText {
+                    x: root.gutter;
+                    y: 4px;
+                    width: 96px;
+                    height: 20px;
+                    text: e.month;
+                    color: Theme.t.text-muted;
+                    font-size: 14px;
+                    font-weight: 600;
+                    horizontal-alignment: center;
+                }
+                LfxText {
+                    x: root.gutter;
+                    y: 22px;
+                    width: 96px;
+                    height: 48px;
+                    text: e.day;
+                    font-size: 40px;
+                    font-weight: 800;
+                    horizontal-alignment: center;
+                }
+                media := Rectangle {
+                    x: root.gutter + 112px;
+                    y: 4px;
+                    width: root.media-w;
+                    height: root.media-h;
+                    border-radius: 8px;
+                    background: Theme.t.surface-2;
+                    clip: true;
+                    if e.has-image: Image { width: 100%; height: 100%; source: e.image; image-fit: cover; }
+                    Rectangle { background: @linear-gradient(0deg, #000000b3 0%, #00000000 55%); }
+                    LfxText {
+                        x: 16px;
+                        y: parent.height - 14px - self.height;
+                        width: parent.width - 32px;
+                        text: e.title;
+                        font-size: 22px;
+                        font-weight: 800;
+                        overflow: elide;
+                    }
+                    TouchArea { clicked => { LibraryState.event("np-entry", i, 0); } }
+                    LfxButton {
+                        x: parent.width - 94px;
+                        y: 10px;
+                        kind: ButtonKind.round;
+                        icon: Icons.play;
+                        has-icon: true;
+                        width: 36px;
+                        height: 36px;
+                        clicked => { LibraryState.event("np-play", i, 0); }
+                    }
+                    LfxButton {
+                        x: parent.width - 48px;
+                        y: 10px;
+                        kind: ButtonKind.round;
+                        icon: Icons.chevron-down;
+                        has-icon: true;
+                        width: 36px;
+                        height: 36px;
+                        clicked => { LibraryState.event("np-info", i, 0); }
+                    }
+                    LfxFocusRing { active: LibraryState.focus-zone == 5 && LibraryState.focus-index == i; radius: 8px; }
+                }
+                LfxText {
+                    x: root.gutter + 112px;
+                    y: media.y + root.media-h + 12px;
+                    width: root.media-w;
+                    height: 26px;
+                    text: e.title;
+                    font-size: 20px;
+                    font-weight: 700;
+                    overflow: elide;
+                }
+                LfxText {
+                    x: root.gutter + 112px;
+                    y: media.y + root.media-h + 40px;
+                    width: root.media-w;
+                    height: 20px;
+                    text: e.since;
+                    color: Theme.t.text-muted;
+                    font-size: 14px;
+                }
+                LfxText {
+                    x: root.gutter + 112px;
+                    y: media.y + root.media-h + 64px;
+                    width: root.media-w;
+                    height: 66px;
+                    text: e.overview;
+                    color: Theme.t.text-muted;
+                    font-size: 15px;
+                    wrap: word-wrap;
+                    overflow: elide;
+                }
+                LfxText {
+                    x: root.gutter + 112px;
+                    y: media.y + root.media-h + 134px;
+                    width: root.media-w;
+                    height: 20px;
+                    text: e.genres;
+                    font-size: 14px;
+                    font-weight: 500;
+                    overflow: elide;
+                }
+            }
+        }
+
+        for row[r] in LibraryState.rows: LfxRow {
+            x: 0px;
+            y: root.list-h + 16px + r * root.row-h;
+            width: root.width;
+            height: root.row-h;
+            title: row.title;
+            items: row.items;
+            aspect: row.aspect;
+            focused-index: LibraryState.focus-zone == 10 + r ? LibraryState.focus-index : -1;
+            card-clicked(i) => { LibraryState.event("rowcard", r, i); }
+        }
+    }
+    LibStatus {
+        visible: LibraryState.entries.length == 0 && LibraryState.rows.length == 0;
+        gutter: root.gutter;
+    }
+}
+
+// ---------------------------------------------------------------- Suche
+
+component LibSearchBody inherits Rectangle {
+    in property <length> gutter;
+    in property <length> row-h;
+    property <int> fz: LibraryState.focus-zone;
+    property <int> fi: LibraryState.focus-index;
+    property <bool> has-query: LibraryState.query != "";
+
+    changed fz => { root.scroll-to-focus(); }
+    function scroll-to-focus() {
+        if (root.fz >= 10 && root.fz < 30) {
+            if ((root.fz - 10) * root.row-h < -flick.content-y) {
+                flick.content-y = -(root.fz - 10) * root.row-h;
+            } else if ((root.fz - 9) * root.row-h > -flick.content-y + root.height) {
+                flick.content-y = -((root.fz - 9) * root.row-h - root.height);
+            }
+        } else {
+            flick.content-y = 0px;
+        }
+    }
+
+    flick := Flickable {
+        width: 100%;
+        height: 100%;
+        content-height: root.has-query ? max(root.height, LibraryState.rows.length * root.row-h + 40px) : root.height;
+        animate content-y { duration: Theme.t.dur * 2; easing: Theme.t.ease-out; }
+
+        if root.has-query: Rectangle {
+            for row[r] in LibraryState.rows: LfxRow {
+                x: 0px;
+                y: r * root.row-h;
+                width: root.width;
+                height: root.row-h;
+                title: row.title;
+                items: row.items;
+                aspect: row.aspect;
+                focused-index: LibraryState.focus-zone == 10 + r ? LibraryState.focus-index : -1;
+                card-clicked(i) => { LibraryState.event("rowcard", r, i); }
+            }
+        }
+        // Startansicht: zuletzt gesucht, Genres, Bibliotheken
+        if !root.has-query: VerticalLayout {
+            x: root.gutter;
+            y: 8px;
+            width: root.width - 2 * root.gutter;
+            spacing: 6px;
+            for g in 3: VerticalLayout {
+                property <bool> has: mod(floor(LibraryState.chips-mask / pow(2, g)), 2) == 1;
+                spacing: 8px;
+                if has: LfxText {
+                    text: g == 0 ? "Zuletzt gesucht" : (g == 1 ? "Genres" : "Bibliotheken");
+                    font-size: Theme.t.fs-row-title;
+                    font-weight: Theme.t.fw-row-title;
+                    height: 26px;
+                    visible: self.height > 0;
+                }
+                HorizontalLayout {
+                    spacing: 0px;
+                    alignment: start;
+                    height: has ? 44px : 0px;
+                    for c[i] in LibraryState.chips: Rectangle {
+                        property <bool> mine: c.group == g;
+                        preferred-width: mine ? ct.preferred-width + 42px : 0px;
+                        width: self.preferred-width;
+                        height: 34px;
+                        visible: mine;
+                        pill := Rectangle {
+                            width: parent.width - 10px;
+                            height: 34px;
+                            border-radius: 17px;
+                            border-width: mine ? 1px : 0px;
+                            border-color: #ffffff66;
+                            background: cta.has-hover && mine ? Theme.t.pill-active : transparent;
+                            ct := LfxText {
+                                x: 16px;
+                                text: mine ? c.label : "";
+                                height: 100%;
+                                vertical-alignment: center;
+                                font-size: 14px;
+                                font-weight: 500;
+                            }
+                            cta := TouchArea { enabled: mine; clicked => { LibraryState.event("chip", g, c.pos); } }
+                            LfxFocusRing {
+                                active: mine && LibraryState.focus-zone == 40 + g && LibraryState.focus-index == c.pos;
+                                radius: 17px;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    if root.has-query: LibStatus {
+        visible: LibraryState.rows.length == 0;
+        gutter: root.gutter;
+    }
+}
+
+// Bildschirmtastatur (einfaches Raster) für Gamepad.
+component LibKeyboard inherits Rectangle {
+    in property <length> gutter;
+    property <length> kw: min(64px, (min(root.width - 2 * root.gutter, 760px)) / 10 - 6px);
+    height: 5 * 44px + 16px;
+    for k[i] in LibraryState.kbd-keys: Rectangle {
+        property <bool> wide: i >= 40;
+        x: root.gutter + (wide ? (i - 40) * (5 * (root.kw + 6px)) : mod(i, 10) * (root.kw + 6px));
+        y: wide ? 4 * 44px + 8px : floor(i / 10) * 44px + 4px;
+        width: wide ? 5 * (root.kw + 6px) - 6px : root.kw;
+        height: 38px;
+        border-radius: 4px;
+        background: kta.has-hover ? Theme.t.pill-active : Theme.t.surface-2;
+        LfxText {
+            text: k;
+            width: 100%;
+            height: 100%;
+            horizontal-alignment: center;
+            vertical-alignment: center;
+            font-size: 16px;
+            font-weight: 600;
+        }
+        kta := TouchArea { clicked => { LibraryState.event("key", i, 0); } }
+        LfxFocusRing {
+            active: (i < 40 && LibraryState.focus-zone == 7 && LibraryState.focus-index == i)
+                || (i >= 40 && LibraryState.focus-zone == 30 && LibraryState.focus-index == i - 40);
+            radius: 4px;
+        }
+    }
+}
+
+// Auswahlmenü (Genre, Sortierung) als Fläche über dem Körper.
+component LibMenu inherits Rectangle {
+    in property <length> top;
+    TouchArea { clicked => { LibraryState.event("menu-close", 0, 0); } }
+    Rectangle {
+        x: min(LibraryState.menu-x, root.width - self.width - 8px);
+        y: root.top;
+        width: LibraryState.menu-cols * 200px + 16px;
+        height: ceil(LibraryState.menu-items.length / LibraryState.menu-cols) * 34px + 16px;
+        background: #0b0b0b;
+        border-width: 1px;
+        border-color: #ffffff33;
+        TouchArea { }
+        for it[i] in LibraryState.menu-items: Rectangle {
+            x: 8px + mod(i, LibraryState.menu-cols) * 200px;
+            y: 8px + floor(i / LibraryState.menu-cols) * 34px;
+            width: 200px;
+            height: 34px;
+            background: mta.has-hover ? #ffffff1a : transparent;
+            LfxText {
+                x: 10px;
+                width: parent.width - 20px;
+                height: 100%;
+                text: it;
+                font-size: 14px;
+                font-weight: i == LibraryState.menu-current ? 700 : 400;
+                color: i == LibraryState.menu-current ? #ffffff : Theme.t.text-muted;
+                vertical-alignment: center;
+                overflow: elide;
+            }
+            mta := TouchArea { clicked => { LibraryState.event("menu", i, 0); } }
+            LfxFocusRing { active: LibraryState.focus-zone == 4 && LibraryState.focus-index == i; radius: 2px; }
+        }
+    }
+}
+
+// ---------------------------------------------------------------- Host
+
+export component LibraryPage inherits Rectangle {
+    property <length> gutter: Theme.gutter-at(root.width);
+    property <int> cols: root.width >= 1400px ? 6 : (root.width >= 1100px ? 5 : (root.width >= 900px ? 4 : (root.width >= 600px ? 3 : 2)));
+    property <length> gap: root.width < 600px ? 8px : 12px;
+    property <length> card-w: (root.width - 2 * root.gutter - (root.cols - 1) * root.gap) / root.cols;
+    property <length> card-h: root.card-w * 9 / 16;
+    property <length> pitch-y: root.card-h + 24px;
+    // Zeilenansicht: wie die Startseite, aber ein niedrigeres Billboard
+    property <int> wn: Theme.cards-visible-at(root.width);
+    property <length> row-card-w: (root.width - root.gutter - root.wn * Theme.t.card-gap - Theme.t.card-peek) / root.wn;
+    property <length> row-h: 24px + Theme.t.row-title-gap + root.row-card-w * 9 / 16 + 28px;
+    property <length> hero-h: max(240px, min(root.width * 0.3, 420px));
+    property <length> btn-y: root.hero-h - Theme.t.btn-h - 28px;
+    property <length> nav-h: 52px;
+    property <int> mode: LibraryState.mode;
+    property <length> head-h: root.mode == 5 ? 76px + (LibraryState.kbd-open ? 5 * 44px + 16px : 0px)
+        : (root.mode == 4 ? 60px : (root.mode == 3 ? 96px : 56px));
+    property <length> np-media-w: min(720px, root.width - 2 * root.gutter - 112px);
+    property <length> entry-h: root.np-media-w * 9 / 16 + 200px;
+
+    out property <LibGeometry> geom: {
+        width: root.width,
+        height: root.height,
+        nav-h: root.nav-h,
+        head-h: root.head-h,
+        cols: root.cols,
+        gutter: root.gutter,
+        card-w: root.card-w,
+        card-h: root.card-h,
+        gap: root.gap,
+        pitch-y: root.pitch-y,
+        hero-h: root.hero-h,
+        row-h: root.row-h,
+        entry-h: root.entry-h,
+        btn-y: root.nav-h + root.head-h + root.btn-y,
+        btn-h: Theme.t.btn-h,
+    };
+    changed geom => { LibraryState.geometry(root.geom); }
+    init => { LibraryState.geometry(root.geom); }
+
+    // Navigationsleiste (Platzhalter in der Art der Startseite; die Startseiten-Kopfleiste ersetzt sie später)
+    Rectangle {
+        y: 0px;
+        height: root.nav-h;
+        background: Theme.design == Design.retro ? Theme.t.retro-bg : Theme.t.bg;
+        LfxTabs {
+            x: root.gutter;
+            y: (parent.height - self.height) / 2;
+            labels: LibraryState.nav-labels;
+            current: LibraryState.nav-current;
+            focused-index: LibraryState.focus-zone == 0 ? LibraryState.focus-index : -1;
+            selected(i) => { LibraryState.event("nav", i, 0); }
+        }
+    }
+
+    // Kopfbereich
+    if root.mode == 5: Rectangle {
+        y: root.nav-h;
+        height: root.head-h;
+        background: Theme.design == Design.retro ? Theme.t.retro-bg : Theme.t.bg;
+        LibSearchField {
+            x: root.gutter;
+            y: 16px;
+            width: min(600px, root.width - 2 * root.gutter - 150px);
+            text <=> LibraryState.query;
+            tick: LibraryState.field-tick;
+            focused: LibraryState.focus-zone == 6 && LibraryState.focus-index == 0;
+            edited => { LibraryState.event("query", 0, 0); }
+            accepted => { LibraryState.event("field", 0, 0); }
+        }
+        LfxButton {
+            x: root.gutter + min(600px, root.width - 2 * root.gutter - 150px) + 12px;
+            y: 12px;
+            width: 130px;
+            kind: ButtonKind.secondary;
+            text: "Tastatur";
+            focused: LibraryState.focus-zone == 6 && LibraryState.focus-index == 1;
+            clicked => { LibraryState.event("kbd-toggle", 0, 0); }
+        }
+        if LibraryState.kbd-open: LibKeyboard {
+            y: 68px;
+            width: parent.width;
+            gutter: root.gutter;
+        }
+    }
+    if root.mode != 5: LibHead {
+        y: root.nav-h;
+        width: parent.width;
+        height: root.mode == 4 ? 60px : 56px;
+        gutter: root.gutter;
+    }
+    if root.mode == 3: LibAlpha {
+        y: root.nav-h + 56px;
+        width: parent.width;
+        gutter: root.gutter;
+    }
+
+    // Körper
+    body := Rectangle {
+        y: root.nav-h + root.head-h;
+        height: parent.height - self.y;
+        clip: true;
+        if root.mode == 1 || root.mode == 2 || root.mode == 3: LibGrid {
+            cols: root.cols;
+            gutter: root.gutter;
+            gap: root.gap;
+            card-w: root.card-w;
+            card-h: root.card-h;
+            pitch-y: root.pitch-y;
+        }
+        if root.mode == 0: LibRows {
+            gutter: root.gutter;
+            hero-h: root.hero-h;
+            row-h: root.row-h;
+            btn-y: root.btn-y;
+        }
+        if root.mode == 4: LibNewPop {
+            gutter: root.gutter;
+            entry-h: root.entry-h;
+            row-h: root.row-h;
+        }
+        if root.mode == 5: LibSearchBody {
+            gutter: root.gutter;
+            row-h: root.row-h;
+        }
+        if LibraryState.menu-open: LibMenu {
+            top: 4px;
+        }
+    }
+    if LibraryState.note != "": LfxText {
+        x: root.gutter;
+        y: root.nav-h + root.head-h + 20px;
+        width: root.width - 2 * root.gutter;
+        text: LibraryState.note;
+        color: Theme.t.text-muted;
+        horizontal-alignment: center;
+    }
+}
