@@ -55,6 +55,8 @@ pub struct State {
     pub lib: crate::library::LibState, // W2-library
     /// W2-detail: Detail-Modal/-Seite, Kontextmenü, Hovercard.
     pub detail: crate::detail::DetailCtl, // W2-detail
+    /// W4-account: Einstellungen, Konten/Server, Verwaltung.
+    pub account: crate::account::AccountCtl, // W4-account
 }
 
 /// Zeitgeber, die leben müssen, solange die App läuft.
@@ -204,6 +206,7 @@ impl App {
     fn leave_route_hooks(self: &Rc<Self>) {
         self.tv_leave(); // W2-tvui
         self.detail_leave_route(); // W2-detail
+        self.account_leave(); // W4-account
         self.stop_trailer(); // W2-home: Trailer endet bei jedem Seitenwechsel und beim Wiedergabe-Start
         let task = self.st.borrow_mut().qc_task.take();
         if let Some(t) = task {
@@ -263,11 +266,10 @@ impl App {
             }
             // W2-library
             r if crate::library::is_library_route(r) => ctx = self.render_library_route(r),
-            Route::Settings => {
+            // W4-account: Einstellungen und Verwaltung teilen die Seite
+            Route::Settings | Route::Admin => {
                 ui.set_page(Page::Settings);
-                self.set_graph(focus::settings_graph(), None);
-                self.st.borrow_mut().graph.focus_zone(lfx_nav::ZoneId(0));
-                self.show_focus();
+                self.render_account(matches!(route, Route::Admin));
             }
             Route::About => {
                 ui.set_page(Page::About);
@@ -332,7 +334,7 @@ impl App {
                 ui.set_focus_row(row);
                 ui.set_focus_index(idx);
             }
-            Route::Settings => ui.set_simple_slot(focus::slot_of(f, 4)),
+            Route::Settings | Route::Admin => self.acc_push(), // W4-account
             r if crate::library::is_library_route(r) => self.lib_show_focus(), // W2-library
             Route::Player { .. } => {} // W2-player: Fokus liegt im Player-Zustand
             _ => ui.set_simple_slot(focus::slot_of(f, 0)),
@@ -351,6 +353,9 @@ impl App {
         if matches!(route, Route::Player { .. }) {
             self.player_action(action);
             return;
+        }
+        if matches!(route, Route::Settings | Route::Admin) && self.account_handle_action(action) {
+            return; // W4-account
         }
         if matches!(route, Route::TvMode) && self.tv_action(action) {
             return; // W2-tvui
@@ -420,6 +425,12 @@ impl App {
         match route {
             Route::Login { server, .. } => self.show_profiles(server.clone()),
             Route::Profiles { .. } => self.go_reset(Route::AddServer),
+            // W4-account: „Server hinzufügen“ aus den Einstellungen lässt sich abbrechen
+            Route::AddServer
+                if self.session.active().is_some() && self.st.borrow().router.depth() > 1 =>
+            {
+                self.go_back();
+            }
             Route::Home | Route::AddServer => {}
             _ => {
                 let can_back = self.st.borrow().router.depth() > 1;

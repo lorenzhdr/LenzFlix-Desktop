@@ -11,6 +11,7 @@ import { TvPage } from "tvui.slint";  // W2-tvui
 import { LibraryPage } from "library.slint"; // W2-library
 import { PlayerView } from "player-types.slint"; // W2-player
 import { SoonPage, SettingsPage, AboutPage } from "misc.slint";
+import { AccountPage } from "account.slint"; // W4-account
 import { DetailPage, DetailOverlays } from "detail-layer.slint"; // W2-detail
 
 // Hauptfenster von LENZFLIX Desktop. Rust (lfx-app) hält Router, Zustand und Fokus und setzt die Properties;
@@ -177,15 +178,7 @@ export component MainWindow inherits Window {
                 focus-slot: root.simple-slot;
                 back => { root.simple-back(); }
             }
-            if root.page == Page.settings: SettingsPage {
-                design: root.design;
-                focus-slot: root.simple-slot;
-                user-name: root.user-name;
-                design-chosen(i) => { root.design-chosen(i); }
-                about => { root.about(); }
-                sign-out => { root.sign-out(); }
-                back => { root.simple-back(); }
-            }
+            if root.page == Page.settings: AccountPage { } // W4-account (ersetzt SettingsPage, auch Verwaltung)
             if root.page == Page.detail: DetailPage { } // W2-detail
             if root.page == Page.about: AboutPage {
                 version: root.version;

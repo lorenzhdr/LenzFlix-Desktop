@@ -491,8 +491,14 @@ fn forbidden() -> Response {
     StatusCode::FORBIDDEN.into_response()
 }
 
-fn is_admin(shared: &Shared) -> bool {
+pub(crate) fn is_admin(shared: &Shared) -> bool {
+    // W4-account: pub(crate)
     shared.lock().extra.demo_admin
+}
+
+/// W4-account: Verwaltungsereignis eintragen (für w4_account.rs).
+pub(crate) fn push_event(shared: &Shared, text: String) {
+    shared.lock().extra.events.push(text);
 }
 
 fn user_data_json(shared: &Shared, id: &str) -> Value {

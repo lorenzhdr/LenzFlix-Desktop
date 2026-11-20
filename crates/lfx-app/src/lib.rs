@@ -5,6 +5,12 @@
 //! (Wiedergabe) und `lfx-nav` (Fokus, Tastatur, Gamepad). Router und Zustand liegen in Rust ([`route`], [`app`]),
 //! die Seiten sind Slint-Komponenten in `lfx-ui`.
 
+pub mod account; // W4-account
+#[cfg(feature = "dev-automation")]
+pub mod account_automation; // W4-account
+pub mod account_logic; // W4-account
+pub mod account_net; // W4-account
+pub mod account_rows; // W4-account
 pub mod app;
 pub mod auth;
 #[cfg(feature = "dev-automation")]
@@ -131,9 +137,10 @@ pub fn run(opts: Options) -> Result<(), String> {
             geo: None,
             images: None,
             toast_gen: 0,
-            tv: tvui::TvUi::default(),            // W2-tvui
-            lib: library::LibState::default(),    // W2-library
-            detail: detail::DetailCtl::default(), // W2-detail
+            tv: tvui::TvUi::default(),               // W2-tvui
+            lib: library::LibState::default(),       // W2-library
+            detail: detail::DetailCtl::default(),    // W2-detail
+            account: account::AccountCtl::default(), // W4-account
         }),
         timers: Timers::default(),
         gamepad: RefCell::new(None),
@@ -261,6 +268,12 @@ fn wire(app: &Rc<App>, ui: &MainWindow, shell: &Shell) {
     }
 
     detail::wire(app, ui); // W2-detail
+    {
+        // W4-account
+        let a = app.clone();
+        ui.global::<lfx_ui::AccountState>()
+            .on_event(move |k, x, y| a.acc_event(&k, x, y));
+    }
     // W2-home
     let a = app.clone();
     ui.on_home_event(move |k, v| a.on_home_event(&k, v));
