@@ -1,0 +1,2 @@
+# Bewusst ignorierte Falschmeldungen (erfundene Mock-Werte).
+9508db370a33eb699309abb256ec01f8d5fea471:crates/lfx-mock-jellyfin/src/lib.rs:generic-api-key:373
