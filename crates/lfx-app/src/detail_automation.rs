@@ -44,7 +44,7 @@ impl App {
             }
             "detail_close" => {
                 self.close_modal();
-                self.close_menu();
+                self.detail_close_menu();
                 ok(json!({}));
             }
             "detail_hover" | "detail_unhover" => {

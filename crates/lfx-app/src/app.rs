@@ -204,6 +204,7 @@ impl App {
     fn leave_route_hooks(self: &Rc<Self>) {
         self.tv_leave(); // W2-tvui
         self.detail_leave_route(); // W2-detail
+        self.stop_trailer(); // W2-home: Trailer endet bei jedem Seitenwechsel und beim Wiedergabe-Start
         let task = self.st.borrow_mut().qc_task.take();
         if let Some(t) = task {
             t.abort();
@@ -343,6 +344,9 @@ impl App {
     /// Eine Navigationsaktion (Tastatur, Gamepad, Automation).
     pub fn apply_action(self: &Rc<Self>, action: NavAction) {
         self.player_activity();
+        if self.home_menu_action(action) {
+            return; // W2-home: offenes Menü der Startseite nimmt die Taste
+        }
         let route = self.st.borrow().router.current().clone();
         if matches!(route, Route::Player { .. }) {
             self.player_action(action);

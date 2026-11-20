@@ -1,0 +1,142 @@
+import { Theme, Design } from "../theme/theme.slint";
+import { LfxText } from "text.slint";
+import { LfxIcon } from "icon.slint";
+import { LfxFocusRing } from "focus-ring.slint";
+import { Icons } from "../icons.slint";
+
+// Textlink der Kopfleiste (Pille: aktiv = weiß 20 %, Hover = weiß 8 %).
+component NavPill inherits Rectangle {
+    in property <string> text;
+    in property <bool> active;
+    in property <bool> focused;
+    callback clicked();
+    height: Theme.t.nav-pill-h;
+    width: label.preferred-width + 32px;
+    border-radius: self.height / 2;
+    background: root.active ? Theme.t.pill-active : (ta.has-hover ? #ffffff14 : transparent);
+    animate background { duration: Theme.t.dur-fast; easing: Theme.t.ease; }
+    label := LfxText {
+        x: 16px;
+        y: 0px;
+        height: parent.height;
+        text: root.text;
+        font-size: Theme.t.fs-nav;
+        font-weight: Theme.t.fw-nav;
+        color: (root.active || ta.has-hover) ? Theme.t.text : Theme.t.text-body;
+        vertical-alignment: center;
+    }
+    ta := TouchArea { clicked => { root.clicked(); } }
+    LfxFocusRing {
+        active: root.focused;
+        radius: root.height / 2;
+    }
+}
+
+// Symbol rechts (40 px, rund, Hover weiß 10 %).
+component NavIcon inherits Rectangle {
+    in property <image> source;
+    in property <bool> focused;
+    in property <bool> lit;
+    callback clicked();
+    width: 40px;
+    height: 40px;
+    border-radius: 20px;
+    background: ta.has-hover ? #ffffff1a : transparent;
+    animate background { duration: Theme.t.dur-fast; easing: Theme.t.ease; }
+    LfxIcon {
+        x: 8px;
+        y: 8px;
+        source: root.source;
+        size: 24px;
+        tint: root.lit ? Theme.t.gold : Theme.t.text;
+    }
+    ta := TouchArea { clicked => { root.clicked(); } }
+    LfxFocusRing {
+        active: root.focused;
+        radius: 20px;
+    }
+}
+
+// Kopfleiste der Startseite (Web: `#lfx-nav` plus MUI-AppBar): Logo, Links, rechts Suche, TV, Datensparmodus, Profil.
+// Oben transparent (der Ambient-Verlauf scheint durch), beim Scrollen dunkel. Fokus-Index wie in lfx-nav:
+// 0..4 Links, 5 Suche, 6 TV, 7 Datensparmodus, 8 Profil.
+export component HomeHeader inherits Rectangle {
+    in property <length> gutter;
+    in property <bool> scrolled;
+    in property <int> focus-index: -1;
+    in property <int> current: 0;
+    in property <bool> ds-on;
+    in property <string> initial;
+    in property <color> avatar-color: Theme.t.red;
+    in property <bool> narrow: false;
+    callback pick(int);
+    callback logo-clicked();
+
+    height: Theme.t.header-h;
+    background: root.scrolled ? (Theme.design == Design.retro ? Theme.t.retro-bg : Theme.t.bg) : transparent;
+    animate background { duration: 200ms; easing: Theme.t.ease; }
+
+    if root.scrolled: Rectangle {
+        y: parent.height - 1px;
+        height: 1px;
+        background: #ffffff0a;
+    }
+
+    Image {
+        x: root.gutter;
+        y: (parent.height - self.height) / 2;
+        width: 88px;
+        height: 25px;
+        source: @image-url("../../../../assets/logo/lenzflix.svg");
+        image-fit: contain;
+        TouchArea { clicked => { root.logo-clicked(); } }
+    }
+
+    if !root.narrow: HorizontalLayout {
+        x: root.gutter + 96px;
+        y: (parent.height - Theme.t.nav-pill-h) / 2;
+        height: Theme.t.nav-pill-h;
+        spacing: 4px;
+        NavPill { text: "Start"; active: root.current == 0; focused: root.focus-index == 0; clicked => { root.pick(0); } }
+        NavPill { text: "Serien"; active: root.current == 1; focused: root.focus-index == 1; clicked => { root.pick(1); } }
+        NavPill { text: "Filme"; active: root.current == 2; focused: root.focus-index == 2; clicked => { root.pick(2); } }
+        NavPill { text: "Neu und beliebt"; active: root.current == 3; focused: root.focus-index == 3; clicked => { root.pick(3); } }
+        NavPill { text: "Meine Liste"; active: root.current == 4; focused: root.focus-index == 4; clicked => { root.pick(4); } }
+    }
+
+    HorizontalLayout {
+        x: parent.width - root.gutter - self.preferred-width;
+        y: (parent.height - 40px) / 2;
+        height: 40px;
+        spacing: 4px;
+        NavIcon { source: Icons.search; focused: root.focus-index == 5; clicked => { root.pick(5); } }
+        NavIcon { source: Icons.tvmode; focused: root.focus-index == 6; clicked => { root.pick(6); } }
+        NavIcon { source: Icons.datasaver; lit: root.ds-on; focused: root.focus-index == 7; clicked => { root.pick(7); } }
+        Rectangle {
+            width: 48px;
+            height: 40px;
+            Rectangle {
+                x: 8px;
+                y: 4px;
+                width: 32px;
+                height: 32px;
+                border-radius: 6px;
+                background: root.avatar-color;
+                LfxText {
+                    width: 100%;
+                    height: 100%;
+                    text: root.initial;
+                    font-size: 16px;
+                    font-weight: 800;
+                    horizontal-alignment: center;
+                    vertical-alignment: center;
+                }
+                LfxFocusRing {
+                    active: root.focus-index == 8;
+                    radius: 6px;
+                }
+            }
+            TouchArea { clicked => { root.pick(8); } }
+        }
+    }
+}

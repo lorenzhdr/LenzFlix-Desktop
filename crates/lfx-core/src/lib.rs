@@ -15,6 +15,7 @@ pub mod billboard;
 pub mod cache;
 pub mod call;
 pub mod collate;
+pub mod color; // W2-home
 pub mod datasaver;
 pub mod dayseed;
 pub mod images;
@@ -22,6 +23,7 @@ pub mod library;
 pub mod newpopular;
 pub mod prefetch;
 pub mod rows;
+pub mod trend; // W2-home
 mod util;
 
 pub use call::{ApiCall, Endpoint};

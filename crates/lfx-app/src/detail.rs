@@ -440,7 +440,7 @@ impl App {
     /// Öffnet das Modal; `seed` zeigt schon vor der Antwort Titel und Bild.
     pub fn open_modal(self: &Rc<Self>, id: &str, seed: Option<BaseItem>) {
         self.close_hovercard_now();
-        self.close_menu();
+        self.detail_close_menu();
         if self.st.borrow().detail.surface == Surface::Modal {
             // Wechsel des Titels im offenen Modal (Ähnliche Titel)
             self.st.borrow_mut().detail.surface = Surface::None;
@@ -468,7 +468,7 @@ impl App {
                 st.graph.remove_zone(logic::detail_zone(s));
             }
         }
-        self.close_menu();
+        self.detail_close_menu();
         self.with_ui(|_, ui| {
             ui.set_modal_open(false);
             ui.set_focus_sec(-1);
@@ -480,7 +480,7 @@ impl App {
     /// Detailseite betreten (Route `Detail{id}`).
     pub fn enter_detail_page(self: &Rc<Self>, id: &str) {
         self.close_hovercard_now();
-        self.close_menu();
+        self.detail_close_menu();
         {
             let mut st = self.st.borrow_mut();
             st.detail.surface = Surface::Page;
@@ -496,7 +496,7 @@ impl App {
     pub fn detail_leave_route(self: &Rc<Self>) {
         let surface = self.st.borrow().detail.surface;
         self.close_hovercard_now();
-        self.close_menu();
+        self.detail_close_menu();
         if surface == Surface::Page {
             let mut st = self.st.borrow_mut();
             st.detail.surface = Surface::None;
@@ -1504,7 +1504,7 @@ impl App {
         });
     }
 
-    pub fn close_menu(self: &Rc<Self>) {
+    pub fn detail_close_menu(self: &Rc<Self>) {
         let had = self.st.borrow_mut().detail.menu.take().is_some();
         if had {
             self.with_ui(|_, ui| ui.set_menu_open(false));
@@ -1539,14 +1539,14 @@ impl App {
                 }
                 self.with_ui(|_, ui| ui.set_menu_focus(i as i32));
             }
-            NavAction::Activate => self.menu_pick(focus),
-            NavAction::Back | NavAction::Menu | NavAction::Info => self.close_menu(),
+            NavAction::Activate => self.detail_menu_pick(focus),
+            NavAction::Back | NavAction::Menu | NavAction::Info => self.detail_close_menu(),
             _ => {}
         }
     }
 
     /// Eintrag des Menüs ausführen.
-    pub fn menu_pick(self: &Rc<Self>, i: usize) {
+    pub fn detail_menu_pick(self: &Rc<Self>, i: usize) {
         let picked = {
             let st = self.st.borrow();
             let Some(m) = &st.detail.menu else { return };
@@ -1556,7 +1556,7 @@ impl App {
                 .map(|e| (e.action, m.item.clone()))
         };
         let Some((action, item)) = picked else { return };
-        self.close_menu();
+        self.detail_close_menu();
         match action {
             MenuAction::Play => self.play_any(&item, false),
             MenuAction::FromStart => self.play_any(&item, true),
@@ -1925,7 +1925,7 @@ pub fn wire(app: &Rc<App>, ui: &MainWindow) {
     });
     on!(on_close, |a| a.close_modal());
     on!(on_back, |a| a.apply_action(NavAction::Back));
-    on!(on_menu_picked, |a, i| a.menu_pick(i.max(0) as usize));
-    on!(on_menu_close, |a| a.close_menu());
+    on!(on_menu_picked, |a, i| a.detail_menu_pick(i.max(0) as usize));
+    on!(on_menu_close, |a| a.detail_close_menu());
     crate::hovercard::wire(app, &g);
 }

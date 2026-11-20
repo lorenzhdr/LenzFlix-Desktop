@@ -1,0 +1,153 @@
+import { Theme } from "../theme/theme.slint";
+import { LfxText } from "text.slint";
+import { LfxIcon } from "icon.slint";
+import { Icons } from "../icons.slint";
+import { HCard } from "../pages/home-types.slint";
+import { HomeCard } from "home-card.slint";
+
+// Zeile der Startseite (Web: `.lfx-row`): Titel 18 px/600, darunter 14 px Abstand, dann die Karten (virtualisiert).
+// Pfeile an den Rändern (nur bei Mauszeiger über der Zeile), seitenweises Scrollen mit Animation, Seitenpunkte.
+export component HomeRow inherits Rectangle {
+    in property <string> title;
+    in property <[HCard]> items;
+    in property <bool> top10: false;
+    in property <int> focused-index: -1;
+    in property <length> gutter;
+    in property <int> n;
+    in property <length> gap;
+    in property <length> card-w;
+    in property <length> card-h;
+    out property <length> scroll-x: 0px;
+    callback card-clicked(int);
+    callback visible-changed(int);
+    // W2-detail: Hover (Index, Maus darauf, Rechteck in Fensterkoordinaten) und Rechtsklick (Index, Position)
+    callback card-hover(int, bool, length, length, length, length);
+    callback card-context(int, length, length);
+
+    property <length> pitch: root.card-w + root.gap;
+    property <length> head-h: 19px;
+    property <length> max-scroll: max(0px, root.items.length * root.pitch - (root.width - 2 * root.gutter + root.gap));
+    property <int> first: max(0, floor(root.scroll-x / root.pitch) - 1);
+    property <int> pool: root.n + 4;
+    property <bool> hot: false;
+    property <int> pages: max(1, ceil(root.items.length / max(1, root.n - 1)));
+    property <int> page: min(root.pages - 1, round(root.scroll-x / max(1px, root.max-scroll) * (root.pages - 1)));
+
+    animate scroll-x { duration: Theme.t.dur * 2; easing: Theme.t.ease-out; }
+    changed first => { root.visible-changed(root.first); }
+    changed focused-index => {
+        if (root.focused-index >= 0) { root.reveal(root.focused-index); }
+    }
+
+    public function page-by(dir: int) {
+        root.scroll-x = min(root.max-scroll, max(0px, root.scroll-x + dir * (root.n - 1) * root.pitch));
+    }
+    public function reveal(idx: int) {
+        if (idx * root.pitch < root.scroll-x) {
+            root.scroll-x = max(0px, idx * root.pitch);
+        } else if ((idx + 1) * root.pitch - root.gap > root.scroll-x + root.width - 2 * root.gutter) {
+            root.scroll-x = min(root.max-scroll, (idx + 1) * root.pitch - (root.width - 2 * root.gutter));
+        }
+    }
+
+    LfxText {
+        x: root.gutter;
+        y: 0px;
+        height: root.head-h;
+        text: root.title;
+        font-size: Theme.t.fs-row-title;
+        font-weight: Theme.t.fw-row-title;
+        vertical-alignment: center;
+    }
+    // Seitenpunkte (12 x 2 px)
+    if root.pages > 1: Rectangle {
+        x: root.width - root.gutter - root.pages * 13px;
+        y: root.head-h / 2 - 1px;
+        width: root.pages * 13px;
+        height: 2px;
+        opacity: root.hot ? 1.0 : 0.0;
+        animate opacity { duration: Theme.t.dur; easing: Theme.t.ease; }
+        for p in root.pages: Rectangle {
+            x: p * 13px;
+            width: 12px;
+            height: 2px;
+            background: p == root.page ? #aaaaaa : #4d4d4d;
+        }
+    }
+
+    viewport := Rectangle {
+        y: root.head-h + Theme.t.row-title-gap;
+        height: root.card-h + 20px;
+        clip: false;
+
+        TouchArea {
+            scroll-event(e) => {
+                if (e.delta-x != 0px) {
+                    root.scroll-x = min(root.max-scroll, max(0px, root.scroll-x - e.delta-x));
+                    return accept;
+                }
+                reject
+            }
+        }
+        // Karten werden an den Seitenrändern abgeschnitten (clip der inneren Fläche)
+        Rectangle {
+            x: 0px;
+            y: -4px;
+            width: parent.width;
+            height: root.card-h + 20px;
+            clip: true;
+            for slot in root.pool: cell := Rectangle {
+                property <int> idx: root.first + slot;
+                x: root.gutter + idx * root.pitch - root.scroll-x;
+                y: 4px;
+                width: root.card-w;
+                height: root.card-h;
+                if idx < root.items.length: HomeCard {
+                    width: 100%;
+                    height: 100%;
+                    data: root.items[idx];
+                    top10: root.top10;
+                    focused: idx == root.focused-index;
+                    clicked => { root.card-clicked(idx); }
+                    hover(h) => {
+                        root.hot = h;
+                        root.card-hover(idx, h, cell.absolute-position.x, cell.absolute-position.y, cell.width, cell.height); // W2-detail
+                    }
+                    context-requested(x, y) => { root.card-context(idx, x, y); } // W2-detail
+                }
+            }
+        }
+        if root.scroll-x > 0px: Rectangle {
+            x: 0px;
+            width: root.gutter;
+            height: root.card-h;
+            background: a-prev.has-hover ? #141414b3 : #14141480;
+            border-radius: 4px;
+            opacity: (root.hot || a-prev.has-hover) ? 1.0 : 0.0;
+            animate opacity { duration: Theme.t.dur; easing: Theme.t.ease; }
+            LfxIcon {
+                x: (parent.width - self.width) / 2;
+                y: (parent.height - self.height) / 2;
+                source: Icons.chevron-left;
+                size: a-prev.has-hover ? 40px : 32px;
+            }
+            a-prev := TouchArea { clicked => { root.page-by(-1); } }
+        }
+        if root.scroll-x < root.max-scroll: Rectangle {
+            x: root.width - root.gutter;
+            width: root.gutter;
+            height: root.card-h;
+            background: a-next.has-hover ? #141414b3 : #14141480;
+            border-radius: 4px;
+            opacity: (root.hot || a-next.has-hover) ? 1.0 : 0.0;
+            animate opacity { duration: Theme.t.dur; easing: Theme.t.ease; }
+            LfxIcon {
+                x: (parent.width - self.width) / 2;
+                y: (parent.height - self.height) / 2;
+                source: Icons.chevron-right;
+                size: a-next.has-hover ? 40px : 32px;
+            }
+            a-next := TouchArea { clicked => { root.page-by(1); } }
+        }
+    }
+}

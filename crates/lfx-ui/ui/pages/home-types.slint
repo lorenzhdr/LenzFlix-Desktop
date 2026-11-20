@@ -1,0 +1,78 @@
+// Datentypen der LENZFLIX-Startseite (W2-home). Rust füllt die Modelle.
+
+// Karte einer Startseiten-Zeile.
+export struct HCard {
+    title: string,
+    image: image,
+    has-image: bool,
+    // Fortschritt 0..1 (Weiterschauen), <= 0 = kein Balken
+    progress: float,
+    // Eine Marke unten mittig („Neu hinzugefügt“, „IM TREND“ …), leer = keine
+    badge: string,
+    // Top-10-Rang (1..10), 0 = keine Rangzahl
+    rank: int,
+}
+
+// Zeile. `tall-before` = Anzahl Top-10-Zeilen davor (Top-10-Zeilen sind höher).
+export struct HRow {
+    id: string,
+    title: string,
+    top10: bool,
+    tall-before: int,
+    items: [HCard],
+}
+
+// Maße der Seite (Seitenkoordinaten, Ursprung oben links unter der Titelleiste, ohne Scroll); Rust baut daraus
+// die Fokuszonen und das Video-Rechteck.
+export struct HomeLayout {
+    width: length,
+    header-h: length,
+    gutter: length,
+    bb-x: length,
+    bb-y: length,
+    bb-w: length,
+    bb-h: length,
+    play-x: length,
+    play-y: length,
+    play-w: length,
+    info-x: length,
+    info-w: length,
+    btn-h: length,
+    rows-top: length,
+    row-h: length,
+    top-extra: length,
+    pitch: length,
+    card-w: length,
+    card-h: length,
+    top-card-h: length,
+    head-h: length,
+}
+
+// Zustand der Kopfleiste, Menüs und des Billboards, den Rust setzt.
+export struct HomeUi {
+    ambient: color,
+    // Datensparmodus: Schalter und Teile (Reihenfolge Trailer, Hero, Bilder, Vorladen, Lazy, TV-Vorwärmen)
+    ds-on: bool,
+    ds-parts: [bool],
+    ds-labels: [string],
+    user-initial: string,
+    user-name: string,
+    // 0 = keins, 1 = Profilmenü, 2 = Datensparmodus, 3 = Geheimmenü
+    menu: int,
+    menu-index: int,
+    // Billboard
+    hero-count: int,
+    hero-index: int,
+    // Der Trailer ist sichtbar (Video-Ebene scheint durch das Billboard)
+    trailer-on: bool,
+    trailer-muted: bool,
+    // Trailer-Wiedergabe läuft oder läuft an (Ton-Knopf zeigen)
+    trailer-btn: bool,
+    // Bildgrößen im Geheimmenü (Prozent)
+    scale-normal: int,
+    scale-saver: int,
+    info-text: string,
+    // Billboard: Marke unten rechts und Text des Hauptknopfs („Abspielen“ / „Fortsetzen“)
+    badge: string,
+    primary: string,
+}

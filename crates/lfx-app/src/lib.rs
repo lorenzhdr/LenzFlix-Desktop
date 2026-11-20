@@ -18,6 +18,11 @@ pub mod detail_logic; // W2-detail
 pub mod focus;
 pub mod home;
 pub mod hovercard; // W2-detail
+#[cfg(feature = "dev-automation")]
+pub mod home_automation; // W2-home
+pub mod home_focus; // W2-home
+pub mod home_trailer; // W2-home
+pub mod home_ui; // W2-home
 pub mod keys;
 pub mod library; // W2-library
 mod library_impl; // W2-library
@@ -252,6 +257,15 @@ fn wire(app: &Rc<App>, ui: &MainWindow, shell: &Shell) {
     }
 
     detail::wire(app, ui); // W2-detail
+    // W2-home
+    let a = app.clone();
+    ui.on_home_event(move |k, v| a.on_home_event(&k, v));
+    let a = app.clone();
+    ui.on_home_event_f(move |k, v| a.on_home_event_f(&k, v));
+    let a = app.clone();
+    ui.on_home_layout(move |l| a.on_home_layout(l));
+    let a = app.clone();
+    ui.on_home_trailer_rect(move |x, y, w, h| a.on_trailer_rect(x, y, w, h));
 
     let a = app.clone();
     ui.on_player_cmd(move |n, v| a.player_cmd(&n, v)); // W2-player

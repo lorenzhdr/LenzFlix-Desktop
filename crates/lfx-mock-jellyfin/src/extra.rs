@@ -811,7 +811,10 @@ pub(crate) fn routes() -> Router<Arc<Shared>> {
         .route("/Items/Filters2", get(filters2))
         .route("/Items/Counts", get(counts))
         .route("/Items/{id}/SpecialFeatures", get(special_features))
-        .route("/Items/{id}/LocalTrailers", get(|| async { jv(json!([])) }))
+        .route(
+            "/Items/{id}/LocalTrailers",
+            get(crate::w2_home::local_trailers),
+        ) // W2-home
         .route(
             "/Items/{id}/Intros",
             get(|| async { jv(json!({ "Items": [], "TotalRecordCount": 0, "StartIndex": 0 })) }),

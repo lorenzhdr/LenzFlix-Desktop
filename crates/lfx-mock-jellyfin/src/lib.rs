@@ -14,6 +14,7 @@ mod w2_library;
 pub use w2_library::{VIEW_BOXSETS, set_extra_titles};
 pub mod w2_player; // W2-player
 mod w2_detail; // W2-detail
+pub mod w2_home; // W2-home
 
 pub use extra::{
     VIEW_BOOKS, VIEW_LIVETV, VIEW_MUSIC, VIEW_PHOTOS, album_id, artist_id, book_id, channel_id,
@@ -275,9 +276,12 @@ pub async fn start_with(config: MockConfig) -> (SocketAddr, MockHandle) {
         charts_enabled: true,
         ..Dyn::default()
     };
+    let catalog = catalog::build();
+    let mut dynamic = dynamic;
+    w2_home::seed_state(&mut dynamic.users, &catalog); // W2-home
     let shared = Arc::new(Shared {
         catalog: {
-            let mut c = catalog::build();
+            let mut c = catalog; // W2-home: Katalog oben gebaut (Seed)
             w2_library::extend(&mut c); // W2-library
             c
         },
@@ -330,6 +334,7 @@ fn router(shared: Arc<Shared>) -> Router {
         .route("/Items/{id}/PlaybackInfo", post(playback_info))
         .route("/Items/{id}/Images/{kind}", get(image))
         .route("/Videos/{id}/stream", get(media::stream))
+        .route("/Videos/{id}/stream.mp4", get(media::stream)) // W2-home
         .route(
             "/Videos/{id}/{source}/Subtitles/{index}/0/{file}",
             get(subtitle_file),
@@ -663,6 +668,9 @@ async fn cw_charts(State(shared): S, headers: HeaderMap) -> Response {
     }
     if !cw_authorized(&shared, &headers) {
         return StatusCode::UNAUTHORIZED.into_response();
+    }
+    if let Some(v) = w2_home::charts_json(&shared.catalog) {
+        return jv(v); // W2-home
     }
     let movies: Vec<Value> = (0..3)
         .map(|n| json!({ "id": catalog::movie_id(n), "type": "Movie", "viewers": 3 - n, "plays": 4 - n, "seconds": 3600 * (3 - n) }))
@@ -1196,6 +1204,9 @@ async fn image(
 ) -> Response {
     if find(&shared, &id).is_none() && !extra::has_image(&shared, &id) {
         return StatusCode::NOT_FOUND.into_response();
+    }
+    if let Some(png) = w2_home::cover(&id, &kind, &params) {
+        return ([(header::CONTENT_TYPE, "image/png")], png).into_response(); // W2-home
     }
     // W2-detail: Querformat-Platzhalter-Cover statt 24x36-Bild; Logos gibt es nicht (Titel erscheint als Text).
     if kind.eq_ignore_ascii_case("Logo") {

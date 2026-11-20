@@ -274,6 +274,7 @@ pub fn render(catalog: &[Item], it: &Item, st: &UserState, fields: &str) -> Valu
         } } });
     }
     crate::w2_detail::decorate(&mut v, it, catalog, fields); // W2-detail
+    crate::w2_home::adjust_item(&mut v, it); // W2-home
     v
 }
 
