@@ -15,6 +15,7 @@ pub use w2_library::{VIEW_BOXSETS, set_extra_titles};
 mod w2_detail; // W2-detail
 pub mod w2_home;
 pub mod w2_player; // W2-player // W2-home
+mod w35_remote;
 
 pub use extra::{
     VIEW_BOOKS, VIEW_LIVETV, VIEW_MUSIC, VIEW_PHOTOS, album_id, artist_id, book_id, channel_id,
@@ -137,6 +138,8 @@ struct Dyn {
     playback_mode: PlaybackMode,
     /// Zustand der erweiterten Endpunkte (`extra.rs`).
     extra: extra::ExtraState,
+    /// Zustand von Fernsteuerung und SyncPlay (`w35_remote.rs`).
+    remote: w35_remote::RemoteState,
 }
 
 struct Qc {
@@ -362,6 +365,7 @@ fn router(shared: Arc<Shared>) -> Router {
         .route("/Sessions/Playing/Progress", post(progress))
         .route("/Sessions/Playing/Stopped", post(stopped))
         .merge(extra::routes())
+        .merge(w35_remote::routes())
         .layer(middleware::from_fn_with_state(shared.clone(), gate))
         .with_state(shared)
 }
