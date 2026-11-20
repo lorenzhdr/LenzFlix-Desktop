@@ -14,37 +14,31 @@ use crate::{
     ShellOptions, UiBackend, VideoFormat, VideoTarget,
 };
 
-/// Video-Layer gibt es nur unter Windows; der Typ ist unbewohnt, `video_layer()` liefert `None`.
+/// Video-Layer gibt es nur unter Windows. Der Typ wird hier nie erzeugt (`video_layer()` liefert
+/// `None`); er ist bewusst eine Struktur mit privatem Feld statt eines leeren Enums, damit Aufrufer-Code
+/// nach `video_layer()?` nicht als unerreichbar gilt (Lint `unreachable_code` unter macOS).
 #[derive(Clone, Debug)]
-pub enum VideoLayer {}
+pub struct VideoLayer {
+    _never: (),
+}
 
 impl VideoLayer {
     pub fn d3d11_device_raw(&self) -> *mut std::ffi::c_void {
-        match *self {}
+        std::ptr::null_mut()
     }
     pub fn acquire_target(&self) -> Option<VideoTarget> {
-        match *self {}
+        None
     }
-    pub fn present(&self) {
-        match *self {}
-    }
-    pub fn set_rect(&self, _rect: Option<Rect>) {
-        match *self {}
-    }
-    pub fn set_format(&self, _format: VideoFormat) {
-        match *self {}
-    }
-    pub fn set_hdr_metadata(&self, _md: HdrMetadata) {
-        match *self {}
-    }
+    pub fn present(&self) {}
+    pub fn set_rect(&self, _rect: Option<Rect>) {}
+    pub fn set_format(&self, _format: VideoFormat) {}
+    pub fn set_hdr_metadata(&self, _md: HdrMetadata) {}
     pub fn output_hdr_info(&self) -> OutputHdrInfo {
-        match *self {}
+        OutputHdrInfo::default()
     }
-    pub fn set_visible(&self, _visible: bool) {
-        match *self {}
-    }
+    pub fn set_visible(&self, _visible: bool) {}
     pub fn take_dirty(&self) -> bool {
-        match *self {}
+        false
     }
 }
 
