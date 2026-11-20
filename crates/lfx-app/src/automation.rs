@@ -326,6 +326,7 @@ impl App {
                      "has_backdrop": hero.has_backdrop, "has_logo": hero.has_logo,
                      "pool": st.home.pool.len()},
             "home": self.home_state_json(), // W2-home
+            "plus": {"brands": crate::plus::brand_count()}, // W3-plus
             "home_loading": ui.get_home_loading(),
             "home_error": ui.get_home_error().to_string(),
             "qc_code": ui.get_qc_code().to_string(),

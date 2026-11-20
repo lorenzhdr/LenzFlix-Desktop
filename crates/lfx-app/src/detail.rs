@@ -424,6 +424,11 @@ impl App {
 
     /// Karte angeklickt (Startseite, Bibliotheksseiten): öffnet das Detail-Modal.
     pub fn on_card_activate(self: &Rc<Self>, id: &str) {
+        if self.is_plus() {
+            // W3-plus: Karten öffnen die Titelseite des Designs statt des Modals
+            self.open_detail_page(id);
+            return;
+        }
         let seed = {
             let st = self.st.borrow();
             st.home

@@ -203,7 +203,11 @@ impl App {
                     .map(|s| SharedString::from(*s))
                     .collect::<Vec<_>>(),
             )));
-            g.set_nav_current(nav_index_for(route));
+            g.set_nav_current(if self.is_plus() {
+                crate::plus::idx_to_pos(nav_index_for(route)) // W3-plus
+            } else {
+                nav_index_for(route)
+            });
             g.set_version(env!("CARGO_PKG_VERSION").into());
             g.set_items(ModelRc::new(VecModel::<CardData>::default()));
             g.set_rows(ModelRc::new(VecModel::<RowData>::default()));

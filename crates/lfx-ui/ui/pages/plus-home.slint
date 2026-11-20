@@ -1,0 +1,195 @@
+// W3-plus: Startseite „Für dich“ von LENZ+ (Web: features/plus/home.js, css/themes/plus/{hero,rows,brands}.css).
+// Gleiche Eigenschaften und Rückrufe wie `HomePage`, damit main.slint und Rust (home.rs) beide bedienen.
+// Fokus: focus-row -2 Kopfleiste, -1 Hero-Folie, -4 Sammlungs-Kacheln, >= 0 Zeile.
+// Maße: Hero 3:1 ab y = 157 px, Kacheln und Poster teilen sich dieselben fünf Spalten.
+import { Theme } from "../theme/theme.slint";
+import { LfxText } from "../components/text.slint";
+import { LfxSkeleton, LfxSpinner } from "../components/feedback.slint";
+import { HeroData } from "types.slint";
+import { HRow, HomeLayout, HomeUi } from "home-types.slint";
+import { HomeChrome } from "../components/home-chrome.slint";
+import { PlusHero, PlusRow, PlusBrands, PlusBrand } from "../components/plus-parts.slint";
+import { DetailState } from "detail-state.slint";
+
+export component PlusHomePage inherits Rectangle {
+    in property <HeroData> hero;
+    in property <[HRow]> rows;
+    in property <bool> loading: false;
+    in property <string> error;
+    in property <int> focus-row: -1;
+    in property <int> focus-index: 0;
+    in property <HomeUi> ui;
+    in property <string> version;
+    in property <[PlusBrand]> brands;
+    callback event(string, int);
+    callback event-f(string, float);
+    callback card-clicked(int, int);
+    callback layout-changed(HomeLayout);
+
+    property <length> gutter: Theme.gutter-at(root.width);
+    property <int> n: Theme.cards-visible-at(root.width);
+    property <length> gap: Theme.t.card-gap;
+    property <length> card-w: (root.width - 2 * root.gutter - (root.n - 1) * root.gap) / root.n;
+    property <length> card-h: root.card-w * 3 / 2;
+    property <length> head-h: 51px;
+    property <length> row-h: root.head-h + root.card-h + 58px;
+    property <length> bb-x: root.gutter;
+    property <length> bb-y: root.width < 800px ? 120px : 157px;
+    property <length> bb-w: root.width - 2 * root.gutter;
+    property <length> bb-h: root.bb-w / 3;
+    property <length> tile-h: root.card-w * 9 / 16;
+    property <length> brands-y: root.bb-y + root.bb-h + 48px;
+    property <length> brands-h: root.brands.length > 0 ? root.tile-h + 56px : 0px;
+    property <length> rows-top: root.brands-y + root.brands-h;
+    property <length> scroll: -flick.content-y;
+    property <bool> scrolled: root.scroll > 8px;
+
+    out property <HomeLayout> layout: {
+        width: root.width,
+        header-h: Theme.t.header-h,
+        gutter: root.gutter,
+        bb-x: root.bb-x,
+        bb-y: root.bb-y,
+        bb-w: root.bb-w,
+        bb-h: root.bb-h,
+        // Hero-Folie als einziges Ziel
+        play-x: root.bb-x,
+        play-y: root.bb-y,
+        play-w: root.bb-w,
+        info-x: root.bb-x + root.bb-w,
+        info-w: 0px,
+        btn-h: root.bb-h,
+        rows-top: root.rows-top,
+        row-h: root.row-h,
+        top-extra: 0px,
+        pitch: root.card-w + root.gap,
+        card-w: root.card-w,
+        card-h: root.card-h,
+        top-card-h: root.card-h,
+        head-h: root.head-h,
+    };
+    changed layout => { root.layout-changed(root.layout); }
+    init => { root.layout-changed(root.layout); }
+
+    function row-y(r: int) -> length {
+        return root.rows-top + r * root.row-h;
+    }
+    function scroll-to-focus() {
+        if (root.focus-row < 0) {
+            flick.content-y = 0px;
+        } else if (root.row-y(root.focus-row) - 90px < root.scroll) {
+            flick.content-y = -max(0px, root.row-y(root.focus-row) - 90px);
+        } else if (root.row-y(root.focus-row) + root.row-h > root.scroll + flick.height) {
+            flick.content-y = -(root.row-y(root.focus-row) + root.row-h - flick.height + 10px);
+        }
+    }
+    changed focus-row => { root.scroll-to-focus(); }
+
+    Rectangle { background: Theme.t.bg; }
+
+    flick := Flickable {
+        width: root.width;
+        height: root.height;
+        content-width: root.width;
+        content-height: root.rows-top + max(1, root.rows.length) * root.row-h + 40px;
+        animate content-y { duration: Theme.t.dur * 2; easing: Theme.t.ease-out; }
+
+        PlusHero {
+            x: root.bb-x;
+            y: root.bb-y;
+            width: root.bb-w;
+            hero: root.hero;
+            badge: root.ui.badge;
+            count: root.ui.hero-count;
+            index: root.ui.hero-index;
+            gutter: root.gutter;
+            focused: root.focus-row == -1;
+            open => { root.event("hero-info", 0); }
+            go(d) => { root.event("dot", d); }
+        }
+        if !root.hero.has-item: Rectangle {
+            x: root.bb-x;
+            y: root.bb-y;
+            width: root.bb-w;
+            height: root.bb-h;
+            border-radius: 18px;
+            background: #2d2f36;
+            opacity: 0.8;
+            if root.loading: LfxSpinner {
+                x: (parent.width - self.width) / 2;
+                y: (parent.height - self.height) / 2;
+            }
+        }
+
+        if root.brands.length > 0: PlusBrands {
+            x: 0px;
+            y: root.brands-y;
+            width: root.width;
+            height: root.brands-h;
+            items: root.brands;
+            gutter: root.gutter;
+            gap: root.gap;
+            tile-w: root.card-w;
+            focused-index: root.focus-row == -4 ? root.focus-index : -1;
+            clicked(i) => { root.event("plus-brand", i); }
+        }
+
+        for row[r] in root.rows: PlusRow {
+            x: 0px;
+            y: root.row-y(r);
+            width: root.width;
+            height: root.row-h;
+            title: row.title;
+            items: row.items;
+            gutter: root.gutter;
+            gap: root.gap;
+            card-w: root.card-w;
+            card-h: root.card-h;
+            focused-index: r == root.focus-row ? root.focus-index : -1;
+            card-clicked(i) => { root.card-clicked(r, i); }
+            card-context(i, x, y) => { DetailState.card-context(r, i, x, y); }
+            visible-changed(f) => { root.event("row-view", r * 1000 + f); }
+        }
+
+        if root.rows.length == 0 && root.loading: Rectangle {
+            y: root.rows-top;
+            width: root.width;
+            height: 2 * root.row-h;
+            for s in 2: Rectangle {
+                y: s * root.row-h;
+                height: root.row-h;
+                for c in root.n: LfxSkeleton {
+                    x: root.gutter + c * (root.card-w + root.gap);
+                    y: root.head-h;
+                    width: root.card-w;
+                    height: root.card-h;
+                    radius: 12px;
+                }
+            }
+        }
+        if root.rows.length == 0 && !root.loading && root.error != "": LfxText {
+            y: root.rows-top + 8px;
+            x: root.gutter;
+            width: root.width - 2 * root.gutter;
+            text: root.error;
+            color: Theme.t.text-muted;
+            wrap: word-wrap;
+        }
+    }
+
+    HomeChrome {
+        x: 0px;
+        y: 0px;
+        width: root.width;
+        height: root.height;
+        ui: root.ui;
+        version: root.version;
+        gutter: root.gutter;
+        header-h: Theme.t.header-h;
+        scrolled: root.scrolled;
+        switcher: true;
+        focus-index: root.focus-row == -2 ? root.focus-index : -1;
+        event(k, v) => { root.event(k, v); }
+        event-f(k, v) => { root.event-f(k, v); }
+    }
+}

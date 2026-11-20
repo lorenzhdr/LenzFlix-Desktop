@@ -65,6 +65,8 @@ impl App {
             if !matches!(st.router.current(), Route::Home)
                 || st.play.opened
                 || st.home.x.trailer.suppressed
+                || st.design == crate::cli::DesignId::Plus
+            // W3-plus: kein Trailer im Hero
             {
                 return;
             }

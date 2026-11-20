@@ -1,0 +1,403 @@
+// W3-plus: Bausteine der LENZ+-Startseite (Web: features/plus/{hero,rows,brands,card}.js, css/themes/plus/{hero,rows,brands}.css):
+// Hero-Folie (3:1), Sammlungs-Kacheln (16:9), Poster-Karten (2:3) und Zeilen.
+import { Theme } from "../theme/theme.slint";
+import { LfxText } from "text.slint";
+import { LfxIcon } from "icon.slint";
+import { LfxFocusRing } from "focus-ring.slint";
+import { Icons } from "../icons.slint";
+import { HCard } from "../pages/home-types.slint";
+import { HeroData } from "../pages/types.slint";
+
+// Sammlungs-Kachel der Startseite.
+export struct PlusBrand {
+    name: string,
+    image: image,
+    has-image: bool,
+}
+
+// Hero-Folie: Bild, Schattierung, Text unten links, Randpfeile und Punkte (bei Hover).
+export component PlusHero inherits Rectangle {
+    in property <HeroData> hero;
+    in property <string> badge;
+    in property <int> count;
+    in property <int> index;
+    in property <bool> focused;
+    in property <length> gutter;
+    callback open();
+    callback go(int);
+
+    property <bool> prev-hot: false;
+    property <bool> next-hot: false;
+    property <bool> hot: ta.has-hover || root.prev-hot || root.next-hot;
+    height: self.width / 3;
+
+    slide := Rectangle {
+        border-radius: 18px;
+        background: #2d2f36;
+        clip: true;
+        drop-shadow-color: #000000b0;
+        drop-shadow-blur: 30px;
+        drop-shadow-offset-y: 16px;
+        if root.hero.has-backdrop: Image {
+            width: 100%;
+            height: 100%;
+            source: root.hero.backdrop;
+            image-fit: cover;
+        }
+        Rectangle {
+            background: @linear-gradient(90deg, #0a0c16e6 0%, #0a0c169e 30%, #0a0c1600 62%);
+        }
+        Rectangle {
+            background: @linear-gradient(0deg, #0a0c1680 0%, #0a0c1600 40%);
+        }
+        Rectangle {
+            border-radius: 18px;
+            border-width: 1px;
+            border-color: #ffffff1a;
+        }
+        VerticalLayout {
+            x: max(24px, min(76px, root.width * 0.043));
+            y: parent.height - self.height - max(20px, min(48px, root.width * 0.027));
+            width: min(410px, parent.width * 0.5);
+            height: self.preferred-height;
+            alignment: end;
+            spacing: 12px;
+            if root.badge != "": Rectangle {
+                height: 28px;
+                horizontal-stretch: 0;
+                Rectangle {
+                    x: 0px;
+                    width: bt.preferred-width + 20px;
+                    border-radius: 4px;
+                    background: #ededee;
+                    bt := LfxText {
+                        text: root.badge;
+                        color: #000000;
+                        font-size: 15px;
+                        font-weight: 700;
+                        horizontal-alignment: center;
+                        vertical-alignment: center;
+                    }
+                }
+            }
+            if root.hero.has-logo: Image {
+                source: root.hero.logo;
+                height: max(80px, min(176px, root.width * 0.092));
+                image-fit: contain;
+                horizontal-alignment: left;
+                vertical-alignment: bottom;
+            }
+            if !root.hero.has-logo && root.hero.has-item: LfxText {
+                text: root.hero.title;
+                font-size: max(28px, min(44px, root.width * 0.029));
+                font-weight: 700;
+                wrap: word-wrap;
+                overflow: elide;
+                max-height: 100px;
+            }
+            if root.hero.overview != "": LfxText {
+                text: root.hero.overview;
+                font-size: 15px;
+                font-weight: 700;
+                color: #f9f9f9;
+                wrap: word-wrap;
+                overflow: elide;
+                max-height: 42px;
+            }
+            if root.hero.meta != "": LfxText {
+                text: root.hero.meta;
+                font-size: 12px;
+                color: #dbdce0;
+                overflow: elide;
+            }
+        }
+        ta := TouchArea {
+            mouse-cursor: pointer;
+            clicked => { root.open(); }
+        }
+    }
+    // Ring bei Hover und Fokus (Web: 4 px schwarz, 3 px weiß)
+    Rectangle {
+        x: 0px;
+        y: 0px;
+        width: root.width;
+        height: root.height;
+        LfxFocusRing {
+            active: root.focused || ta.has-hover;
+            radius: 18px;
+        }
+    }
+    // Randpfeile
+    if root.count > 1: Rectangle {
+        x: -root.gutter;
+        width: root.gutter;
+        height: root.height;
+        opacity: root.hot ? 1.0 : 0.0;
+        animate opacity { duration: 350ms; }
+        LfxIcon {
+            x: (parent.width - self.width) / 2;
+            y: (parent.height - self.height) / 2;
+            source: Icons.chevron-left;
+            size: prev-ta.has-hover ? 36px : 30px;
+        }
+        prev-ta := TouchArea { changed has-hover => { root.prev-hot = self.has-hover; } clicked => { root.go(mod(root.index + root.count - 1, root.count)); } }
+    }
+    if root.count > 1: Rectangle {
+        x: root.width;
+        width: root.gutter;
+        height: root.height;
+        opacity: root.hot ? 1.0 : 0.0;
+        animate opacity { duration: 350ms; }
+        LfxIcon {
+            x: (parent.width - self.width) / 2;
+            y: (parent.height - self.height) / 2;
+            source: Icons.chevron-right;
+            size: next-ta.has-hover ? 36px : 30px;
+        }
+        next-ta := TouchArea { changed has-hover => { root.next-hot = self.has-hover; } clicked => { root.go(mod(root.index + 1, root.count)); } }
+    }
+    // Punkte unter der Folie
+    if root.count > 1: Rectangle {
+        x: (parent.width - self.width) / 2;
+        y: root.height + 12px;
+        width: root.count * 19px;
+        height: 28px;
+        for d in root.count: Rectangle {
+            x: d * 19px;
+            width: 19px;
+            height: 28px;
+            Rectangle {
+                x: (parent.width - self.width) / 2;
+                y: (parent.height - self.height) / 2;
+                width: d == root.index ? 7px : 5px;
+                height: self.width;
+                border-radius: self.width / 2;
+                background: d == root.index ? #ffffff : #8d8d95;
+            }
+            TouchArea { clicked => { root.go(d); } }
+        }
+    }
+}
+
+// Poster-Karte 2:3 (Web: `.lfx-plus-card`): Radius 12, Titel nur ohne Bild, Marke oben links, Fortschritt unten.
+export component PlusCard inherits Rectangle {
+    in property <HCard> data;
+    in property <bool> focused;
+    callback clicked();
+    callback hover(bool);
+    callback context-requested(length, length);
+
+    transform-scale: (ta.has-hover || root.focused) ? 1.03 : 1.0;
+    animate transform-scale { duration: 300ms; easing: Theme.t.ease-out; }
+
+    img := Rectangle {
+        border-radius: 12px;
+        background: Theme.t.surface-2;
+        clip: true;
+        drop-shadow-color: #00000059;
+        drop-shadow-blur: 24px;
+        drop-shadow-offset-y: 10px;
+        if root.data.has-image: Image {
+            width: 100%;
+            height: 100%;
+            source: root.data.image;
+            image-fit: cover;
+        }
+        if !root.data.has-image: Rectangle {
+            background: @linear-gradient(160deg, #282f46 0%, #1d2336 100%);
+            LfxText {
+                x: 16px;
+                width: parent.width - 32px;
+                height: parent.height;
+                text: root.data.title;
+                font-size: 20px;
+                font-weight: 700;
+                wrap: word-wrap;
+                overflow: elide;
+                horizontal-alignment: center;
+                vertical-alignment: center;
+            }
+        }
+        if root.data.badge != "": Rectangle {
+            x: 8px;
+            y: 8px;
+            width: bd.preferred-width + 10px;
+            height: 20px;
+            border-radius: 4px;
+            background: #ededee;
+            bd := LfxText {
+                width: 100%;
+                height: 100%;
+                text: root.data.badge;
+                color: #000000;
+                font-size: Theme.t.fs-badge;
+                font-weight: 700;
+                horizontal-alignment: center;
+                vertical-alignment: center;
+            }
+        }
+        if root.data.progress > 0: Rectangle {
+            y: parent.height - 4px;
+            height: 4px;
+            background: Theme.t.progress-rail;
+            Rectangle {
+                width: parent.width * min(1.0, root.data.progress);
+                background: Theme.t.progress;
+            }
+        }
+    }
+    ta := TouchArea {
+        mouse-cursor: pointer;
+        clicked => { root.clicked(); }
+        changed has-hover => { root.hover(self.has-hover); }
+        pointer-event(e) => {
+            if (e.button == PointerEventButton.right && e.kind == PointerEventKind.up) {
+                root.context-requested(self.absolute-position.x + self.mouse-x, self.absolute-position.y + self.mouse-y);
+            }
+        }
+    }
+    LfxFocusRing {
+        active: root.focused || ta.has-hover;
+        radius: 12px;
+    }
+}
+
+// Zeile: Titel 22 px (35 px Zeilenhöhe), darunter 2 + 14 px, Karten, 18 px Auslauf und 40 px Abstand.
+export component PlusRow inherits Rectangle {
+    in property <string> title;
+    in property <[HCard]> items;
+    in property <int> focused-index: -1;
+    in property <length> gutter;
+    in property <length> gap;
+    in property <length> card-w;
+    in property <length> card-h;
+    callback card-clicked(int);
+    callback visible-changed(int);
+    callback card-context(int, length, length);
+
+    property <length> pitch: root.card-w + root.gap;
+    property <length> scroll-x: 0px;
+    property <length> max-scroll: max(0px, root.items.length * root.pitch - (root.width - 2 * root.gutter + root.gap));
+    property <int> first: max(0, floor(root.scroll-x / root.pitch) - 1);
+    property <int> pool: floor(root.width / root.pitch) + 5;
+    animate scroll-x { duration: Theme.t.dur * 2; easing: Theme.t.ease-out; }
+    changed first => { root.visible-changed(root.first); }
+    changed focused-index => {
+        if (root.focused-index >= 0) {
+            if (root.focused-index * root.pitch < root.scroll-x) {
+                root.scroll-x = max(0px, root.focused-index * root.pitch);
+            } else if ((root.focused-index + 1) * root.pitch - root.gap > root.scroll-x + root.width - 2 * root.gutter) {
+                root.scroll-x = min(root.max-scroll, (root.focused-index + 1) * root.pitch - (root.width - 2 * root.gutter));
+            }
+        }
+    }
+
+    LfxText {
+        x: root.gutter;
+        height: 35px;
+        text: root.title;
+        font-size: Theme.t.fs-row-title;
+        font-weight: Theme.t.fw-row-title;
+        color: #dbdce0;
+        vertical-alignment: center;
+    }
+    Rectangle {
+        y: 37px;
+        height: root.card-h + 32px;
+        clip: true;
+        TouchArea {
+            scroll-event(e) => {
+                if (e.delta-x != 0px) {
+                    root.scroll-x = min(root.max-scroll, max(0px, root.scroll-x - e.delta-x));
+                    return accept;
+                }
+                reject
+            }
+        }
+        for slot in root.pool: cell := Rectangle {
+            property <int> idx: root.first + slot;
+            x: root.gutter + idx * root.pitch - root.scroll-x;
+            y: 14px;
+            width: root.card-w;
+            height: root.card-h;
+            if idx < root.items.length: PlusCard {
+                width: 100%;
+                height: 100%;
+                data: root.items[idx];
+                focused: idx == root.focused-index;
+                clicked => { root.card-clicked(idx); }
+                context-requested(x, y) => { root.card-context(idx, x, y); }
+            }
+        }
+    }
+}
+
+// Reihe der Sammlungs-Kacheln (16:9, Name als Schriftzug ohne Bild).
+export component PlusBrands inherits Rectangle {
+    in property <[PlusBrand]> items;
+    in property <int> focused-index: -1;
+    in property <length> gutter;
+    in property <length> gap;
+    in property <length> tile-w;
+    callback clicked(int);
+
+    property <length> pitch: root.tile-w + root.gap;
+    property <length> scroll-x: 0px;
+    property <length> max-scroll: max(0px, root.items.length * root.pitch - (root.width - 2 * root.gutter + root.gap));
+    animate scroll-x { duration: Theme.t.dur * 2; easing: Theme.t.ease-out; }
+    changed focused-index => {
+        if (root.focused-index >= 0) {
+            if (root.focused-index * root.pitch < root.scroll-x) {
+                root.scroll-x = max(0px, root.focused-index * root.pitch);
+            } else if ((root.focused-index + 1) * root.pitch - root.gap > root.scroll-x + root.width - 2 * root.gutter) {
+                root.scroll-x = min(root.max-scroll, (root.focused-index + 1) * root.pitch - (root.width - 2 * root.gutter));
+            }
+        }
+    }
+    clip: true;
+    TouchArea {
+        scroll-event(e) => {
+            if (e.delta-x != 0px) {
+                root.scroll-x = min(root.max-scroll, max(0px, root.scroll-x - e.delta-x));
+                return accept;
+            }
+            reject
+        }
+    }
+    for b[i] in root.items: tile := Rectangle {
+        x: root.gutter + i * root.pitch - root.scroll-x;
+        y: 14px;
+        width: root.tile-w;
+        height: root.tile-w * 9 / 16;
+        border-radius: 9px;
+        background: #2d2f36;
+        transform-scale: (t-ta.has-hover || i == root.focused-index) ? 1.03 : 1.0;
+        animate transform-scale { duration: 300ms; easing: Theme.t.ease-out; }
+        if b.has-image: Image {
+            width: 100%;
+            height: 100%;
+            source: b.image;
+            image-fit: cover;
+        }
+        if !b.has-image: LfxText {
+            x: 16px;
+            width: parent.width - 32px;
+            height: parent.height;
+            text: b.name;
+            font-size: max(18px, min(28px, root.width * 0.017));
+            font-weight: 700;
+            wrap: word-wrap;
+            overflow: elide;
+            horizontal-alignment: center;
+            vertical-alignment: center;
+        }
+        t-ta := TouchArea {
+            mouse-cursor: pointer;
+            clicked => { root.clicked(i); }
+        }
+        LfxFocusRing {
+            active: i == root.focused-index || t-ta.has-hover;
+            radius: 9px;
+        }
+    }
+}

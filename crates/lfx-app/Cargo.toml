@@ -76,3 +76,7 @@ required-features = ["dev-automation"]
 [[test]] # W2-home
 name = "home_e2e"
 required-features = ["dev-automation"]
+
+[[test]] # W3-plus
+name = "w3_plus"
+required-features = ["dev-automation"]

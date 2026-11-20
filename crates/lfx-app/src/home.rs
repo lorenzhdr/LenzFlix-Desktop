@@ -396,6 +396,9 @@ impl App {
         self.set_default_home_focus();
         self.load_initial_card_images();
         self.start_hero_rotation();
+        if self.is_plus() {
+            self.plus_load_brands(); // W3-plus
+        }
         tracing::info!(
             rows = self.st.borrow().home.rows.len(),
             "Startseite geladen"
@@ -442,9 +445,16 @@ impl App {
                 .collect();
             (l, !st.home.pool.is_empty(), shapes)
         };
+        let plus = self.is_plus(); // W3-plus
         let mut st = self.st.borrow_mut();
         let old = st.graph.focused();
-        let mut g = home_focus::home_graph(&layout, has_hero, &shapes);
+        let mut g = if plus {
+            // W3-plus
+            let lens: Vec<usize> = shapes.iter().map(|s| s.len).collect();
+            crate::plus::plus_graph(&layout, has_hero, crate::plus::brand_count(), &lens)
+        } else {
+            home_focus::home_graph(&layout, has_hero, &shapes)
+        };
         if let Some(t) = old {
             let _ = g.set_focus(t);
         }
@@ -613,6 +623,7 @@ impl App {
         let epoch = self.st.borrow().home.generation;
         let (_, dpr) = self.shell.window_info();
         let scale = self.image_scale();
+        let plus = self.is_plus(); // W3-plus: Poster statt Querformat
         let job = {
             let mut st = self.st.borrow_mut();
             let Some(row) = st.home.rows.get_mut(r) else {
@@ -622,7 +633,14 @@ impl App {
                 return;
             }
             row.requested[i] = true;
-            card_images(&row.items[i], row.kind, false, dpr.max(1.0), scale).main
+            {
+                let ck = if plus && row.kind != CardKind::Resume {
+                    CardKind::Top10
+                } else {
+                    row.kind
+                };
+                card_images(&row.items[i], ck, false, dpr.max(1.0), scale).main
+            }
         };
         let Some(m) = job else { return };
         self.fetch_image(&m, prio, move |app, img| {
@@ -698,6 +716,9 @@ impl App {
     // ---------------------------------------------------------------- Aktivierung
 
     pub fn home_activate(self: &Rc<Self>, t: Target) {
+        if self.plus_activate(t) {
+            return; // W3-plus
+        }
         if t.zone == focus::Z_NAV {
             self.nav_selected(t.index as i32);
         } else if t.zone == focus::Z_HERO {
@@ -730,6 +751,12 @@ impl App {
 
     /// Ziele der Kopfleiste: 0..=4 Seiten, 5 Suche, 6 TV, 7 Datensparmodus, 8 Profilmenü.
     pub fn nav_selected(self: &Rc<Self>, i: i32) {
+        // W3-plus: Positionen der LENZ+-Kopfleiste auf die gemeinsame Reihenfolge abbilden
+        let i = if self.is_plus() {
+            crate::plus::pos_to_idx(i)
+        } else {
+            i
+        };
         let name = match i {
             0 => {
                 self.go_reset(Route::Home);
