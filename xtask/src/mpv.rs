@@ -34,7 +34,7 @@ const REQUIRED_SYMBOLS: &[&str] = &[
     "mpv_render_context_render",
 ];
 
-fn workspace_root() -> PathBuf {
+pub(crate) fn workspace_root() -> PathBuf {
     // Vom Arbeitsverzeichnis aufwärts die Cargo.toml mit [workspace] suchen;
     // Rückfall: das Elternverzeichnis von xtask.
     if let Ok(mut dir) = std::env::current_dir() {
@@ -53,7 +53,7 @@ fn workspace_root() -> PathBuf {
         .to_path_buf()
 }
 
-fn host_target() -> &'static str {
+pub(crate) fn host_target() -> &'static str {
     if cfg!(all(target_os = "windows", target_arch = "aarch64")) {
         "aarch64-pc-windows-msvc"
     } else if cfg!(all(target_os = "windows", target_arch = "x86_64")) {
@@ -84,7 +84,7 @@ fn pin_for(target: &str) -> Res<Pin> {
         .ok_or_else(|| format!("Kein Pin für Ziel {target}").into())
 }
 
-fn vendor_dir(target: &str) -> PathBuf {
+pub(crate) fn vendor_dir(target: &str) -> PathBuf {
     workspace_root().join("vendor").join("mpv").join(target)
 }
 
@@ -175,7 +175,7 @@ fn list_files(base: &Path, dir: &Path) -> Res<()> {
 }
 
 /// Sucht die libmpv-Bibliothek rekursiv im Vendor-Ordner.
-fn find_lib(dir: &Path) -> Option<PathBuf> {
+pub(crate) fn find_lib(dir: &Path) -> Option<PathBuf> {
     for e in fs::read_dir(dir).ok()?.flatten() {
         let p = e.path();
         if p.is_dir() {
