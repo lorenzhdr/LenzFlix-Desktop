@@ -368,6 +368,9 @@ impl App {
     /// Eine Navigationsaktion (Tastatur, Gamepad, Automation).
     pub fn apply_action(self: &Rc<Self>, action: NavAction) {
         self.player_activity();
+        if self.update_action(action) {
+            return; // W5-tray: offener Update-Dialog nimmt die Taste
+        }
         if self.picker_action(action) {
             return; // W3-picker: offener Design-Dialog nimmt die Taste
         }

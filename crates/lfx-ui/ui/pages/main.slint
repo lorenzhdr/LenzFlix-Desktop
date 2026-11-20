@@ -21,6 +21,7 @@ import { PlusBrand } from "../components/plus-parts.slint"; // W3-plus
 import { PickerOverlay } from "picker.slint"; // W3-picker
 import { PickerState } from "picker-state.slint"; // W3-picker
 import { HomeChrome } from "../components/home-chrome.slint"; // W3-picker: Kopfleiste auch auf der Detailseite
+import { UpdateOverlay } from "tray-update.slint"; // W5-tray
 import { MediaPage, MediaBar, MediaOverlays, MediaUi } from "media.slint"; // W4-media
 
 // Hauptfenster von LENZFLIX Desktop. Rust (lfx-app) hält Router, Zustand und Fokus und setzt die Properties;
@@ -297,6 +298,14 @@ export component MainWindow inherits Window {
 
         // W3-picker: Design-Auswahl über der Seite, unter der Titelleiste
         PickerOverlay {
+            x: 0px;
+            y: bar.height;
+            width: parent.width;
+            height: parent.height - bar.height;
+        }
+
+        // W5-tray: Update-Dialog über der Seite, unter der Titelleiste
+        UpdateOverlay {
             x: 0px;
             y: bar.height;
             width: parent.width;

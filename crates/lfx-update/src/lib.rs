@@ -20,6 +20,6 @@ pub mod version;
 
 pub use client::{UpdateConfig, UpdateInfo, Updater};
 pub use error::UpdateError;
-pub use manifest::{Asset, Manifest, current_platform};
+pub use manifest::{Asset, Manifest, current_platform, platform_for_target};
 pub use settings::{Channel, UpdateSettings, unix_now};
 pub use version::is_newer;
