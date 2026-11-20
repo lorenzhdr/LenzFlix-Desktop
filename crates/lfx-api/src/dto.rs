@@ -26,20 +26,57 @@ pub struct PublicSystemInfo {
     pub startup_wizard_completed: bool,
 }
 
-/// Benutzerrichtlinie (Auszug).
-#[derive(Debug, Clone, Default, Deserialize)]
+/// Benutzerrichtlinie. Unbekannte Felder bleiben in [`UserPolicy::extra`] erhalten, damit ein
+/// Lesen-ändern-Schreiben (`POST /Users/{id}/Policy`) nichts verliert.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "PascalCase", default)]
 pub struct UserPolicy {
     /// Administrator?
     pub is_administrator: bool,
+    /// In der Anmeldeliste versteckt?
+    pub is_hidden: bool,
+    /// Gesperrt?
+    pub is_disabled: bool,
     /// Medienwiedergabe erlaubt?
     pub enable_media_playback: bool,
+    /// Tonumwandlung erlaubt?
+    pub enable_audio_playback_transcoding: bool,
     /// Videoumwandlung erlaubt?
     pub enable_video_playback_transcoding: bool,
+    /// Remuxen erlaubt?
+    pub enable_playback_remuxing: bool,
+    /// Live-TV ansehen erlaubt?
+    pub enable_live_tv_access: bool,
+    /// Live-TV verwalten (Aufnahmen) erlaubt?
+    pub enable_live_tv_management: bool,
+    /// Inhalte löschen erlaubt?
+    pub enable_content_deletion: bool,
+    /// Herunterladen erlaubt?
+    pub enable_content_downloading: bool,
+    /// Zugriff von außen erlaubt?
+    pub enable_remote_access: bool,
+    /// Sammlungen verwalten erlaubt?
+    pub enable_collection_management: bool,
+    /// Untertitel verwalten erlaubt?
+    pub enable_subtitle_management: bool,
+    /// Alle Bibliotheken sichtbar?
+    pub enable_all_folders: bool,
+    /// Freigegebene Bibliotheken (Ids), wenn nicht alle.
+    pub enabled_folders: Vec<String>,
+    /// Alle Geräte erlaubt?
+    pub enable_all_devices: bool,
+    /// Höchste Altersstufe.
+    pub max_parental_rating: Option<i32>,
+    /// Fernbedienung anderer Benutzer erlaubt?
+    pub enable_remote_control_of_other_users: bool,
+    /// Alle übrigen Felder unverändert.
+    #[serde(flatten)]
+    pub extra: serde_json::Map<String, serde_json::Value>,
 }
 
-/// Benutzerkonfiguration (Auszug).
-#[derive(Debug, Clone, Default, Deserialize)]
+/// Benutzerkonfiguration. Unbekannte Felder bleiben in [`UserConfiguration::extra`] erhalten
+/// (`POST /Users/Configuration` ersetzt das ganze Objekt).
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "PascalCase", default)]
 pub struct UserConfiguration {
     /// Bevorzugte Tonsprache.
@@ -50,6 +87,21 @@ pub struct UserConfiguration {
     pub play_default_audio_track: bool,
     /// Untertitelmodus (Default, Always, OnlyForced, None, Smart).
     pub subtitle_mode: Option<String>,
+    /// Gesehenes in „Zuletzt hinzugefügt“ ausblenden?
+    pub hide_played_in_latest: bool,
+    /// Tonauswahl merken?
+    pub remember_audio_selections: bool,
+    /// Untertitelauswahl merken?
+    pub remember_subtitle_selections: bool,
+    /// Nächste Folge automatisch abspielen?
+    pub enable_next_episode_auto_play: bool,
+    /// Fehlende Folgen anzeigen?
+    pub display_missing_episodes: bool,
+    /// Reihenfolge der Ansichten (Ids).
+    pub ordered_views: Vec<String>,
+    /// Alle übrigen Felder unverändert.
+    #[serde(flatten)]
+    pub extra: serde_json::Map<String, serde_json::Value>,
 }
 
 /// Benutzer.
@@ -66,6 +118,10 @@ pub struct UserDto {
     pub primary_image_tag: Option<String>,
     /// Hat ein Passwort?
     pub has_password: bool,
+    /// Letzte Anmeldung (ISO-8601).
+    pub last_login_date: Option<String>,
+    /// Letzte Aktivität (ISO-8601).
+    pub last_activity_date: Option<String>,
     /// Richtlinie.
     pub policy: Option<UserPolicy>,
     /// Konfiguration.
@@ -163,6 +219,28 @@ pub enum ItemKind {
     Program,
     /// Sonstiges Video.
     Video,
+    /// Fotoalbum.
+    PhotoAlbum,
+    /// Hörbuch.
+    AudioBook,
+    /// Musikvideo.
+    MusicVideo,
+    /// Trailer.
+    Trailer,
+    /// Person.
+    Person,
+    /// Genre.
+    Genre,
+    /// Musikgenre.
+    MusicGenre,
+    /// Studio.
+    Studio,
+    /// Live-TV-Sender.
+    LiveTvChannel,
+    /// Live-TV-Sendung.
+    LiveTvProgram,
+    /// Aufnahme.
+    Recording,
     /// Unbekannt oder nicht abgebildet.
     #[default]
     #[serde(other)]
@@ -190,6 +268,17 @@ impl ItemKind {
             Self::TvChannel => "TvChannel",
             Self::Program => "Program",
             Self::Video => "Video",
+            Self::PhotoAlbum => "PhotoAlbum",
+            Self::AudioBook => "AudioBook",
+            Self::MusicVideo => "MusicVideo",
+            Self::Trailer => "Trailer",
+            Self::Person => "Person",
+            Self::Genre => "Genre",
+            Self::MusicGenre => "MusicGenre",
+            Self::Studio => "Studio",
+            Self::LiveTvChannel => "LiveTvChannel",
+            Self::LiveTvProgram => "LiveTvProgram",
+            Self::Recording => "Recording",
             Self::Unknown => "Unknown",
         }
     }
@@ -217,6 +306,10 @@ pub struct UserItemData {
     pub rating: Option<f64>,
     /// Zuletzt gespielt (ISO-8601).
     pub last_played_date: Option<String>,
+    /// Schlüssel der Benutzerdaten.
+    pub key: Option<String>,
+    /// Element-Id.
+    pub item_id: Option<String>,
 }
 
 /// Name/Id-Paar (Genres, Studios).
@@ -323,6 +416,61 @@ pub struct MediaStream {
     pub average_frame_rate: Option<f64>,
     /// Serverrelative Adresse externer Untertitel.
     pub delivery_url: Option<String>,
+    /// Auslieferung des Untertitels (`External`, `Embed`, `Encode`, `Hls`, `Drop`).
+    pub delivery_method: Option<String>,
+    /// Untertitel für Hörgeschädigte?
+    pub is_hearing_impaired: bool,
+    /// Codec-Kennung (z. B. `hvc1`).
+    pub codec_tag: Option<String>,
+    /// Farbbereich (`tv`, `pc`).
+    pub color_range: Option<String>,
+    /// Farbraum (z. B. `bt2020nc`).
+    pub color_space: Option<String>,
+    /// Übertragungsfunktion (z. B. `smpte2084`, `arib-std-b67`).
+    pub color_transfer: Option<String>,
+    /// Primärfarben (z. B. `bt2020`).
+    pub color_primaries: Option<String>,
+    /// Dolby-Vision-Profil.
+    pub dv_profile: Option<i32>,
+    /// Dolby-Vision-Stufe.
+    pub dv_level: Option<i32>,
+    /// Dolby-Vision-Kompatibilität der Basisschicht.
+    pub dv_bl_signal_compatibility_id: Option<i32>,
+    /// HDR10+ vorhanden?
+    pub hdr10_plus_present_flag: Option<bool>,
+    /// Drehung in Grad.
+    pub rotation: Option<i32>,
+    /// Zeilensprung?
+    pub is_interlaced: bool,
+    /// Kanallayout (z. B. `5.1`).
+    pub channel_layout: Option<String>,
+    /// Abtastrate in Hz.
+    pub sample_rate: Option<i32>,
+    /// Bildformat (z. B. `16:9`).
+    pub aspect_ratio: Option<String>,
+    /// Pixelformat (z. B. `yuv420p10le`).
+    pub pixel_format: Option<String>,
+    /// Stufe des Codecs.
+    pub level: Option<f64>,
+    /// Lokalisierter Sprachname.
+    pub localized_language: Option<String>,
+    /// Der Server kann den Untertitel extern ausliefern?
+    pub supports_external_stream: bool,
+}
+
+impl MediaStream {
+    /// Ist der Videostream HDR (Bereich ungleich SDR)?
+    pub fn is_hdr(&self) -> bool {
+        self.kind == "Video"
+            && (self
+                .video_range
+                .as_deref()
+                .is_some_and(|r| r.eq_ignore_ascii_case("HDR"))
+                || self
+                    .video_range_type
+                    .as_deref()
+                    .is_some_and(|r| !r.is_empty() && !r.eq_ignore_ascii_case("SDR")))
+    }
 }
 
 /// Medienquelle (Datei) eines Elements.
@@ -357,6 +505,31 @@ pub struct MediaSource {
     pub default_subtitle_stream_index: Option<i32>,
     /// Hat Medien-Segmente (Intro/Abspann)?
     pub has_segments: bool,
+    /// Protokoll (`File`, `Http`, ...).
+    pub protocol: Option<String>,
+    /// Art der Quelle (`Default`, `Grouping`, `Placeholder`).
+    #[serde(rename = "Type")]
+    pub kind: Option<String>,
+    /// Entfernte Quelle?
+    pub is_remote: bool,
+    /// Videoart (`VideoFile`, `Iso`, ...).
+    pub video_type: Option<String>,
+    /// Live-Stream-Id (Live-TV, Aufnahmen); zum Schließen mit `close_live_stream`.
+    pub live_stream_id: Option<String>,
+    /// Öffnungs-Token (Live-TV).
+    pub open_token: Option<String>,
+    /// Muss geöffnet werden?
+    pub requires_opening: bool,
+    /// Muss geschlossen werden?
+    pub requires_closing: bool,
+    /// Unendlicher Stream (Live)?
+    pub is_infinite_stream: bool,
+    /// Zusätzliche HTTP-Kopfzeilen für den Abruf.
+    pub required_http_headers: HashMap<String, String>,
+    /// Unterprotokoll der Umwandlung (`hls`).
+    pub transcoding_sub_protocol: Option<String>,
+    /// Container der Umwandlung (`ts`, `mp4`).
+    pub transcoding_container: Option<String>,
 }
 
 /// Element der Bibliothek (Film, Serie, Folge, ...).
@@ -448,6 +621,114 @@ pub struct BaseItem {
     pub trickplay: Option<HashMap<String, HashMap<String, TrickplayInfo>>>,
     /// Provider-Ids (Imdb, Tmdb, ...).
     pub provider_ids: HashMap<String, String>,
+    /// Slogans.
+    pub taglines: Vec<String>,
+    /// Genres mit Id.
+    pub genre_items: Vec<NameId>,
+    /// Sortiername.
+    pub sort_name: Option<String>,
+    /// Ende (Serien, Sendungen; ISO-8601).
+    pub end_date: Option<String>,
+    /// Status (`Continuing`, `Ended`).
+    pub status: Option<String>,
+    /// Sendetage.
+    pub air_days: Vec<String>,
+    /// Schlagwörter.
+    pub tags: Vec<String>,
+    /// Anzahl lokaler Trailer.
+    pub local_trailer_count: i64,
+    /// Anzahl Extras.
+    pub special_feature_count: Option<i64>,
+    /// Entfernte Trailer.
+    pub remote_trailers: Vec<MediaUrl>,
+    /// Anzahl aller untergeordneten Elemente (rekursiv).
+    pub recursive_item_count: Option<i64>,
+    /// BlurHash-Platzhalter: Bildart → Tag → Hash.
+    pub image_blur_hashes: HashMap<String, HashMap<String, String>>,
+    /// Container der Datei.
+    pub container: Option<String>,
+    /// Breite (Video/Foto).
+    pub width: Option<i32>,
+    /// Höhe (Video/Foto).
+    pub height: Option<i32>,
+    /// Herunterladen erlaubt?
+    pub can_download: bool,
+    /// Hat Untertitel?
+    pub has_subtitles: bool,
+    /// Hat Liedtexte?
+    pub has_lyrics: bool,
+    /// Kumulierte Laufzeit (Serien/Alben).
+    pub cumulative_run_time_ticks: Option<i64>,
+    /// Album (Titel).
+    pub album: Option<String>,
+    /// Album-Id (Titel).
+    pub album_id: Option<String>,
+    /// Tag des Albumbilds (Titel).
+    pub album_primary_image_tag: Option<String>,
+    /// Albumkünstler (Name).
+    pub album_artist: Option<String>,
+    /// Albumkünstler mit Id.
+    pub album_artists: Vec<NameId>,
+    /// Interpreten (Namen).
+    pub artists: Vec<String>,
+    /// Interpreten mit Id.
+    pub artist_items: Vec<NameId>,
+    /// Anzahl Titel (Alben/Künstler).
+    pub song_count: Option<i64>,
+    /// Anzahl Alben (Künstler).
+    pub album_count: Option<i64>,
+    /// Anzahl Filme (Personen, Genres).
+    pub movie_count: Option<i64>,
+    /// Anzahl Serien.
+    pub series_count: Option<i64>,
+    /// Anzahl Folgen.
+    pub episode_count: Option<i64>,
+    /// Sender-Id (Sendungen, Aufnahmen).
+    pub channel_id: Option<String>,
+    /// Sendername.
+    pub channel_name: Option<String>,
+    /// Sendernummer.
+    pub channel_number: Option<String>,
+    /// Beginn (Sendungen; ISO-8601).
+    pub start_date: Option<String>,
+    /// Aktuelle Sendung (Sender mit `AddCurrentProgram`).
+    pub current_program: Option<Box<BaseItem>>,
+    /// Live-Sendung?
+    pub is_live: bool,
+    /// Wiederholung?
+    pub is_repeat: bool,
+    /// Zugehöriger Timer.
+    pub timer_id: Option<String>,
+    /// Zugehöriger Serien-Timer.
+    pub series_timer_id: Option<String>,
+    /// Zugehörige Sendung (Timer).
+    pub program_id: Option<String>,
+    /// Eintrags-Id in einer Wiedergabeliste (zum Entfernen/Verschieben).
+    pub playlist_item_id: Option<String>,
+    /// Serien-Thumb-Tag (Folgen).
+    pub series_thumb_image_tag: Option<String>,
+    /// Eltern-Primärbild.
+    pub parent_primary_image_item_id: Option<String>,
+    /// Eltern-Primärbild-Tag.
+    pub parent_primary_image_tag: Option<String>,
+    /// Ablageart (`FileSystem`, `Virtual`, ...).
+    pub location_type: Option<String>,
+    /// Kamerahersteller (Fotos).
+    pub camera_make: Option<String>,
+    /// Kameramodell (Fotos).
+    pub camera_model: Option<String>,
+    /// Fertigstellung in Prozent (Aufnahmen).
+    pub completion_percentage: Option<f64>,
+}
+
+/// Verweis auf eine Webadresse (Trailer).
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(rename_all = "PascalCase", default)]
+pub struct MediaUrl {
+    /// Adresse.
+    pub url: Option<String>,
+    /// Anzeigename.
+    pub name: Option<String>,
 }
 
 impl BaseItem {

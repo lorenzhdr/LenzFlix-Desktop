@@ -243,7 +243,7 @@ impl Client {
         &self,
         method: &Method,
         url: &Url,
-        body: Option<&serde_json::Value>,
+        body: Option<&Payload>,
     ) -> Result<reqwest::Response> {
         let started = Instant::now();
         let mut req = self
@@ -252,8 +252,17 @@ impl Client {
             .request(method.clone(), url.clone())
             .header(reqwest::header::AUTHORIZATION, self.auth_header_value())
             .header(reqwest::header::ACCEPT, "application/json");
-        if let Some(body) = body {
-            req = req.json(body);
+        match body {
+            Some(Payload::Json(value)) => req = req.json(value),
+            Some(Payload::Raw {
+                content_type,
+                bytes,
+            }) => {
+                req = req
+                    .header(reqwest::header::CONTENT_TYPE, content_type.as_str())
+                    .body(bytes.clone());
+            }
+            None => {}
         }
         let result = req.send().await;
         let redacted = redact_url(url.as_str());
@@ -291,6 +300,18 @@ impl Client {
         query: &[(String, String)],
         body: Option<serde_json::Value>,
     ) -> Result<reqwest::Response> {
+        self.send_payload(method, path, query, body.map(Payload::Json))
+            .await
+    }
+
+    /// Wie [`Client::send`], aber mit rohem Körper (z. B. Bildupload).
+    pub(crate) async fn send_payload(
+        &self,
+        method: Method,
+        path: &str,
+        query: &[(String, String)],
+        body: Option<Payload>,
+    ) -> Result<reqwest::Response> {
         let url = self.url(path, query)?;
         let retry = if method == Method::GET {
             self.inner.retry
@@ -319,8 +340,8 @@ impl Client {
         serde_json::from_slice(&bytes).map_err(|e| ApiError::Decode(e.to_string()))
     }
 
-    /// GET mit JSON-Antwort.
-    pub(crate) async fn get_json<T: DeserializeOwned>(
+    /// GET mit JSON-Antwort (für Endpunkte ohne eigene Methode).
+    pub async fn get_json<T: DeserializeOwned>(
         &self,
         path: &str,
         query: &[(String, String)],
@@ -329,7 +350,7 @@ impl Client {
     }
 
     /// POST/DELETE mit optionalem JSON-Body und JSON-Antwort.
-    pub(crate) async fn call_json<T: DeserializeOwned>(
+    pub async fn call_json<T: DeserializeOwned>(
         &self,
         method: Method,
         path: &str,
@@ -343,8 +364,14 @@ impl Client {
         Self::decode(self.send(method, path, query, body).await?).await
     }
 
-    /// POST/DELETE ohne Antwortauswertung (204 oder beliebiger Inhalt).
-    pub(crate) async fn call_empty(
+    /// GET mit Textantwort (z. B. Logdatei, CSS, JSON-String).
+    pub async fn get_text(&self, path: &str, query: &[(String, String)]) -> Result<String> {
+        let resp = self.send(Method::GET, path, query, None).await?;
+        resp.text().await.map_err(ApiError::from_reqwest)
+    }
+
+    /// POST/DELETE ohne Antwortauswertung (204 oder beliebiger Inhalt). Für Methoden ohne Antwortkörper.
+    pub async fn call_empty(
         &self,
         method: Method,
         path: &str,
@@ -386,6 +413,20 @@ impl Client {
             }
         }
     }
+}
+
+/// Anfragekörper.
+#[derive(Debug, Clone)]
+pub(crate) enum Payload {
+    /// JSON.
+    Json(serde_json::Value),
+    /// Rohe Bytes mit eigenem Inhaltstyp.
+    Raw {
+        /// `Content-Type`.
+        content_type: String,
+        /// Inhalt.
+        bytes: Vec<u8>,
+    },
 }
 
 /// Prüft und normalisiert eine Serveradresse. Ohne Schema wird `http://` ergänzt.

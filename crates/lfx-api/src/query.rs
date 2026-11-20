@@ -227,6 +227,31 @@ impl ItemsQuery {
         self.raw("enableTotalRecordCount", on.to_string())
     }
 
+    /// `NameStartsWith` (Anfangsbuchstabe in Listen).
+    pub fn name_starts_with(self, prefix: &str) -> Self {
+        self.raw("nameStartsWith", prefix)
+    }
+
+    /// `ArtistIds` (Alben/Titel eines Künstlers).
+    pub fn artist_ids(self, ids: &[&str]) -> Self {
+        self.raw("artistIds", join(ids))
+    }
+
+    /// `PersonIds` (Titel mit einer Person).
+    pub fn person_ids(self, ids: &[&str]) -> Self {
+        self.raw("personIds", join(ids))
+    }
+
+    /// `StudioIds`.
+    pub fn studio_ids(self, ids: &[&str]) -> Self {
+        self.raw("studioIds", join(ids))
+    }
+
+    /// `GenreIds`.
+    pub fn genre_ids(self, ids: &[&str]) -> Self {
+        self.raw("genreIds", join(ids))
+    }
+
     /// Fertige Parameterliste.
     pub fn build(&self) -> &[(String, String)] {
         &self.params
