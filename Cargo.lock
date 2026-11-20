@@ -3092,6 +3092,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "lfx-tv"
+version = "0.1.0"
+dependencies = [
+ "indexmap",
+ "lfx-api",
+ "lfx-mock-jellyfin",
+ "lfx-tv-schedule",
+ "serde_json",
+ "thiserror 2.0.21",
+ "tokio",
+ "unicode-normalization",
+]
+
+[[package]]
 name = "lfx-tv-schedule"
 version = "0.1.0"
 dependencies = [
