@@ -75,6 +75,10 @@ required-features = ["dev-automation"]
 name = "e2e_detail"
 required-features = ["dev-automation"]
 
+[[test]] # W4-media
+name = "w4_media"
+required-features = ["dev-automation"]
+
 [[test]] # W2-home
 name = "home_e2e"
 required-features = ["dev-automation"]

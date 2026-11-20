@@ -75,7 +75,7 @@ export component HomeChrome inherits Rectangle {
         opacity: root.scrolled ? 0.0 : 1.0;
         visible: !root.scrolled;
         animate opacity { duration: 300ms; easing: Theme.t.ease; }
-        tabs: ["Für dich", "Filme", "Serien"];
+        tabs: ["FÃ¼r dich", "Filme", "Serien"];
         current: 0;
         pick(i) => { root.event("plus-tab", i); }
     }

@@ -53,6 +53,7 @@ pub struct State {
     pub toast_gen: u64,
     pub tv: crate::tvui::TvUi,         // W2-tvui
     pub lib: crate::library::LibState, // W2-library
+    pub media: crate::media::MediaCtl, // W4-media
     /// W2-detail: Detail-Modal/-Seite, Kontextmenü, Hovercard.
     pub detail: crate::detail::DetailCtl, // W2-detail
     /// W3-retro: LENZ//84 Effekte.
@@ -236,6 +237,7 @@ impl App {
         let route = self.st.borrow().router.current().clone();
         let ui = self.win();
         tracing::info!(route = route.name(), "Seite");
+        self.media_on_route(&route); // W4-media
         let mut ctx = InputContext::Browse;
         match &route {
             Route::AddServer => {
@@ -277,6 +279,7 @@ impl App {
             }
             // W2-library
             r if crate::library::is_library_route(r) => ctx = self.render_library_route(r),
+            Route::Media(m) => self.render_media_route(m), // W4-media
             Route::Settings => {
                 ui.set_page(Page::Settings);
                 self.set_graph(focus::settings_graph(), None);
@@ -368,6 +371,9 @@ impl App {
         }
         if self.home_menu_action(action) {
             return; // W2-home: offenes Menü der Startseite nimmt die Taste
+        }
+        if self.media_handle_action(action) {
+            return; // W4-media
         }
         let route = self.st.borrow().router.current().clone();
         if matches!(route, Route::Player { .. }) {

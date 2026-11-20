@@ -20,6 +20,7 @@ import { PlusBrand } from "../components/plus-parts.slint"; // W3-plus
 import { PickerOverlay } from "picker.slint"; // W3-picker
 import { PickerState } from "picker-state.slint"; // W3-picker
 import { HomeChrome } from "../components/home-chrome.slint"; // W3-picker: Kopfleiste auch auf der Detailseite
+import { MediaPage, MediaBar, MediaOverlays, MediaUi } from "media.slint"; // W4-media
 
 // Hauptfenster von LENZFLIX Desktop. Rust (lfx-app) hält Router, Zustand und Fokus und setzt die Properties;
 // die Oberfläche meldet nur Ereignisse. Durchsichtiger Fensterhintergrund: das Video liegt in einer Ebene darunter.
@@ -244,6 +245,7 @@ export component MainWindow inherits Window {
             }
             if root.page == Page.detail && Theme.design != Design.plus: DetailPage { } // W2-detail
             if root.page == Page.detail && Theme.design == Design.plus: PlusTitlePage { } // W3-plus
+            if root.page == Page.media: MediaPage { } // W4-media
             if root.page == Page.about: AboutPage {
                 version: root.version;
                 notices: root.notices;
@@ -275,6 +277,19 @@ export component MainWindow inherits Window {
             focus-index: -1;
             event(k, v) => { root.home-event(k, v); }
             event-f(k, v) => { root.home-event-f(k, v); }
+        }
+        // W4-media: Mini-Player-Leiste über allen Seiten (außer Player und TV) und Overlays der Medienseiten
+        if MediaUi.np-active && root.page != Page.player && root.page != Page.tvmode && root.page != Page.add-server && root.page != Page.login && root.page != Page.profiles: MediaBar {
+            x: 0px;
+            y: parent.height - self.height;
+            width: parent.width;
+            visible: MediaUi.bar-visible;
+        }
+        if root.page == Page.media || MediaUi.np-full: MediaOverlays {
+            x: 0px;
+            y: bar.height / root.zf;
+            width: parent.width;
+            height: parent.height - bar.height / root.zf;
         }
         } // zoomwrap
 

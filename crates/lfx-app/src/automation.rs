@@ -267,7 +267,12 @@ impl App {
                 Err(e) => fail(&e),
             }, // W3-retro
             c if c.starts_with("detail_") => self.detail_automation(c, msg, reply), // W2-detail
-            c if c.starts_with("home_") => self.home_command(c, msg, reply),        // W2-home
+            c if c.starts_with("media") => match self.media_automation(c, msg) {
+                // W4-media
+                Ok(v) => ok(v),
+                Err(e) => fail(&e),
+            },
+            c if c.starts_with("home_") => self.home_command(c, msg, reply), // W2-home
             // W2-library
             _ => match self.lib_automation(cmd, msg) {
                 Some(Ok(v)) => ok(v),
@@ -351,6 +356,7 @@ impl App {
             "player": player,
             "tv": self.tv_state_json(), // W2-tvui
             "library": self.lib_state_json(), // W2-library
+            "media": self.media_state_json(), // W4-media
             "play_ui": self.player_state_json(), // W2-player
             "window": {"width": pw, "height": ph, "dpr": dpr},
             "detail": self.detail_state_json(), // W2-detail

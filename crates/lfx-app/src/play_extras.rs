@@ -64,6 +64,9 @@ impl App {
 
     /// Befehl des Systems (Medientaste, Sperrbildschirm, Lautstärke-Flyout).
     pub fn media_command(self: &Rc<Self>, cmd: MediaCommand) {
+        if self.audio_media_command(cmd) {
+            return; // W4-media: Musik läuft
+        }
         if !matches!(
             self.st.borrow().router.current(),
             crate::route::Route::Player { .. }

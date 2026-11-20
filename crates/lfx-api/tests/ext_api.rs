@@ -405,10 +405,9 @@ async fn music_artists_albums_tracks_mix_and_stream() {
         assert!(!url.contains(&t));
     }
     assert!(!url.to_lowercase().contains("api_key") && !url.contains("ApiKey"));
-    assert_eq!(
-        &client.fetch_bytes(&url).await.unwrap()[..],
-        b"FAKE-AUDIO-BYTES"
-    );
+    // W4-media: der Mock liefert eine echte WAV-Datei
+    let bytes = client.fetch_bytes(&url).await.unwrap();
+    assert_eq!(&bytes[0..4], b"RIFF");
 }
 
 // ---------------------------------------------------------------- Playlists

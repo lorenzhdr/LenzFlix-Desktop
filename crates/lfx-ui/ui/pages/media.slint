@@ -1,0 +1,883 @@
+// W4-media: Medienseiten (Musik, Bücher, Fotos, Live-TV) samt Mini-Player-Leiste, Vollbild-Player,
+// Foto-Betrachter, Menü und Namensabfrage. Rust (lfx-app/src/media*.rs) hält Zustand und Fokus und setzt `MediaUi`;
+// die Oberfläche meldet nur Ereignisse über `MediaUi.event(art, a, b)`.
+//
+// Fokuszonen (müssen mit media.rs übereinstimmen): 0 Kopf (0 Zurück, 1.. Chips), 1 Inhalt, 2 Leiste unten
+// (0 zurück, 1 Wiedergabe, 2 weiter, 3 Zufall, 4 Wiederholen, 5 Vollbild), 3 Vollbild-Player (0 Zufall, 1 zurück,
+// 2 Wiedergabe, 3 weiter, 4 Wiederholen, 5 Mix, 6 schließen), 4 Warteschlange.
+import { Theme, Design } from "../theme/theme.slint";
+import { ButtonKind } from "../components/types.slint";
+import { LfxText } from "../components/text.slint";
+import { LfxButton } from "../components/button.slint";
+import { LfxIcon } from "../components/icon.slint";
+import { LfxFocusRing } from "../components/focus-ring.slint";
+import { LfxSlider } from "../components/controls.slint";
+import { LfxSpinner } from "../components/feedback.slint";
+import { Icons } from "../icons.slint";
+
+// Karte (Album, Künstler, Buch, Foto, Kanal, Aufnahme).
+export struct MediaCard {
+    title: string,
+    subtitle: string,
+    image: image,
+    has-image: bool,
+    // Rund (Künstler)
+    round: bool,
+    badge: string,
+}
+
+// Zeile einer Titelliste.
+export struct MediaTrack {
+    num: string,
+    title: string,
+    sub: string,
+    right: string,
+    playing: bool,
+}
+
+export struct GuideCell {
+    title: string,
+    time: string,
+    x: length,
+    w: length,
+    live: bool,
+    rec: bool,
+}
+
+export struct GuideRow {
+    channel: string,
+    number: string,
+    cells: [GuideCell],
+}
+
+export struct GuideHour {
+    label: string,
+    x: length,
+}
+
+export global MediaUi {
+    in property <string> title;
+    in property <string> subtitle;
+    in property <image> head-image;
+    in property <bool> head-has-image: false;
+    in property <[string]> chips;
+    in property <int> chip-current: -1;
+    // 0 Karten, 1 Titelliste, 2 Programmführer, 3 Buchdetail
+    in property <int> view: 0;
+    in property <[MediaCard]> cards;
+    in property <length> card-w: 180px;
+    in property <length> card-h: 180px;
+    in property <[MediaTrack]> tracks;
+    in property <[GuideRow]> guide;
+    in property <[GuideHour]> guide-hours;
+    in property <length> guide-now-x: 0px;
+    in property <length> guide-width: 1440px;
+    in property <int> focus-zone: 1;
+    in property <int> focus-index: 0;
+    in property <int> focus-col: -1;
+    in property <bool> loading: false;
+    in property <string> error;
+    in property <string> empty;
+    // Buchdetail
+    in property <string> book-meta;
+    in property <string> book-text;
+    in property <string> book-action;
+    // Sichtbarkeit in den Zeilen: scrollen
+    in property <int> ensure-tick: 0;
+    in property <length> ensure-top: 0px;
+    in property <length> ensure-h: 0px;
+    in property <length> ensure-x: 0px;
+    in property <length> ensure-w: 0px;
+    // Menü und Namensabfrage
+    in property <bool> menu-open: false;
+    in property <string> menu-title;
+    in property <[string]> menu-items;
+    in property <int> menu-index: 0;
+    in property <bool> prompt-open: false;
+    in property <string> prompt-title;
+    in-out property <string> prompt-text;
+    in property <int> prompt-tick: 0;
+    // Foto-Betrachter
+    in property <bool> viewer-open: false;
+    in property <image> viewer-image;
+    in property <bool> viewer-has-image: false;
+    in property <string> viewer-title;
+    in property <string> viewer-counter;
+    in property <float> viewer-zoom: 1.0;
+    in property <float> viewer-pan-x: 0.0;
+    in property <float> viewer-pan-y: 0.0;
+    in property <bool> viewer-slide: false;
+    in property <int> viewer-focus: -1;
+    // Mini-Player-Leiste und Vollbild-Player
+    in property <bool> np-active: false;
+    in property <string> np-title;
+    in property <string> np-artist;
+    in property <image> np-cover;
+    in property <bool> np-has-cover: false;
+    in property <bool> np-playing: false;
+    in property <float> np-pos: 0.0;
+    in property <string> np-time;
+    in property <bool> np-shuffle: false;
+    in property <int> np-repeat: 0;
+    in property <bool> np-full: false;
+    in property <[MediaTrack]> np-queue;
+    in property <float> np-volume: 1.0;
+    in property <bool> bar-visible: true;
+    // Ereignisart, zwei Zahlen
+    callback event(string, int, int);
+    callback event-f(string, float);
+}
+
+// ---------------------------------------------------------------- Bausteine
+
+component Chip inherits Rectangle {
+    in property <string> text;
+    in property <bool> active;
+    in property <bool> focused;
+    callback clicked();
+    height: 36px;
+    preferred-width: lbl.preferred-width + 32px;
+    border-radius: 18px;
+    background: root.active
+        ? (Theme.design == Design.retro ? Theme.t.retro-amber : #ffffff)
+        : (ta.has-hover ? Theme.t.glass-hover : Theme.t.glass);
+    lbl := LfxText {
+        text: root.text;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+        font-weight: 700;
+        font-size: 15px;
+        color: root.active ? (Theme.design == Design.retro ? Theme.t.retro-ink : #000000) : Theme.t.text;
+    }
+    ta := TouchArea { clicked => { root.clicked(); } }
+    LfxFocusRing { active: root.focused; radius: 18px; }
+}
+
+component IconBtn inherits Rectangle {
+    in property <image> icon;
+    in property <bool> focused;
+    in property <bool> on: false;
+    in property <length> size: 44px;
+    in property <string> label;
+    callback clicked();
+    width: root.size;
+    height: root.size;
+    border-radius: self.width / 2;
+    background: root.on ? #ffffff30 : (ta.has-hover ? #ffffff26 : Theme.t.icon-circle);
+    if root.icon.width > 0: LfxIcon {
+        x: (parent.width - self.width) / 2;
+        y: (parent.height - self.height) / 2;
+        source: root.icon;
+        size: root.size * 0.5;
+        tint: root.on ? Theme.t.accent : Theme.t.text;
+    }
+    if root.label != "": LfxText {
+        width: 100%;
+        height: 100%;
+        text: root.label;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+        font-weight: 800;
+        font-size: root.size * 0.34;
+        color: root.on ? Theme.t.accent : Theme.t.text;
+    }
+    ta := TouchArea { clicked => { root.clicked(); } }
+    LfxFocusRing { active: root.focused; radius: root.size / 2; }
+}
+
+component CardView inherits Rectangle {
+    in property <MediaCard> data;
+    in property <bool> focused;
+    callback clicked();
+    callback context(length, length);
+    background: transparent;
+    Rectangle {
+        y: 0px;
+        height: parent.height - 64px;
+        border-radius: root.data.round ? self.width / 2 : Theme.t.card-radius;
+        background: Theme.design == Design.retro ? #1d1208 : Theme.t.surface-2;
+        clip: true;
+        transform-scale: (root.focused || ta.has-hover) ? 1.04 : 1.0;
+        animate transform-scale { duration: Theme.t.dur; easing: Theme.t.ease; }
+        if root.data.has-image: Image {
+            width: 100%;
+            height: 100%;
+            source: root.data.image;
+            image-fit: cover;
+        }
+        if !root.data.has-image: LfxText {
+            width: 100%;
+            height: 100%;
+            text: root.data.title;
+            wrap: word-wrap;
+            overflow: elide;
+            horizontal-alignment: center;
+            vertical-alignment: center;
+            color: Theme.t.text-muted;
+            font-weight: 700;
+        }
+        if root.data.badge != "": Rectangle {
+            x: 8px;
+            y: 8px;
+            width: bt.preferred-width + 14px;
+            height: 22px;
+            border-radius: 4px;
+            background: #000000b0;
+            bt := LfxText {
+                text: root.data.badge;
+                horizontal-alignment: center;
+                vertical-alignment: center;
+                font-size: 12px;
+                font-weight: 800;
+                color: Theme.t.gold;
+            }
+        }
+        LfxFocusRing { active: root.focused; radius: root.data.round ? parent.width / 2 : Theme.t.card-radius; }
+    }
+    LfxText {
+        x: 2px;
+        y: parent.height - 58px;
+        width: parent.width - 4px;
+        height: 24px;
+        text: root.data.title;
+        overflow: elide;
+        font-weight: 700;
+        font-size: 15px;
+        horizontal-alignment: root.data.round ? center : left;
+        color: Theme.design == Design.retro ? Theme.t.retro-amber : Theme.t.text;
+    }
+    LfxText {
+        x: 2px;
+        y: parent.height - 34px;
+        width: parent.width - 4px;
+        height: 22px;
+        text: root.data.subtitle;
+        overflow: elide;
+        font-size: 13px;
+        horizontal-alignment: root.data.round ? center : left;
+        color: Theme.t.text-muted;
+    }
+    ta := TouchArea {
+        clicked => { root.clicked(); }
+        pointer-event(e) => {
+            if (e.button == PointerEventButton.right && e.kind == PointerEventKind.up) {
+                root.context(self.mouse-x, self.mouse-y);
+            }
+        }
+    }
+}
+
+component TrackRow inherits Rectangle {
+    in property <MediaTrack> data;
+    in property <bool> focused;
+    callback clicked();
+    callback more();
+    height: 56px;
+    border-radius: 6px;
+    background: root.focused || ta.has-hover ? #ffffff1a : (root.data.playing ? #ffffff0d : transparent);
+    ta := TouchArea {
+        clicked => { root.clicked(); }
+        pointer-event(e) => {
+            if (e.button == PointerEventButton.right && e.kind == PointerEventKind.up) { root.more(); }
+        }
+    }
+    if root.data.playing: LfxIcon {
+        x: 16px;
+        y: (parent.height - self.height) / 2;
+        source: Icons.volume;
+        size: 20px;
+        tint: Theme.t.accent;
+    }
+    if !root.data.playing: LfxText {
+        x: 8px;
+        width: 40px;
+        height: 100%;
+        text: root.data.num;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+        color: Theme.t.text-muted;
+    }
+    LfxText {
+        x: 60px;
+        y: 8px;
+        width: parent.width - 240px;
+        height: 22px;
+        text: root.data.title;
+        overflow: elide;
+        font-weight: 700;
+        color: root.data.playing ? Theme.t.accent : Theme.t.text;
+    }
+    LfxText {
+        x: 60px;
+        y: 30px;
+        width: parent.width - 240px;
+        height: 20px;
+        text: root.data.sub;
+        overflow: elide;
+        font-size: 13px;
+        color: Theme.t.text-muted;
+    }
+    LfxText {
+        x: parent.width - 170px;
+        width: 100px;
+        height: 100%;
+        text: root.data.right;
+        horizontal-alignment: right;
+        vertical-alignment: center;
+        color: Theme.t.text-muted;
+    }
+    IconBtn {
+        x: parent.width - 60px;
+        y: 8px;
+        size: 40px;
+        icon: Icons.more;
+        clicked => { root.more(); }
+    }
+    LfxFocusRing { active: root.focused; radius: 6px; }
+}
+
+// ---------------------------------------------------------------- Seite
+
+export component MediaPage inherits Rectangle {
+    property <length> gutter: root.width > 1400px ? 56px : 36px;
+    property <length> gap: 24px;
+    property <int> cols: max(1, floor((root.width - 2 * root.gutter + root.gap) / (MediaUi.card-w + root.gap)));
+    property <length> pitch: MediaUi.card-h + 64px + root.gap;
+    property <length> head-h: 128px;
+    property <length> gx: 0px;
+    animate gx { duration: Theme.t.dur; easing: Theme.t.ease; }
+    property <length> bar-h: MediaUi.np-active && MediaUi.bar-visible ? 76px : 0px;
+    in property <int> ensure-tick: MediaUi.ensure-tick;
+    changed ensure-tick => {
+        if (MediaUi.ensure-top + fl.content-y < 0px) {
+            fl.content-y = -MediaUi.ensure-top + 8px;
+        } else if (MediaUi.ensure-top + MediaUi.ensure-h + fl.content-y > fl.height) {
+            fl.content-y = fl.height - MediaUi.ensure-top - MediaUi.ensure-h - 8px;
+        }
+        if (MediaUi.view == 2) {
+            if (MediaUi.ensure-x + MediaUi.ensure-w + root.gx > root.width - 2 * root.gutter - 180px) {
+                root.gx = root.width - 2 * root.gutter - 180px - MediaUi.ensure-x - MediaUi.ensure-w - 16px;
+            }
+            if (MediaUi.ensure-x + root.gx < 0px) {
+                root.gx = -MediaUi.ensure-x + 16px;
+            }
+        }
+    }
+    changed cols => { MediaUi.event("cols", root.cols, 0); }
+    init => { MediaUi.event("cols", root.cols, 0); }
+    background: Theme.t.bg;
+
+    // Kopf: Zurück, Titel, Chips
+    IconBtn {
+        x: root.gutter;
+        y: 22px;
+        size: 44px;
+        icon: Icons.back;
+        focused: MediaUi.focus-zone == 0 && MediaUi.focus-index == 0;
+        clicked => { MediaUi.event("back", 0, 0); }
+    }
+    if MediaUi.head-has-image && MediaUi.view != 3: Image {
+        x: root.gutter + 60px;
+        y: 14px;
+        width: 100px;
+        height: 100px;
+        source: MediaUi.head-image;
+        image-fit: cover;
+    }
+    LfxText {
+        x: root.gutter + 60px + (MediaUi.head-has-image && MediaUi.view != 3 ? 116px : 0px);
+        y: 18px;
+        width: root.width - self.x - root.gutter;
+        height: 40px;
+        text: MediaUi.title;
+        overflow: elide;
+        font-size: 30px;
+        font-weight: 800;
+        color: Theme.design == Design.retro ? Theme.t.retro-amber : Theme.t.text;
+    }
+    LfxText {
+        x: root.gutter + 60px + (MediaUi.head-has-image && MediaUi.view != 3 ? 116px : 0px);
+        y: 58px;
+        width: root.width - self.x - root.gutter;
+        height: 24px;
+        text: MediaUi.subtitle;
+        overflow: elide;
+        color: Theme.t.text-muted;
+    }
+    HorizontalLayout {
+        x: root.gutter + 60px + (MediaUi.head-has-image && MediaUi.view != 3 ? 116px : 0px);
+        y: 84px;
+        height: 36px;
+        spacing: 10px;
+        alignment: start;
+        for c[i] in MediaUi.chips: Chip {
+            text: c;
+            active: i == MediaUi.chip-current;
+            focused: MediaUi.focus-zone == 0 && MediaUi.focus-index == i + 1;
+            clicked => { MediaUi.event("chip", i, 0); }
+        }
+    }
+
+    // Inhalt
+    fl := Flickable {
+        x: 0px;
+        y: root.head-h;
+        width: root.width;
+        height: root.height - root.head-h - root.bar-h;
+        content-width: self.width;
+        content-height: MediaUi.view == 0
+            ? ceil(MediaUi.cards.length / root.cols) * root.pitch + 40px
+            : (MediaUi.view == 1 ? MediaUi.tracks.length * 56px + 40px
+            : (MediaUi.view == 2 ? 44px + MediaUi.guide.length * 60px + 40px : 600px));
+        animate content-y { duration: Theme.t.dur; easing: Theme.t.ease; }
+
+        if MediaUi.view == 0: Rectangle {
+            for c[i] in MediaUi.cards: CardView {
+                x: root.gutter + mod(i, root.cols) * (MediaUi.card-w + root.gap);
+                y: floor(i / root.cols) * root.pitch + 8px;
+                width: MediaUi.card-w;
+                height: MediaUi.card-h + 64px;
+                data: c;
+                focused: MediaUi.focus-zone == 1 && MediaUi.focus-index == i;
+                clicked => { MediaUi.event("card", i, 0); }
+                context(mx, my) => { MediaUi.event("card-menu", i, 0); }
+            }
+        }
+        if MediaUi.view == 1: Rectangle {
+            for t[i] in MediaUi.tracks: TrackRow {
+                x: root.gutter;
+                y: i * 56px + 8px;
+                width: root.width - 2 * root.gutter;
+                data: t;
+                focused: MediaUi.focus-zone == 1 && MediaUi.focus-index == i;
+                clicked => { MediaUi.event("track", i, 0); }
+                more => { MediaUi.event("track-menu", i, 0); }
+            }
+        }
+        if MediaUi.view == 2: Rectangle {
+            // Zeitleiste mit Stunden (rechts der Senderspalte)
+            Rectangle {
+                y: 0px;
+                x: root.gutter + 180px;
+                width: root.width - root.gutter * 2 - 180px;
+                height: 44px;
+                clip: true;
+                for h in MediaUi.guide-hours: LfxText {
+                    x: h.x + root.gx + 6px;
+                    height: 44px;
+                    text: h.label;
+                    vertical-alignment: center;
+                    font-weight: 700;
+                    color: Theme.t.text-muted;
+                }
+            }
+            for row[r] in MediaUi.guide: Rectangle {
+                y: 44px + r * 60px;
+                height: 56px;
+                x: root.gutter;
+                width: root.width - 2 * root.gutter;
+                Rectangle {
+                    x: 0px;
+                    y: 0px;
+                    width: 172px;
+                    border-radius: 6px;
+                    background: MediaUi.focus-zone == 1 && MediaUi.focus-index == r && MediaUi.focus-col < 0 ? #ffffff30 : Theme.t.surface-2;
+                    LfxText {
+                        x: 12px;
+                        width: parent.width - 20px;
+                        height: 100%;
+                        text: row.number + "  " + row.channel;
+                        overflow: elide;
+                        vertical-alignment: center;
+                        font-weight: 700;
+                    }
+                    TouchArea { clicked => { MediaUi.event("guide-chan", r, 0); } }
+                    LfxFocusRing { active: MediaUi.focus-zone == 1 && MediaUi.focus-index == r && MediaUi.focus-col < 0; radius: 6px; }
+                }
+                Rectangle {
+                    x: 180px;
+                    y: 0px;
+                    width: parent.width - 180px;
+                    height: parent.height;
+                    clip: true;
+                    for cell[c] in row.cells: Rectangle {
+                        x: cell.x + root.gx;
+                        width: cell.w - 3px;
+                        border-radius: 6px;
+                        background: cell.live ? #ffffff26 : Theme.t.surface-2;
+                        border-width: cell.rec ? 2px : 0px;
+                        border-color: Theme.t.red;
+                        LfxText {
+                            x: 8px;
+                            y: 6px;
+                            width: parent.width - 14px;
+                            height: 22px;
+                            text: cell.title;
+                            overflow: elide;
+                            font-size: 14px;
+                            font-weight: 700;
+                        }
+                        LfxText {
+                            x: 8px;
+                            y: 28px;
+                            width: parent.width - 14px;
+                            height: 20px;
+                            text: cell.time;
+                            overflow: elide;
+                            font-size: 12px;
+                            color: Theme.t.text-muted;
+                        }
+                        TouchArea { clicked => { MediaUi.event("guide-cell", r, c); } }
+                        LfxFocusRing { active: MediaUi.focus-zone == 1 && MediaUi.focus-index == r && MediaUi.focus-col == c; radius: 6px; }
+                    }
+                    // Jetzt-Linie
+                    Rectangle {
+                        x: MediaUi.guide-now-x + root.gx;
+                        width: 2px;
+                        background: Theme.t.red;
+                    }
+                }
+            }
+        }
+        if MediaUi.view == 3: Rectangle {
+            Rectangle {
+                x: root.gutter;
+                y: 8px;
+                width: 240px;
+                height: 360px;
+                border-radius: Theme.t.card-radius;
+                background: Theme.t.surface-2;
+                clip: true;
+                if MediaUi.head-has-image: Image {
+                    width: 100%;
+                    height: 100%;
+                    source: MediaUi.head-image;
+                    image-fit: cover;
+                }
+            }
+            LfxText {
+                x: root.gutter + 280px;
+                y: 8px;
+                width: root.width - self.x - root.gutter;
+                text: MediaUi.book-meta;
+                color: Theme.t.text-muted;
+            }
+            LfxText {
+                x: root.gutter + 280px;
+                y: 44px;
+                width: root.width - self.x - root.gutter;
+                height: 190px;
+                text: MediaUi.book-text;
+                wrap: word-wrap;
+                overflow: elide;
+                font-size: 16px;
+            }
+            LfxButton {
+                x: root.gutter + 280px;
+                y: 250px;
+                width: 300px;
+                kind: ButtonKind.primary;
+                text: MediaUi.book-action;
+                focused: MediaUi.focus-zone == 1 && MediaUi.focus-index == 0;
+                clicked => { MediaUi.event("book-open", 0, 0); }
+            }
+        }
+    }
+    if MediaUi.loading: LfxSpinner {
+        x: (root.width - self.width) / 2;
+        y: root.head-h + 120px;
+    }
+    if MediaUi.error != "" || (MediaUi.empty != "" && !MediaUi.loading): LfxText {
+        x: root.gutter;
+        y: root.head-h + 90px;
+        width: root.width - 2 * root.gutter;
+        text: MediaUi.error != "" ? MediaUi.error : MediaUi.empty;
+        wrap: word-wrap;
+        horizontal-alignment: center;
+        color: Theme.t.text-muted;
+        font-size: 18px;
+    }
+}
+
+// ---------------------------------------------------------------- Mini-Player-Leiste (über allen Seiten)
+
+export component MediaBar inherits Rectangle {
+    height: 76px;
+    background: Theme.design == Design.retro ? Theme.t.retro-panel : #141414f0;
+    border-width: 1px;
+    border-color: Theme.design == Design.retro ? Theme.t.retro-amber-lo : #ffffff1a;
+    // Fortschritt als dünne Linie oben
+    Rectangle {
+        x: 0px;
+        y: 0px;
+        height: 3px;
+        width: parent.width * clamp(MediaUi.np-pos, 0.0, 1.0);
+        background: Theme.t.progress;
+    }
+    TouchArea { clicked => { MediaUi.event("np-open", 1, 0); } }
+    Rectangle {
+        x: 16px;
+        y: 10px;
+        width: 56px;
+        height: 56px;
+        border-radius: 4px;
+        background: Theme.t.surface-2;
+        clip: true;
+        if MediaUi.np-has-cover: Image {
+            width: 100%;
+            height: 100%;
+            source: MediaUi.np-cover;
+            image-fit: cover;
+        }
+    }
+    LfxText {
+        x: 84px;
+        y: 14px;
+        width: max(120px, parent.width / 2 - 380px);
+        height: 24px;
+        text: MediaUi.np-title;
+        overflow: elide;
+        font-weight: 800;
+    }
+    LfxText {
+        x: 84px;
+        y: 40px;
+        width: max(120px, parent.width / 2 - 380px);
+        height: 22px;
+        text: MediaUi.np-artist;
+        overflow: elide;
+        font-size: 13px;
+        color: Theme.t.text-muted;
+    }
+    HorizontalLayout {
+        x: (parent.width - self.preferred-width) / 2;
+        y: 15px;
+        spacing: 12px;
+        IconBtn { size: 44px; label: "⇄"; on: MediaUi.np-shuffle; focused: MediaUi.focus-zone == 2 && MediaUi.focus-index == 3; clicked => { MediaUi.event("bar", 3, 0); } }
+        IconBtn { size: 44px; label: "|◀"; focused: MediaUi.focus-zone == 2 && MediaUi.focus-index == 0; clicked => { MediaUi.event("bar", 0, 0); } }
+        IconBtn { size: 46px; icon: MediaUi.np-playing ? Icons.pause : Icons.play; focused: MediaUi.focus-zone == 2 && MediaUi.focus-index == 1; clicked => { MediaUi.event("bar", 1, 0); } }
+        IconBtn { size: 44px; label: "▶|"; focused: MediaUi.focus-zone == 2 && MediaUi.focus-index == 2; clicked => { MediaUi.event("bar", 2, 0); } }
+        IconBtn { size: 44px; label: MediaUi.np-repeat == 2 ? "Wdh 1" : "Wdh"; on: MediaUi.np-repeat > 0; focused: MediaUi.focus-zone == 2 && MediaUi.focus-index == 4; clicked => { MediaUi.event("bar", 4, 0); } }
+    }
+    LfxText {
+        x: parent.width - 260px;
+        y: 0px;
+        width: 150px;
+        height: 100%;
+        text: MediaUi.np-time;
+        horizontal-alignment: right;
+        vertical-alignment: center;
+        color: Theme.t.text-muted;
+    }
+    IconBtn {
+        x: parent.width - 96px;
+        y: 15px;
+        size: 44px;
+        icon: Icons.fullscreen;
+        focused: MediaUi.focus-zone == 2 && MediaUi.focus-index == 5;
+        clicked => { MediaUi.event("np-open", 1, 0); }
+    }
+}
+
+// ---------------------------------------------------------------- Overlays (Vollbild-Player, Betrachter, Menü, Abfrage)
+
+export component MediaOverlays inherits Rectangle {
+    if MediaUi.np-full: Rectangle {
+        background: #0b0b0b;
+        TouchArea { }
+        IconBtn {
+            x: 28px;
+            y: 24px;
+            icon: Icons.chevron-down;
+            focused: MediaUi.focus-zone == 3 && MediaUi.focus-index == 6;
+            clicked => { MediaUi.event("np-open", 0, 0); }
+        }
+        LfxText { x: 90px; y: 30px; text: "Wiedergabe"; font-size: 18px; color: Theme.t.text-muted; font-weight: 700; }
+        Rectangle {
+            x: 60px;
+            y: 100px;
+            width: min(parent.width * 0.4, parent.height - 330px);
+            height: self.width;
+            border-radius: Theme.t.card-radius;
+            background: Theme.t.surface-2;
+            clip: true;
+            if MediaUi.np-has-cover: Image {
+                width: 100%;
+                height: 100%;
+                source: MediaUi.np-cover;
+                image-fit: cover;
+            }
+        }
+        LfxText {
+            x: 60px;
+            y: parent.height - 190px;
+            width: parent.width * 0.45;
+            height: 40px;
+            text: MediaUi.np-title;
+            overflow: elide;
+            font-size: 28px;
+            font-weight: 800;
+        }
+        LfxText {
+            x: 60px;
+            y: parent.height - 150px;
+            width: parent.width * 0.45;
+            height: 26px;
+            text: MediaUi.np-artist;
+            overflow: elide;
+            color: Theme.t.text-muted;
+            font-size: 17px;
+        }
+        LfxSlider {
+            x: 60px;
+            y: parent.height - 112px;
+            width: parent.width * 0.45;
+            value: MediaUi.np-pos;
+            seeked(v) => { MediaUi.event-f("seek", v); }
+        }
+        LfxText { x: 60px; y: parent.height - 90px; text: MediaUi.np-time; color: Theme.t.text-muted; }
+        HorizontalLayout {
+            x: 60px;
+            y: parent.height - 66px;
+            spacing: 14px;
+            IconBtn { size: 48px; label: "⇄"; on: MediaUi.np-shuffle; focused: MediaUi.focus-zone == 3 && MediaUi.focus-index == 0; clicked => { MediaUi.event("full", 0, 0); } }
+            IconBtn { size: 48px; label: "|◀"; focused: MediaUi.focus-zone == 3 && MediaUi.focus-index == 1; clicked => { MediaUi.event("full", 1, 0); } }
+            IconBtn { size: 56px; icon: MediaUi.np-playing ? Icons.pause : Icons.play; focused: MediaUi.focus-zone == 3 && MediaUi.focus-index == 2; clicked => { MediaUi.event("full", 2, 0); } }
+            IconBtn { size: 48px; label: "▶|"; focused: MediaUi.focus-zone == 3 && MediaUi.focus-index == 3; clicked => { MediaUi.event("full", 3, 0); } }
+            IconBtn { size: 48px; label: MediaUi.np-repeat == 2 ? "Wdh 1" : "Wdh"; on: MediaUi.np-repeat > 0; focused: MediaUi.focus-zone == 3 && MediaUi.focus-index == 4; clicked => { MediaUi.event("full", 4, 0); } }
+            IconBtn { size: 48px; label: "Mix"; focused: MediaUi.focus-zone == 3 && MediaUi.focus-index == 5; clicked => { MediaUi.event("full", 5, 0); } }
+        }
+        LfxText { x: parent.width * 0.55; y: 30px; text: "Warteschlange"; font-size: 18px; font-weight: 800; }
+        Flickable {
+            x: parent.width * 0.55;
+            y: 80px;
+            width: parent.width * 0.45 - 40px;
+            height: parent.height - 110px;
+            content-height: MediaUi.np-queue.length * 56px;
+            for t[i] in MediaUi.np-queue: TrackRow {
+                y: i * 56px;
+                width: parent.width;
+                data: t;
+                focused: MediaUi.focus-zone == 4 && MediaUi.focus-index == i;
+                clicked => { MediaUi.event("queue", i, 0); }
+                more => { MediaUi.event("queue-menu", i, 0); }
+            }
+        }
+    }
+
+    if MediaUi.viewer-open: Rectangle {
+        background: #000000;
+        TouchArea { }
+        viewer-clip := Rectangle {
+            clip: true;
+            if MediaUi.viewer-has-image: Image {
+                width: parent.width;
+                height: parent.height;
+                source: MediaUi.viewer-image;
+                image-fit: contain;
+                transform-scale: MediaUi.viewer-zoom;
+                transform-origin: { x: parent.width / 2 - MediaUi.viewer-pan-x * parent.width, y: parent.height / 2 - MediaUi.viewer-pan-y * parent.height };
+            }
+            if !MediaUi.viewer-has-image: LfxSpinner {
+                x: (parent.width - self.width) / 2;
+                y: (parent.height - self.height) / 2;
+            }
+            TouchArea {
+                scroll-event(e) => {
+                    MediaUi.event("viewer-zoom", e.delta-y > 0 ? 1 : -1, 0);
+                    accept
+                }
+                double-clicked => { MediaUi.event("viewer-zoom", MediaUi.viewer-zoom > 1.0 ? -20 : 3, 0); }
+            }
+        }
+        Rectangle {
+            x: 0px;
+            y: 0px;
+            height: 64px;
+            background: @linear-gradient(180deg, #000000c0 0%, #00000000 100%);
+        }
+        LfxText { x: 24px; y: 0px; height: 64px; width: parent.width - 520px; text: MediaUi.viewer-title; overflow: elide; vertical-alignment: center; font-weight: 700; font-size: 17px; }
+        HorizontalLayout {
+            x: parent.width - 520px;
+            y: 10px;
+            width: 500px;
+            height: 44px;
+            alignment: end;
+            spacing: 10px;
+            LfxText { text: MediaUi.viewer-counter; vertical-alignment: center; color: Theme.t.text-muted; }
+            IconBtn { size: 44px; label: "◀"; focused: MediaUi.viewer-focus == 0; clicked => { MediaUi.event("viewer", 0, 0); } }
+            IconBtn { size: 44px; label: "▶"; focused: MediaUi.viewer-focus == 1; clicked => { MediaUi.event("viewer", 1, 0); } }
+            IconBtn { size: 44px; label: "+"; focused: MediaUi.viewer-focus == 2; clicked => { MediaUi.event("viewer", 2, 0); } }
+            IconBtn { size: 44px; label: "−"; focused: MediaUi.viewer-focus == 3; clicked => { MediaUi.event("viewer", 3, 0); } }
+            IconBtn { size: 44px; icon: MediaUi.viewer-slide ? Icons.pause : Icons.play; on: MediaUi.viewer-slide; focused: MediaUi.viewer-focus == 4; clicked => { MediaUi.event("viewer", 4, 0); } }
+            IconBtn { size: 44px; icon: Icons.close; focused: MediaUi.viewer-focus == 5; clicked => { MediaUi.event("viewer", 5, 0); } }
+        }
+    }
+
+    if MediaUi.menu-open: Rectangle {
+        background: #000000a0;
+        TouchArea { clicked => { MediaUi.event("menu-close", 0, 0); } }
+        Rectangle {
+            x: (parent.width - self.width) / 2;
+            y: (parent.height - self.height) / 2;
+            width: 380px;
+            height: 70px + MediaUi.menu-items.length * 46px;
+            border-radius: 10px;
+            background: Theme.design == Design.retro ? Theme.t.retro-panel : #1c1c1c;
+            border-width: 1px;
+            border-color: Theme.design == Design.retro ? Theme.t.retro-amber-lo : #ffffff30;
+            TouchArea { }
+            LfxText { x: 20px; y: 14px; width: parent.width - 40px; height: 36px; text: MediaUi.menu-title; overflow: elide; font-weight: 800; font-size: 18px; }
+            for m[i] in MediaUi.menu-items: Rectangle {
+                x: 10px;
+                y: 60px + i * 46px;
+                width: parent.width - 20px;
+                height: 42px;
+                border-radius: 6px;
+                background: MediaUi.menu-index == i || mta.has-hover ? #ffffff1f : transparent;
+                LfxText { x: 12px; width: parent.width - 24px; height: 100%; text: m; vertical-alignment: center; overflow: elide; }
+                mta := TouchArea { clicked => { MediaUi.event("menu-pick", i, 0); } }
+            }
+        }
+    }
+
+    if MediaUi.prompt-open: Rectangle {
+        background: #000000a0;
+        TouchArea { }
+        Rectangle {
+            x: (parent.width - self.width) / 2;
+            y: (parent.height - self.height) / 2;
+            width: 440px;
+            height: 170px;
+            border-radius: 10px;
+            background: Theme.design == Design.retro ? Theme.t.retro-panel : #1c1c1c;
+            border-width: 1px;
+            border-color: Theme.design == Design.retro ? Theme.t.retro-amber-lo : #ffffff30;
+            LfxText { x: 24px; y: 16px; text: MediaUi.prompt-title; font-weight: 800; font-size: 18px; }
+            Rectangle {
+                x: 24px;
+                y: 56px;
+                width: parent.width - 48px;
+                height: 44px;
+                background: #000000;
+                border-width: 1px;
+                border-color: Theme.design == Design.retro ? Theme.t.retro-amber : #ffffff;
+                pin := TextInput {
+                    x: 12px;
+                    width: parent.width - 24px;
+                    height: 100%;
+                    vertical-alignment: center;
+                    color: Theme.t.text;
+                    font-family: Theme.t.font-family;
+                    font-size: 16px;
+                    text <=> MediaUi.prompt-text;
+                    accepted => { MediaUi.event("prompt-ok", 0, 0); }
+                }
+            }
+            LfxButton { x: parent.width - 24px - 230px; y: 114px; width: 110px; kind: ButtonKind.secondary; text: "Abbrechen"; clicked => { MediaUi.event("prompt-cancel", 0, 0); } }
+            LfxButton { x: parent.width - 24px - 110px; y: 114px; width: 110px; kind: ButtonKind.primary; text: "OK"; clicked => { MediaUi.event("prompt-ok", 0, 0); } }
+            property <int> tick: MediaUi.prompt-tick;
+            changed tick => { pin.focus(); }
+        }
+    }
+}
