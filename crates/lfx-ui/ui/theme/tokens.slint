@@ -272,7 +272,7 @@ export global TokensFlix {
         retro-gutter: 0px,
     };
     // cards-visible: Breakpoints aus den Media-Queries (CSS-px)
-    pure function cards-visible-at(w: length) -> int {
+    pure public function cards-visible-at(w: length) -> int {
         if (w < 800px) { return 2; }
         if (w < 1100px) { return 3; }
         if (w < 1400px) { return 4; }
@@ -280,7 +280,7 @@ export global TokensFlix {
         return 6;
     }
     // gutter: Breakpoints aus den Media-Queries (CSS-px)
-    pure function gutter-at(w: length) -> length {
+    pure public function gutter-at(w: length) -> length {
         if (w < 800px) { return w * 0.04; }
         if (w < 1400px) { return 36px; }
         if (w < 1800px) { return w * 0.03; }
@@ -414,14 +414,14 @@ export global TokensPlus {
         retro-gutter: 0px,
     };
     // cards-visible: Breakpoints aus den Media-Queries (CSS-px)
-    pure function cards-visible-at(w: length) -> int {
+    pure public function cards-visible-at(w: length) -> int {
         if (w < 800px) { return 2; }
         if (w < 1100px) { return 3; }
         if (w < 1400px) { return 4; }
         return 5;
     }
     // gutter: Breakpoints aus den Media-Queries (CSS-px)
-    pure function gutter-at(w: length) -> length {
+    pure public function gutter-at(w: length) -> length {
         if (w < 800px) { return w * 0.04; }
         return w * 0.037;
     }
@@ -553,7 +553,7 @@ export global TokensPrime {
         retro-gutter: 0px,
     };
     // cards-visible: Breakpoints aus den Media-Queries (CSS-px)
-    pure function cards-visible-at(w: length) -> int {
+    pure public function cards-visible-at(w: length) -> int {
         if (w < 800px) { return 2; }
         if (w < 1100px) { return 3; }
         if (w < 1400px) { return 4; }
@@ -561,7 +561,7 @@ export global TokensPrime {
         return 6;
     }
     // gutter: Breakpoints aus den Media-Queries (CSS-px)
-    pure function gutter-at(w: length) -> length {
+    pure public function gutter-at(w: length) -> length {
         if (w < 800px) { return w * 0.04; }
         if (w < 1400px) { return 36px; }
         if (w < 1800px) { return w * 0.03; }
@@ -695,7 +695,7 @@ export global TokensRetro {
         retro-gutter: 64px,
     };
     // cards-visible: Breakpoints aus den Media-Queries (CSS-px)
-    pure function cards-visible-at(w: length) -> int {
+    pure public function cards-visible-at(w: length) -> int {
         if (w < 800px) { return 2; }
         if (w < 1100px) { return 3; }
         if (w < 1400px) { return 4; }
@@ -703,7 +703,7 @@ export global TokensRetro {
         return 6;
     }
     // gutter: Breakpoints aus den Media-Queries (CSS-px)
-    pure function gutter-at(w: length) -> length {
+    pure public function gutter-at(w: length) -> length {
         if (w < 800px) { return w * 0.04; }
         if (w < 1400px) { return 36px; }
         if (w < 1800px) { return w * 0.03; }

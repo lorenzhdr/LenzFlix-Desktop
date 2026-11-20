@@ -1,0 +1,231 @@
+import { Theme, Design } from "../theme/theme.slint";
+import { AvatarData, ToastKind, TitleBarHit } from "../components/types.slint";
+import { LfxTitleBar } from "../components/titlebar.slint";
+import { LfxToast } from "../components/feedback.slint";
+import { Page, RowData, HeroData, HomeGeometry } from "types.slint";
+import { AddServerPage, ProfilesPage, LoginPage } from "auth.slint";
+import { HomePage } from "home.slint";
+import { PlayerPage } from "player.slint";
+import { SoonPage, SettingsPage, AboutPage } from "misc.slint";
+
+// Hauptfenster von LENZFLIX Desktop. Rust (lfx-app) hält Router, Zustand und Fokus und setzt die Properties;
+// die Oberfläche meldet nur Ereignisse. Durchsichtiger Fensterhintergrund: das Video liegt in einer Ebene darunter.
+export component MainWindow inherits Window {
+    no-frame: true;
+    background: transparent;
+    title: "LENZFLIX";
+    preferred-width: 1280px;
+    preferred-height: 800px;
+    min-width: 640px;
+    min-height: 420px;
+
+    in property <Page> page: Page.add-server;
+    in property <bool> mac: false;
+    in property <bool> is-maximized: false;
+    in property <string> toast;
+    in property <ToastKind> toast-kind: ToastKind.info;
+
+    // Titelleiste
+    callback minimize();
+    callback toggle-maximize();
+    callback close-window();
+    callback drag-started();
+    callback titlebar-hit(TitleBarHit);
+    // Tastatur (Text der Taste, Strg, Umschalt, Alt)
+    callback key(string, bool, bool, bool);
+
+    // Server hinzufügen
+    in-out property <string> server-url;
+    in property <int> add-slot;
+    in property <bool> add-busy;
+    in property <string> add-error;
+    callback add-submit(string);
+    // Profile
+    in property <[AvatarData]> avatars;
+    in property <string> server-name;
+    in property <int> profile-slot;
+    in property <bool> profile-busy;
+    in property <string> profile-error;
+    callback profile-clicked(int);
+    callback other-user();
+    callback change-server();
+    // Anmeldung
+    in-out property <string> login-user;
+    in-out property <string> login-password;
+    in property <int> login-slot;
+    in property <bool> login-busy;
+    in property <string> login-error;
+    in property <string> qc-code;
+    in property <string> qc-hint;
+    callback login-submit(string, string);
+    callback login-quick-connect();
+    callback login-back();
+    callback login-field-accepted(int);
+    // Startseite
+    in property <HeroData> hero;
+    in property <[RowData]> rows;
+    in property <bool> home-loading;
+    in property <string> home-error;
+    in property <int> focus-row: -1;
+    in property <int> focus-index: 0;
+    in property <[string]> nav-labels;
+    in property <int> nav-current;
+    callback nav-selected(int);
+    callback hero-play();
+    callback hero-info();
+    callback card-clicked(int, int);
+    callback home-geometry(HomeGeometry);
+    // Player
+    in property <string> player-title;
+    in property <string> pos-text;
+    in property <string> dur-text;
+    in property <float> progress;
+    in property <float> buffered;
+    in property <bool> paused;
+    in property <bool> osd: true;
+    in property <bool> buffering;
+    in property <string> player-note;
+    in property <int> player-slot: 2;
+    callback toggle-pause();
+    callback seek-by(float);
+    callback seek-to(float);
+    callback leave-player();
+    callback player-activity();
+    // Folgt-Seite, Einstellungen, Über
+    in property <string> soon-title;
+    in property <int> simple-slot;
+    in property <int> design: 0;
+    in property <string> user-name;
+    in property <string> version;
+    in property <string> notices;
+    callback simple-back();
+    callback design-chosen(int);
+    callback about();
+    callback sign-out();
+
+    public function focus-root() { fs.focus(); }
+    // Zähler, den Rust erhöht, um den Textcursor in das Feld des aktuellen Slots zu setzen.
+    in property <int> field-focus-tick;
+
+    fs := FocusScope {
+        key-pressed(e) => {
+            root.key(e.text, e.modifiers.control, e.modifiers.shift, e.modifiers.alt);
+            accept
+        }
+
+        // Seitenhintergrund (im Player durchsichtig)
+        Rectangle {
+            y: bar.height;
+            height: parent.height - bar.height;
+            background: root.page == Page.player ? transparent : Theme.t.bg;
+
+            if root.page == Page.add-server: AddServerPage {
+                field-focus-tick: root.field-focus-tick;
+                url <=> root.server-url;
+                focus-slot: root.add-slot;
+                busy: root.add-busy;
+                error: root.add-error;
+                submit(u) => { root.add-submit(u); }
+            }
+            if root.page == Page.profiles: ProfilesPage {
+                avatars: root.avatars;
+                server-name: root.server-name;
+                focus-slot: root.profile-slot;
+                busy: root.profile-busy;
+                error: root.profile-error;
+                profile-clicked(i) => { root.profile-clicked(i); }
+                other-user => { root.other-user(); }
+                change-server => { root.change-server(); }
+            }
+            if root.page == Page.login: LoginPage {
+                field-focus-tick: root.field-focus-tick;
+                user-name <=> root.login-user;
+                password <=> root.login-password;
+                server-name: root.server-name;
+                focus-slot: root.login-slot;
+                busy: root.login-busy;
+                error: root.login-error;
+                qc-code: root.qc-code;
+                qc-hint: root.qc-hint;
+                submit(u, p) => { root.login-submit(u, p); }
+                quick-connect => { root.login-quick-connect(); }
+                back => { root.login-back(); }
+                field-accepted(s) => { root.login-field-accepted(s); }
+            }
+            if root.page == Page.home: HomePage {
+                hero: root.hero;
+                rows: root.rows;
+                loading: root.home-loading;
+                error: root.home-error;
+                focus-row: root.focus-row;
+                focus-index: root.focus-index;
+                nav-labels: root.nav-labels;
+                nav-current: root.nav-current;
+                nav-selected(i) => { root.nav-selected(i); }
+                hero-play => { root.hero-play(); }
+                hero-info => { root.hero-info(); }
+                card-clicked(r, i) => { root.card-clicked(r, i); }
+                geometry-changed(g) => { root.home-geometry(g); }
+            }
+            if root.page == Page.player: PlayerPage {
+                title: root.player-title;
+                pos-text: root.pos-text;
+                dur-text: root.dur-text;
+                progress: root.progress;
+                buffered: root.buffered;
+                paused: root.paused;
+                osd: root.osd;
+                buffering: root.buffering;
+                note: root.player-note;
+                focus-slot: root.player-slot;
+                toggle-pause => { root.toggle-pause(); }
+                seek-by(d) => { root.seek-by(d); }
+                seek-to(v) => { root.seek-to(v); }
+                leave => { root.leave-player(); }
+                activity => { root.player-activity(); }
+            }
+            if root.page == Page.soon: SoonPage {
+                title: root.soon-title;
+                focus-slot: root.simple-slot;
+                back => { root.simple-back(); }
+            }
+            if root.page == Page.settings: SettingsPage {
+                design: root.design;
+                focus-slot: root.simple-slot;
+                user-name: root.user-name;
+                design-chosen(i) => { root.design-chosen(i); }
+                about => { root.about(); }
+                sign-out => { root.sign-out(); }
+                back => { root.simple-back(); }
+            }
+            if root.page == Page.about: AboutPage {
+                version: root.version;
+                notices: root.notices;
+                focus-slot: root.simple-slot;
+                back => { root.simple-back(); }
+            }
+        }
+
+        bar := LfxTitleBar {
+            x: 0px;
+            y: 0px;
+            width: parent.width;
+            mac: root.mac;
+            maximized: root.is-maximized;
+            opacity: root.page == Page.player && !root.osd ? 0.0 : 1.0;
+            minimize => { root.minimize(); }
+            toggle-maximize => { root.toggle-maximize(); }
+            close-window => { root.close-window(); }
+            drag-started => { root.drag-started(); }
+            hit-changed(h) => { root.titlebar-hit(h); }
+        }
+
+        LfxToast {
+            x: (parent.width - self.width) / 2;
+            y: parent.height - self.height - 28px;
+            shown: root.toast != "";
+            kind: root.toast-kind;
+            text: root.toast;
+        }
+    }
+}

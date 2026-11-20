@@ -35,6 +35,9 @@ export component LfxRow inherits Rectangle {
     property <length> pad-y: 14px;
 
     preferred-height: root.title-h + Theme.t.row-title-gap + root.card-h + 2 * root.pad-y;
+    changed focused-index => {
+        if (root.focused-index >= 0) { root.reveal(root.focused-index); }
+    }
     animate scroll-x { duration: Theme.t.dur * 2; easing: Theme.t.ease-out; }
 
     // Seitenweise blättern (dir = -1 / +1) und einen Index sichtbar machen.
@@ -69,8 +72,12 @@ export component LfxRow inherits Rectangle {
         // Mausrad: horizontal (oder vertikal als Ersatz) scrollen; Karten reichen das Ereignis durch.
         TouchArea {
             scroll-event(e) => {
-                root.scroll-x = min(root.max-scroll, max(0px, root.scroll-x - (e.delta-x != 0px ? e.delta-x : e.delta-y)));
-                accept
+                // Nur waagerechte Bewegung (Touchpad, Shift+Rad) scrollt die Zeile; das normale Rad bleibt der Seite.
+                if (e.delta-x != 0px) {
+                    root.scroll-x = min(root.max-scroll, max(0px, root.scroll-x - e.delta-x));
+                    return accept;
+                }
+                reject
             }
         }
 

@@ -1,0 +1,140 @@
+import { AboutSlint } from "std-widgets.slint";
+import { Theme, Design } from "../theme/theme.slint";
+import { ButtonKind } from "../components/types.slint";
+import { LfxText } from "../components/text.slint";
+import { LfxButton } from "../components/button.slint";
+
+component Heading inherits LfxText {
+    font-size: 30px;
+    font-weight: 700;
+    horizontal-alignment: center;
+}
+
+// Platzhalterseite für noch nicht gebaute Seiten. Slot 0 = Zurück.
+export component SoonPage inherits Rectangle {
+    in property <string> title;
+    in property <int> focus-slot: 0;
+    callback back();
+
+    Rectangle {
+        width: min(520px, parent.width - 48px);
+        height: 220px;
+        x: (parent.width - self.width) / 2;
+        y: max(24px, parent.height * 0.28);
+        Heading { y: 0px; width: 100%; height: 44px; text: root.title; }
+        LfxText {
+            y: 60px; width: 100%; height: 60px;
+            text: "Diese Seite folgt in einer späteren Version.";
+            color: Theme.t.text-muted;
+            horizontal-alignment: center;
+            wrap: word-wrap;
+        }
+        LfxButton {
+            y: 140px;
+            x: (parent.width - self.width) / 2;
+            width: 200px;
+            kind: ButtonKind.secondary;
+            text: "Zurück";
+            focused: root.focus-slot == 0;
+            clicked => { root.back(); }
+        }
+    }
+}
+
+// Einstellungen (lokal je Benutzer). Slots: 0..3 Design, 4 Über LENZFLIX, 5 Abmelden, 6 Zurück.
+export component SettingsPage inherits Rectangle {
+    in property <int> design: 0;
+    in property <int> focus-slot: 0;
+    in property <string> user-name;
+    callback design-chosen(int);
+    callback about();
+    callback sign-out();
+    callback back();
+
+    Rectangle {
+        width: min(560px, parent.width - 48px);
+        height: 460px;
+        x: (parent.width - self.width) / 2;
+        y: max(16px, parent.height * 0.14);
+        Heading { y: 0px; width: 100%; height: 44px; text: "Einstellungen"; }
+        LfxText {
+            y: 50px; width: 100%; height: 24px;
+            text: root.user-name;
+            color: Theme.t.text-muted;
+            horizontal-alignment: center;
+        }
+        LfxText { y: 100px; height: 24px; text: "Design"; font-weight: 700; }
+        for name[i] in ["LENZFLIX", "LENZ+", "LENZPRIME", "LENZ//84"]: LfxButton {
+            x: mod(i, 2) * (parent.width / 2 + 6px);
+            y: 132px + floor(i / 2) * (Theme.t.btn-h + 12px);
+            width: parent.width / 2 - 6px;
+            kind: root.design == i ? ButtonKind.primary : ButtonKind.secondary;
+            text: name;
+            focused: root.focus-slot == i;
+            clicked => { root.design-chosen(i); }
+        }
+        LfxButton {
+            y: 132px + 2 * (Theme.t.btn-h + 12px) + 24px;
+            width: 100%;
+            kind: ButtonKind.secondary;
+            text: "Über LENZFLIX";
+            focused: root.focus-slot == 4;
+            clicked => { root.about(); }
+        }
+        LfxButton {
+            y: 132px + 3 * (Theme.t.btn-h + 12px) + 24px;
+            width: 100%;
+            kind: ButtonKind.secondary;
+            text: "Abmelden";
+            focused: root.focus-slot == 5;
+            clicked => { root.sign-out(); }
+        }
+        LfxButton {
+            y: 132px + 4 * (Theme.t.btn-h + 12px) + 24px;
+            width: 100%;
+            kind: ButtonKind.icon;
+            text: "Zurück";
+            focused: root.focus-slot == 6;
+            clicked => { root.back(); }
+        }
+    }
+}
+
+// Über-Seite: Slint-Hinweis (Lizenzpflicht) und Hinweise zu Drittkomponenten. Slot 0 = Zurück.
+export component AboutPage inherits Rectangle {
+    in property <string> version;
+    in property <string> notices;
+    in property <int> focus-slot: 0;
+    callback back();
+
+    Heading { y: 16px; width: 100%; height: 44px; text: "LENZFLIX Desktop " + root.version; }
+    AboutSlint {
+        x: 24px;
+        y: 70px;
+        width: min(360px, parent.width * 0.4);
+        height: 200px;
+    }
+    Flickable {
+        x: min(360px, parent.width * 0.4) + 48px;
+        y: 70px;
+        width: parent.width - self.x - 24px;
+        height: parent.height - 70px - 90px;
+        content-height: txt.preferred-height;
+        txt := LfxText {
+            width: parent.width;
+            text: root.notices;
+            font-size: 13px;
+            color: Theme.t.text-muted;
+            wrap: word-wrap;
+        }
+    }
+    LfxButton {
+        x: 24px;
+        y: parent.height - Theme.t.btn-h - 20px;
+        width: 160px;
+        kind: ButtonKind.secondary;
+        text: "Zurück";
+        focused: root.focus-slot == 0;
+        clicked => { root.back(); }
+    }
+}

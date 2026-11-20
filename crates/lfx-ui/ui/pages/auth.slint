@@ -1,0 +1,210 @@
+import { Theme, Design } from "../theme/theme.slint";
+import { AvatarData, ButtonKind } from "../components/types.slint";
+import { LfxText } from "../components/text.slint";
+import { LfxButton } from "../components/button.slint";
+import { LfxAvatar } from "../components/controls.slint";
+import { LfxSpinner } from "../components/feedback.slint";
+import { LfxField } from "field.slint";
+
+component Heading inherits LfxText {
+    font-size: 30px;
+    font-weight: 700;
+    horizontal-alignment: center;
+}
+
+component ErrorLine inherits LfxText {
+    color: Theme.t.red;
+    horizontal-alignment: center;
+    wrap: word-wrap;
+}
+
+// Server hinzufügen. Slot 0 = Adressfeld, 1 = Verbinden.
+export component AddServerPage inherits Rectangle {
+    in-out property <string> url;
+    in property <int> focus-slot: 0;
+    in property <bool> busy: false;
+    in property <string> error;
+    callback submit(string);
+    in property <int> field-focus-tick;
+    changed field-focus-tick => { addr.focus-input(); }
+
+    Rectangle {
+        width: min(460px, parent.width - 48px);
+        height: 300px;
+        x: (parent.width - self.width) / 2;
+        y: max(24px, parent.height * 0.26);
+        Heading { y: 0px; width: 100%; height: 44px; text: "Mit Server verbinden"; }
+        LfxText {
+            y: 52px; width: 100%; height: 40px;
+            text: "Gib die Adresse deines Jellyfin-Servers ein.";
+            color: Theme.t.text-muted;
+            horizontal-alignment: center;
+            wrap: word-wrap;
+        }
+        addr := LfxField {
+            y: 104px; width: 100%;
+            placeholder: "Serveradresse, z. B. 192.168.0.10:8096";
+            text <=> root.url;
+            focused: root.focus-slot == 0;
+            accepted => { root.submit(root.url); }
+        }
+        LfxButton {
+            y: 172px; width: 100%;
+            kind: ButtonKind.primary;
+            text: "Verbinden";
+            focused: root.focus-slot == 1;
+            enabled: !root.busy;
+            clicked => { root.submit(root.url); }
+        }
+        if root.busy: LfxSpinner { y: 232px; x: (parent.width - self.width) / 2; size: 28px; }
+        if root.error != "": ErrorLine { y: 228px; width: 100%; height: 60px; text: root.error; }
+    }
+}
+
+// „Wer schaut?“. Slots: 0..n-1 Profile, n = anderer Benutzer, n+1 = Server wechseln.
+export component ProfilesPage inherits Rectangle {
+    in property <[AvatarData]> avatars;
+    in property <string> server-name;
+    in property <int> focus-slot: 0;
+    in property <bool> busy: false;
+    in property <string> error;
+    callback profile-clicked(int);
+    callback other-user();
+    callback change-server();
+
+    property <length> top: max(24px, root.height * 0.14);
+
+    Heading { y: root.top; width: 100%; height: 44px; text: "Wer schaut?"; }
+    LfxText {
+        y: root.top + 48px; width: 100%; height: 24px;
+        text: root.server-name;
+        color: Theme.t.text-muted;
+        horizontal-alignment: center;
+    }
+    HorizontalLayout {
+        y: root.top + 110px;
+        height: 170px;
+        alignment: center;
+        spacing: 28px;
+        for av[i] in root.avatars: LfxAvatar {
+            data: av;
+            size: 120px;
+            focused: root.focus-slot == i;
+            clicked => { root.profile-clicked(i); }
+        }
+    }
+    HorizontalLayout {
+        y: root.top + 310px;
+        height: Theme.t.btn-h;
+        alignment: center;
+        spacing: 16px;
+        LfxButton {
+            kind: ButtonKind.secondary;
+            text: "Anderer Benutzer";
+            focused: root.focus-slot == root.avatars.length;
+            clicked => { root.other-user(); }
+        }
+        LfxButton {
+            kind: ButtonKind.secondary;
+            text: "Server wechseln";
+            focused: root.focus-slot == root.avatars.length + 1;
+            clicked => { root.change-server(); }
+        }
+    }
+    if root.busy: LfxSpinner { y: parent.height - 80px; x: (parent.width - self.width) / 2; size: 28px; }
+    if root.error != "": ErrorLine { y: parent.height - 100px; width: 100%; height: 40px; text: root.error; }
+}
+
+// Anmeldung. Slots: 0 Benutzername, 1 Passwort, 2 Anmelden, 3 Quick Connect, 4 Zurück.
+export component LoginPage inherits Rectangle {
+    in-out property <string> user-name;
+    in-out property <string> password;
+    in property <string> server-name;
+    in property <int> focus-slot: 0;
+    in property <bool> busy: false;
+    in property <string> error;
+    // Quick-Connect-Code; leer = nicht aktiv.
+    in property <string> qc-code;
+    in property <string> qc-hint;
+    callback submit(string, string);
+    callback quick-connect();
+    callback back();
+    callback field-accepted(int);
+    in property <int> field-focus-tick;
+    changed field-focus-tick => {
+        if (root.focus-slot == 0) { user-f.focus-input(); } else if (root.focus-slot == 1) { pass-f.focus-input(); }
+    }
+
+    Rectangle {
+        width: min(460px, parent.width - 48px);
+        height: 520px;
+        x: (parent.width - self.width) / 2;
+        y: max(16px, parent.height * 0.14);
+        Heading { y: 0px; width: 100%; height: 44px; text: "Anmelden"; }
+        LfxText {
+            y: 50px; width: 100%; height: 24px;
+            text: root.server-name;
+            color: Theme.t.text-muted;
+            horizontal-alignment: center;
+        }
+        user-f := LfxField {
+            y: 92px; width: 100%;
+            placeholder: "Benutzername";
+            text <=> root.user-name;
+            focused: root.focus-slot == 0;
+            accepted => { root.field-accepted(0); }
+        }
+        pass-f := LfxField {
+            y: 156px; width: 100%;
+            placeholder: "Passwort";
+            secret: true;
+            text <=> root.password;
+            focused: root.focus-slot == 1;
+            accepted => { root.field-accepted(1); }
+        }
+        LfxButton {
+            y: 224px; width: 100%;
+            kind: ButtonKind.primary;
+            text: "Anmelden";
+            focused: root.focus-slot == 2;
+            enabled: !root.busy;
+            clicked => { root.submit(root.user-name, root.password); }
+        }
+        LfxButton {
+            y: 288px; width: 100%;
+            kind: ButtonKind.secondary;
+            text: "Mit Quick Connect anmelden";
+            focused: root.focus-slot == 3;
+            clicked => { root.quick-connect(); }
+        }
+        LfxButton {
+            y: 352px; width: 100%;
+            kind: ButtonKind.icon;
+            text: "Zurück";
+            focused: root.focus-slot == 4;
+            clicked => { root.back(); }
+        }
+        if root.qc-code != "": Rectangle {
+            y: 416px; width: 100%; height: 90px;
+            border-radius: 8px;
+            background: Theme.t.surface-2;
+            LfxText {
+                y: 8px; width: 100%; height: 48px;
+                text: root.qc-code;
+                font-size: 36px;
+                font-weight: 800;
+                horizontal-alignment: center;
+                vertical-alignment: center;
+            }
+            LfxText {
+                y: 56px; width: 100%; height: 28px;
+                text: root.qc-hint;
+                color: Theme.t.text-muted;
+                horizontal-alignment: center;
+                vertical-alignment: center;
+            }
+        }
+        if root.busy && root.qc-code == "": LfxSpinner { y: 424px; x: (parent.width - self.width) / 2; size: 28px; }
+        if root.error != "": ErrorLine { y: 416px; width: 100%; height: 80px; text: root.error; }
+    }
+}

@@ -549,7 +549,7 @@ function widthFn(d, field, varName, ret, baseScope) {
   });
   const retT = ret === 'int' ? 'int' : 'length';
   lines.push(`    // ${field}: Breakpoints aus den Media-Queries (CSS-px)`);
-  lines.push(`    pure function ${field}-at(w: length) -> ${retT} {`);
+  lines.push(`    pure public function ${field}-at(w: length) -> ${retT} {`);
   merged.forEach((m, i) => {
     if (i === merged.length - 1) lines.push(`        return ${m.val};`);
     else lines.push(`        if (w < ${fmt(m.hi)}px) { return ${m.val}; }`);

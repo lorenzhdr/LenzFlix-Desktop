@@ -7,6 +7,7 @@
 //! - Daten sind komplett erfunden (siehe [`catalog`]).
 
 pub mod catalog;
+pub mod media;
 
 use axum::extract::{Path, Query, Request, State};
 use axum::http::{HeaderMap, StatusCode, header};
@@ -311,7 +312,7 @@ fn router(shared: Arc<Shared>) -> Router {
         .route("/Items/{id}/Similar", get(similar))
         .route("/Items/{id}/PlaybackInfo", post(playback_info))
         .route("/Items/{id}/Images/{kind}", get(image))
-        .route("/Videos/{id}/stream", get(stream))
+        .route("/Videos/{id}/stream", get(media::stream))
         .route(
             "/Videos/{id}/{source}/Subtitles/{index}/0/{file}",
             get(subtitle_file),

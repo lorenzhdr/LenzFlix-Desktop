@@ -1,0 +1,44 @@
+// Datentypen der Seiten (Rust füllt die Modelle).
+import { CardData, CardAspect } from "../components/types.slint";
+
+// Welche Seite das Hauptfenster zeigt (Router in Rust, Route-Enum dort).
+export enum Page { add-server, profiles, login, home, player, soon, settings, about }
+
+// Eine Zeile der Startseite.
+export struct RowData {
+    id: string,
+    title: string,
+    aspect: CardAspect,
+    items: [CardData],
+}
+
+// Billboard (Titel mit Hintergrund, Logo und Metazeile).
+export struct HeroData {
+    title: string,
+    meta: string,
+    genres: string,
+    overview: string,
+    backdrop: image,
+    has-backdrop: bool,
+    logo: image,
+    has-logo: bool,
+    has-item: bool,
+}
+
+// Maße der Startseite in Seitenkoordinaten (Ursprung: unter der Titelleiste); Rust baut daraus die Fokuszonen.
+export struct HomeGeometry {
+    width: length,
+    nav-h: length,
+    hero-h: length,
+    row-h: length,
+    gutter: length,
+    pitch: length,
+    card-w: length,
+    card-h: length,
+    play-x: length,
+    play-y: length,
+    play-w: length,
+    info-x: length,
+    info-w: length,
+    btn-h: length,
+}

@@ -1,0 +1,46 @@
+import { Theme, Design } from "../theme/theme.slint";
+import { LfxFocusRing } from "../components/focus-ring.slint";
+import { LfxText } from "../components/text.slint";
+
+// Eingabefeld für Formulare. `focused` setzt lfx-nav (Tastatur/Gamepad), `focus-input()` setzt den Textcursor.
+export component LfxField inherits Rectangle {
+    in-out property <string> text;
+    in property <string> placeholder;
+    in property <bool> secret: false;
+    in property <bool> focused: false;
+    callback accepted();
+    callback edited();
+    public function focus-input() { input.focus(); }
+
+    height: 52px;
+    border-radius: Theme.design == Design.retro ? 2px : 6px;
+    background: Theme.design == Design.retro ? Theme.t.retro-panel : Theme.t.jf-filled-input-bg;
+    border-width: 1px;
+    border-color: (root.focused || input.has-focus) ? (Theme.design == Design.retro ? Theme.t.retro-amber : #ffffff) : Theme.t.border;
+
+    input := TextInput {
+        x: 16px;
+        y: (parent.height - self.preferred-height) / 2;
+        width: parent.width - 32px;
+        text <=> root.text;
+        input-type: root.secret ? InputType.password : InputType.text;
+        font-family: Theme.t.font-family;
+        font-size: Theme.t.fs-body;
+        color: Theme.design == Design.retro ? Theme.t.retro-amber : Theme.t.text;
+        single-line: true;
+        accepted => { root.accepted(); }
+        edited => { root.edited(); }
+    }
+    if root.text == "": LfxText {
+        x: 16px;
+        width: parent.width - 32px;
+        height: parent.height;
+        text: root.placeholder;
+        color: Theme.t.text-soft;
+        vertical-alignment: center;
+    }
+    LfxFocusRing {
+        active: root.focused;
+        radius: 6px;
+    }
+}
