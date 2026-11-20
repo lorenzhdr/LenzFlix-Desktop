@@ -38,8 +38,13 @@ async fn original_download_completes_with_accessories() {
     assert!(mgr.library().verify(&item).await.unwrap());
     // Zubehör: Bilder, Untertitel, Element-JSON.
     let entry = mgr.library().entry(&item).unwrap().unwrap();
-    for kind in ["primary", "backdrop", "logo"] {
+    for kind in ["primary", "backdrop"] {
         assert!(entry.images[kind].is_file(), "{kind}");
+    }
+    // Der Mock liefert für Logos 404 (Titel erscheint als Text); ein fehlendes Logo darf den
+    // Download nicht scheitern lassen, ein vorhandenes muss eine Datei sein.
+    if let Some(logo) = entry.images.get("logo") {
+        assert!(logo.is_file(), "logo");
     }
     assert_eq!(entry.subtitles.len(), 1);
     assert_eq!(entry.subtitles[0].index, 5);
@@ -50,11 +55,13 @@ async fn original_download_completes_with_accessories() {
     );
     let json = mgr.library().item_json(&item).unwrap();
     assert_eq!(json["Id"], item.as_str());
-    assert!(
-        rec.accessory_errors.is_empty(),
-        "{:?}",
-        rec.accessory_errors
-    );
+    // Einziger erlaubter Zubehörfehler: das fehlende Logo (siehe oben).
+    let errors: Vec<_> = rec
+        .accessory_errors
+        .iter()
+        .filter(|e| !e.starts_with("Bild logo"))
+        .collect();
+    assert!(errors.is_empty(), "{errors:?}");
     // Kein Token in Datensatz oder Auth-frei erreichbaren Texten.
     let token = c.client.session().unwrap().token.expose().to_owned();
     assert!(!format!("{rec:?}").contains(&token));

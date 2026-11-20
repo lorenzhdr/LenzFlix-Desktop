@@ -150,9 +150,7 @@ impl MockHandle {
 }
 
 pub(crate) fn routes() -> Router<Arc<Shared>> {
-    Router::new()
-        .route("/Videos/{id}/stream.mp4", get(transcoded))
-        .route("/UserItems/{id}/UserData", get(user_data_get))
+    Router::new().route("/UserItems/{id}/UserData", get(user_data_get))
 }
 
 /// Merkt `LastPlayedDate` aus dem Body von `POST /UserItems/{id}/UserData` (Aufruf aus `extra.rs`).
@@ -225,7 +223,7 @@ pub(crate) async fn download(
 }
 
 /// `GET /Videos/{id}/stream.mp4`: umgewandelter Strom ohne Länge und ohne `Range` (wie ein echter Server).
-async fn transcoded(
+pub(crate) async fn transcoded(
     State(shared): S,
     Path(id): Path<String>,
     RawQuery(query): RawQuery,

@@ -15,8 +15,8 @@ pub use w2_library::{VIEW_BOXSETS, set_extra_titles};
 mod w2_detail; // W2-detail
 pub mod w2_home;
 pub mod w2_player; // W2-player // W2-home
-mod w35_remote;
 pub mod w35_offline;
+mod w35_remote;
 
 pub use extra::{
     VIEW_BOOKS, VIEW_LIVETV, VIEW_MUSIC, VIEW_PHOTOS, album_id, artist_id, book_id, channel_id,
@@ -340,7 +340,7 @@ fn router(shared: Arc<Shared>) -> Router {
         .route("/Items/{id}/PlaybackInfo", post(playback_info))
         .route("/Items/{id}/Images/{kind}", get(image))
         .route("/Videos/{id}/stream", get(media::stream))
-        .route("/Videos/{id}/stream.mp4", get(media::stream)) // W2-home
+        .route("/Videos/{id}/stream.mp4", get(stream_mp4)) // W2-home + W35-offline
         .route(
             "/Videos/{id}/{source}/Subtitles/{index}/0/{file}",
             get(subtitle_file),
@@ -372,6 +372,22 @@ fn router(shared: Arc<Shared>) -> Router {
         .merge(w35_offline::routes())
         .layer(middleware::from_fn_with_state(shared.clone(), gate))
         .with_state(shared)
+}
+
+/// `GET /Videos/{id}/stream.mp4`: mit Umwandlungs-Parametern (`VideoCodec`/`MaxStreamingBitrate`,
+/// Offline-Download) die umgewandelte Antwort aus `w35_offline`, sonst das Testvideo aus `media`.
+async fn stream_mp4(
+    state: S,
+    path: Path<String>,
+    raw: axum::extract::RawQuery,
+    headers: HeaderMap,
+) -> Response {
+    let q = raw.0.clone().unwrap_or_default();
+    if q.contains("VideoCodec=") || q.contains("MaxStreamingBitrate=") {
+        w35_offline::transcoded(state, path, raw, headers).await
+    } else {
+        media::stream(state, path, headers).await
+    }
 }
 
 // ---------------------------------------------------------------- Middleware
