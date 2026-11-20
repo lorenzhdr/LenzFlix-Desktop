@@ -214,7 +214,7 @@ impl App {
 
     #[cfg(not(windows))]
     fn enter_fullscreen(self: &Rc<Self>) {
-        self.toast("Vollbild folgt auf diesem System", lfx_ui::ToastKind::info);
+        self.toast("Vollbild folgt auf diesem System", lfx_ui::ToastKind::Info);
     }
 
     #[cfg(windows)]
