@@ -1,0 +1,32 @@
+import { Theme, Design } from "../theme/theme.slint";
+
+// Fokus-/Auswahlring um das Elternelement (Fokus-Logik kommt von lfx-nav, nicht von Slint).
+// Füllt das Elternelement (ohne eigene Größe) und zeichnet den Ring außerhalb davon.
+// flix/prime: weißer Ring, plus: weißer Ring mit schwarzem Spalt, retro: Bernstein.
+export component LfxFocusRing inherits Rectangle {
+    in property <bool> active;
+    in property <length> radius: Theme.t.card-radius;
+    property <length> off: Theme.design == Design.plus ? 7px : (Theme.design == Design.retro ? 3px : 2px);
+    property <length> bw: Theme.design == Design.flix ? 2px : (Theme.design == Design.retro ? 2px : 3px);
+
+    visible: root.active;
+    ring := Rectangle {
+        x: -root.off;
+        y: -root.off;
+        width: parent.width + 2 * root.off;
+        height: parent.height + 2 * root.off;
+        border-radius: root.radius + root.off;
+        border-width: root.bw;
+        border-color: Theme.design == Design.retro ? Theme.t.retro-amber : #ffffff;
+    }
+    // Schwarzer Spalt von LENZ+ (Web: inset-Schatten 4px)
+    if Theme.design == Design.plus: Rectangle {
+        x: -root.off + root.bw;
+        y: -root.off + root.bw;
+        width: parent.width + 2 * root.off - 2 * root.bw;
+        height: parent.height + 2 * root.off - 2 * root.bw;
+        border-radius: root.radius + root.off - root.bw;
+        border-width: 4px;
+        border-color: #000000;
+    }
+}

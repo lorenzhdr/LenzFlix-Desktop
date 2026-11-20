@@ -1,0 +1,226 @@
+import { Theme, Design } from "../theme/theme.slint";
+import { AvatarData } from "types.slint";
+import { LfxText } from "text.slint";
+import { LfxIcon } from "icon.slint";
+import { LfxFocusRing } from "focus-ring.slint";
+import { Icons } from "../icons.slint";
+
+// Tabs/Pillen: `labels` mit aktiver Auswahl `current`; `focused-index` (-1 = keiner) kommt von lfx-nav.
+export component LfxTabs inherits Rectangle {
+    in property <[string]> labels;
+    in-out property <int> current: 0;
+    in property <int> focused-index: -1;
+    callback selected(int);
+
+    height: Theme.t.nav-pill-h;
+    preferred-width: row.preferred-width;
+    row := HorizontalLayout {
+        spacing: 8px;
+        alignment: start;
+        for label[i] in root.labels: Rectangle {
+            property <bool> active: i == root.current;
+            preferred-width: txt.preferred-width + 32px;
+            border-radius: Theme.design == Design.retro ? 0px : self.height / 2;
+            background: Theme.design == Design.retro ? (active ? Theme.t.retro-amber : transparent)
+                : (active ? Theme.t.pill-active : (ta.has-hover ? Theme.t.pill-soft : transparent));
+            border-width: Theme.design == Design.retro ? 1px : 0px;
+            border-color: Theme.t.retro-amber-lo;
+            txt := LfxText {
+                text: label;
+                width: 100%;
+                height: 100%;
+                horizontal-alignment: center;
+                vertical-alignment: center;
+                font-size: Theme.t.fs-nav;
+                font-weight: Theme.t.fw-nav;
+                color: Theme.design == Design.retro ? (active ? Theme.t.retro-ink : Theme.t.retro-amber)
+                    : (active && Theme.design == Design.plus ? #000000
+                    : (active ? Theme.t.text : Theme.t.text-muted));
+            }
+            ta := TouchArea { clicked => { root.current = i; root.selected(i); } }
+            LfxFocusRing {
+                active: i == root.focused-index;
+                radius: Theme.design == Design.retro ? 0px : parent.height / 2;
+            }
+        }
+    }
+}
+
+// Schieberegler für Fortschritt (mit Pufferbalken) und Lautstärke. `value` und `buffered` liegen in 0..1.
+// `seeked(v)` feuert beim Ziehen/Klicken. Der Griff wächst bei Hover/Fokus.
+export component LfxSlider inherits Rectangle {
+    in-out property <float> value: 0.0;
+    in property <float> buffered: 0.0;
+    in property <bool> focused;
+    in property <bool> force-hot: false;
+    callback seeked(float);
+
+    property <bool> hot: ta.has-hover || ta.pressed || root.focused || root.force-hot;
+    property <color> fill: Theme.design == Design.retro ? Theme.t.retro-amber : Theme.t.progress;
+    height: 20px;
+    min-width: 40px;
+
+    rail := Rectangle {
+        y: (parent.height - self.height) / 2;
+        height: root.hot ? 6px : 4px;
+        border-radius: self.height / 2;
+        background: #ffffff40;
+        clip: true;
+        animate height { duration: Theme.t.dur-fast; easing: Theme.t.ease; }
+        Rectangle {
+            x: 0px;
+            width: parent.width * clamp(root.buffered, 0.0, 1.0);
+            background: #ffffff59;
+        }
+        Rectangle {
+            x: 0px;
+            width: parent.width * clamp(root.value, 0.0, 1.0);
+            background: root.fill;
+        }
+    }
+    Rectangle {
+        width: root.hot ? 14px : 0px;
+        height: self.width;
+        x: rail.width * clamp(root.value, 0.0, 1.0) - self.width / 2;
+        y: (parent.height - self.height) / 2;
+        border-radius: Theme.design == Design.retro ? 0px : self.width / 2;
+        background: root.fill;
+        animate width { duration: Theme.t.dur-fast; easing: Theme.t.ease; }
+    }
+    ta := TouchArea {
+        pointer-event(e) => {
+            if (e.kind == PointerEventKind.down) {
+                root.value = clamp(self.mouse-x / self.width, 0.0, 1.0);
+                root.seeked(root.value);
+            }
+        }
+        moved => {
+            if (self.pressed) {
+                root.value = clamp(self.mouse-x / self.width, 0.0, 1.0);
+                root.seeked(root.value);
+            }
+        }
+    }
+    LfxFocusRing {
+        active: root.focused;
+        radius: 4px;
+    }
+}
+
+// Suchfeld mit Lupe und Löschen-Knopf. `text` ist in-out; `accepted(text)` bei Enter.
+export component LfxSearchField inherits Rectangle {
+    in-out property <string> text;
+    in property <string> placeholder: "Suchen";
+    in property <bool> focused;
+    callback accepted(string);
+    callback edited(string);
+
+    height: 44px;
+    min-width: 160px;
+    border-radius: Theme.design == Design.retro ? 2px : self.height / 2;
+    background: Theme.design == Design.retro ? Theme.t.retro-panel : Theme.t.jf-filled-input-bg;
+    border-width: 1px;
+    border-color: (root.focused || input.has-focus) ? (Theme.design == Design.retro ? Theme.t.retro-amber : #ffffff) : (Theme.design == Design.retro ? Theme.t.retro-amber-lo : Theme.t.border);
+
+    LfxIcon {
+        x: 14px;
+        y: (parent.height - self.height) / 2;
+        source: Icons.search;
+        size: 20px;
+        tint: Theme.t.text-muted;
+    }
+    input := TextInput {
+        x: 46px;
+        y: (parent.height - self.preferred-height) / 2;
+        width: parent.width - 46px - 44px;
+        text <=> root.text;
+        font-family: Theme.t.font-family;
+        font-size: Theme.t.fs-body;
+        color: Theme.design == Design.retro ? Theme.t.retro-amber : Theme.t.text;
+        single-line: true;
+        accepted => { root.accepted(self.text); }
+        edited => { root.edited(self.text); }
+    }
+    if root.text == "": LfxText {
+        x: 46px;
+        width: parent.width - 90px;
+        height: parent.height;
+        text: root.placeholder;
+        color: Theme.t.text-soft;
+        vertical-alignment: center;
+    }
+    if root.text != "": Rectangle {
+        x: parent.width - 40px;
+        width: 32px;
+        height: parent.height;
+        LfxIcon {
+            x: (parent.width - self.width) / 2;
+            y: (parent.height - self.height) / 2;
+            source: Icons.close;
+            size: 18px;
+            tint: Theme.t.text-muted;
+        }
+        TouchArea { clicked => { root.text = ""; root.edited(""); } }
+    }
+}
+
+// Profil-Kachel („Wer schaut?“): Bild oder Anfangsbuchstabe, Name darunter.
+export component LfxAvatar inherits Rectangle {
+    in property <AvatarData> data;
+    in property <bool> focused;
+    in property <length> size: 120px;
+    callback clicked();
+
+    property <bool> hot: root.focused || ta.has-hover;
+    width: root.size;
+    height: root.size + 34px;
+
+    tile := Rectangle {
+        x: 0px;
+        y: 0px;
+        width: root.size;
+        height: root.size;
+        border-radius: Theme.design == Design.retro ? 2px : 6px;
+        background: root.data.color;
+        clip: true;
+        transform-scale: root.hot ? 1.06 : 1.0;
+        animate transform-scale { duration: Theme.t.dur; easing: Theme.t.ease; }
+        if root.data.has-image: Image {
+            width: 100%;
+            height: 100%;
+            source: root.data.image;
+            image-fit: cover;
+        }
+        if !root.data.has-image: LfxText {
+            width: 100%;
+            height: 100%;
+            text: root.data.initial;
+            horizontal-alignment: center;
+            vertical-alignment: center;
+            font-size: root.size * 0.42;
+            font-weight: 800;
+            color: #ffffff;
+        }
+    }
+    Rectangle {
+        x: 0px;
+        y: 0px;
+        width: root.size;
+        height: root.size;
+        LfxFocusRing {
+            active: root.focused;
+            radius: 6px;
+        }
+    }
+    LfxText {
+        y: root.size + 8px;
+        width: 100%;
+        height: 22px;
+        text: root.data.name;
+        horizontal-alignment: center;
+        overflow: elide;
+        color: root.hot ? Theme.t.text : Theme.t.text-muted;
+        font-size: Theme.t.fs-meta;
+    }
+    ta := TouchArea { clicked => { root.clicked(); } }
+}

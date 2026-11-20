@@ -1,0 +1,125 @@
+import { Theme, Design } from "../theme/theme.slint";
+import { HitRect, TitleBarHit } from "types.slint";
+import { LfxText } from "text.slint";
+import { LfxIcon } from "icon.slint";
+import { Icons } from "../icons.slint";
+
+component WinButton inherits Rectangle {
+    in property <bool> danger;
+    in property <bool> mac;
+    in property <color> mac-color;
+    in property <bool> force-hot: false;
+    callback clicked();
+
+
+    border-radius: root.mac ? 6px : 0px;
+    background: root.mac ? root.mac-color : ((ta.has-hover || root.force-hot) ? (root.danger ? #e81123 : #ffffff1f) : transparent);
+    ta := TouchArea { clicked => { root.clicked(); } }
+    @children
+}
+
+// Eigene Titelleiste (Fenster ohne System-Rahmen): Logo je Design links, Fensterknöpfe rechts (Windows)
+// bzw. Ampel links (macOS, `mac: true`). Ziehen/Doppelklick meldet `drag-started`/`toggle-maximize`.
+// `hit` liefert die Rechtecke von Leiste und Knöpfen in Fensterkoordinaten für den Hit-Test (Snap-Layouts) –
+// lfx-shell liest sie über `hit-changed`.
+export component LfxTitleBar inherits Rectangle {
+    in property <bool> mac: false;
+    in property <bool> maximized: false;
+    in property <string> title;
+    in property <bool> force-hot: false;
+    callback minimize();
+    callback toggle-maximize();
+    callback close-window();
+    callback drag-started();
+    callback hit-changed(TitleBarHit);
+
+    out property <TitleBarHit> hit: {
+        bar: { x: root.absolute-position.x, y: root.absolute-position.y, width: root.width, height: root.height },
+        minimize: { x: btn-min.absolute-position.x, y: btn-min.absolute-position.y, width: btn-min.width, height: btn-min.height },
+        maximize: { x: btn-max.absolute-position.x, y: btn-max.absolute-position.y, width: btn-max.width, height: btn-max.height },
+        close: { x: btn-close.absolute-position.x, y: btn-close.absolute-position.y, width: btn-close.width, height: btn-close.height },
+    };
+    changed hit => { root.hit-changed(root.hit); }
+
+    height: 32px;
+    background: Theme.design == Design.retro ? Theme.t.retro-bg : Theme.t.bg-deep;
+
+    // Ziehfläche unter allem
+    TouchArea {
+        pointer-event(e) => {
+            if (e.kind == PointerEventKind.down && e.button == PointerEventButton.left) {
+                root.drag-started();
+            }
+        }
+        double-clicked => { root.toggle-maximize(); }
+    }
+
+    logo := LfxIcon {
+        x: root.mac ? 84px : 14px;
+        y: (parent.height - self.height) / 2;
+        width: 132px;
+        height: 16px;
+        // Logos sind mehrfarbige Wortmarken, daher ohne colorize
+        colorize: transparent;
+        source: Theme.design == Design.plus ? @image-url("../../../../assets/logo/lenzplus.svg")
+            : (Theme.design == Design.prime ? @image-url("../../../../assets/logo/lenzprime.svg")
+            : (Theme.design == Design.retro ? @image-url("../../../../assets/logo/lenz84.svg")
+            : @image-url("../../../../assets/logo/lenzflix.svg")));
+    }
+    if root.title != "": LfxText {
+        x: logo.x + logo.width + 14px;
+        height: parent.height;
+        text: root.title;
+        color: Theme.t.text-muted;
+        font-size: 12px;
+        vertical-alignment: center;
+    }
+
+    // Fensterknöpfe: Windows rechts (46 px breit), macOS-Ampel links (Kreise)
+    btn-min := WinButton {
+        mac: root.mac;
+        x: root.mac ? 32px : parent.width - 3 * 46px;
+        y: root.mac ? (parent.height - 12px) / 2 : 0px;
+        width: root.mac ? 12px : 46px;
+        height: root.mac ? 12px : parent.height;
+        mac-color: #febc2e;
+        force-hot: root.force-hot;
+        clicked => { root.minimize(); }
+        if !root.mac: Rectangle {
+            width: 10px;
+            height: 1px;
+            background: Theme.t.text;
+        }
+    }
+    btn-max := WinButton {
+        mac: root.mac;
+        x: root.mac ? 52px : parent.width - 2 * 46px;
+        y: root.mac ? (parent.height - 12px) / 2 : 0px;
+        width: root.mac ? 12px : 46px;
+        height: root.mac ? 12px : parent.height;
+        mac-color: #28c840;
+        clicked => { root.toggle-maximize(); }
+        if !root.mac: Rectangle {
+            width: 10px;
+            height: 10px;
+            border-width: 1px;
+            border-color: Theme.t.text;
+            border-radius: root.maximized ? 2px : 0px;
+        }
+    }
+    btn-close := WinButton {
+        mac: root.mac;
+        danger: !root.mac;
+        x: root.mac ? 12px : parent.width - 46px;
+        y: root.mac ? (parent.height - 12px) / 2 : 0px;
+        width: root.mac ? 12px : 46px;
+        height: root.mac ? 12px : parent.height;
+        mac-color: #ff5f57;
+        clicked => { root.close-window(); }
+        if !root.mac: LfxIcon {
+            source: Icons.close;
+            size: 14px;
+            tint: Theme.t.text;
+        }
+    }
+}

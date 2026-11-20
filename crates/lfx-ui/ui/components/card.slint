@@ -1,0 +1,111 @@
+import { Theme, Design } from "../theme/theme.slint";
+import { CardAspect, CardData } from "types.slint";
+import { LfxText } from "text.slint";
+import { LfxBadge } from "badge.slint";
+import { LfxFocusRing } from "focus-ring.slint";
+
+// Karte (16:9 oder 2:3) mit Titel-Verlauf, Badge, Trend-Badge, Fortschritt und Hover-/Fokus-Zoom.
+// Die Größe bestimmt der Aufrufer (Row). Der Zoom nutzt transform-scale (kein Layout),
+// der Schatten kommt aus Theme.t.shadow-card.
+export component LfxCard inherits Rectangle {
+    in property <CardData> data;
+    in property <CardAspect> aspect: CardAspect.wide;
+    in property <bool> focused;
+    // true: Zoom/Schatten ohne Maus-Hover erzwingen (Galerie, Tests)
+    in property <bool> force-hot: false;
+    callback clicked();
+
+    property <bool> hot: root.focused || ta.has-hover || root.force-hot;
+    property <float> hot-scale: Theme.design == Design.flix ? 1.06
+        : (Theme.design == Design.plus ? 1.03 : (Theme.design == Design.prime ? 1.05 : 1.04));
+    property <float> zoom: root.hot ? root.hot-scale : 1.0;
+    animate zoom { duration: Theme.t.dur; easing: Theme.design == Design.retro ? Theme.t.retro-ease-crt : Theme.t.ease; }
+
+    Rectangle {
+        width: 100%;
+        height: 100%;
+        transform-scale: root.zoom;
+        border-radius: Theme.t.card-radius;
+        background: Theme.design == Design.retro ? #1d1208 : Theme.t.surface-2;
+        clip: true;
+        border-width: Theme.design == Design.retro ? 1px : 0px;
+        border-color: Theme.t.retro-amber-lo;
+        drop-shadow-color: (root.hot && Theme.design != Design.plus) ? Theme.t.shadow-card.color : #00000000;
+        drop-shadow-blur: Theme.t.shadow-card.blur;
+        drop-shadow-offset-y: Theme.t.shadow-card.y;
+        animate drop-shadow-color { duration: Theme.t.dur; easing: Theme.t.ease; }
+
+        if root.data.has-image: Image {
+            width: 100%;
+            height: 100%;
+            source: root.data.image;
+            image-fit: cover;
+        }
+        // Ohne Bild: Titel mittig auf der Fläche (Platzhalter)
+        if !root.data.has-image: LfxText {
+            x: parent.width * 0.08;
+            width: parent.width * 0.84;
+            height: 100%;
+            text: root.data.title;
+            wrap: word-wrap;
+            overflow: elide;
+            horizontal-alignment: center;
+            vertical-alignment: center;
+            color: Theme.t.text-muted;
+            font-size: 14px;
+            font-weight: 700;
+        }
+        // Verlauf unten für lesbaren Titel
+        if root.data.has-image && root.data.title != "": Rectangle {
+            y: parent.height * 0.45;
+            height: parent.height * 0.55;
+            background: @linear-gradient(180deg, #00000000 0%, #000000b3 100%);
+        }
+        if root.data.has-image && root.data.title != "": LfxText {
+            x: parent.width * 0.08;
+            width: parent.width * 0.84;
+            y: parent.height * 0.92 - self.height - (root.data.badge != "" ? 24px : 0px) - (root.data.progress > 0 ? 12px : 0px);
+            height: min(self.preferred-height, parent.height * 0.4);
+            text: root.data.title;
+            wrap: word-wrap;
+            overflow: elide;
+            font-size: min(16px, parent.width * 0.11);
+            font-weight: 800;
+            color: Theme.design == Design.retro ? Theme.t.retro-amber : #ffffff;
+        }
+        if root.data.trend-rank > 0: LfxBadge {
+            x: 6px;
+            y: 6px;
+            width: 64px;
+            text: "Trend " + root.data.trend-rank;
+            fill: Theme.t.surface-3;
+            ink: Theme.t.gold;
+        }
+        if root.data.badge != "": LfxBadge {
+            width: 44px;
+            x: (parent.width - self.width) / 2;
+            y: parent.height - self.height - (root.data.progress > 0 ? 16px : 5px);
+            text: root.data.badge;
+        }
+        if root.data.progress > 0: Rectangle {
+            x: parent.width * 0.2;
+            width: parent.width * 0.6;
+            y: parent.height - 10px;
+            height: 4px;
+            border-radius: 2px;
+            background: #ffffff40;
+            Rectangle {
+                x: 0px;
+                width: parent.width * min(1.0, root.data.progress);
+                border-radius: 2px;
+                background: Theme.t.progress;
+            }
+        }
+    }
+    ta := TouchArea {
+        clicked => { root.clicked(); }
+    }
+    LfxFocusRing {
+        active: root.focused;
+    }
+}

@@ -1,0 +1,8 @@
+import { Theme } from "../theme/theme.slint";
+
+// Text mit der Schrift des aktiven Designs und Standardfarbe (unabhängig von default-font-family des Fensters).
+export component LfxText inherits Text {
+    color: Theme.t.text;
+    font-family: Theme.t.font-family;
+    font-size: Theme.t.fs-body;
+}

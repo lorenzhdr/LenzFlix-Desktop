@@ -1,0 +1,161 @@
+import { Theme, Design } from "../theme/theme.slint";
+import { ToastKind, ButtonKind } from "types.slint";
+import { LfxText } from "text.slint";
+import { LfxButton } from "button.slint";
+
+// Ladeanzeige: Bogen, der sich dreht, solange `running` gilt (ohne `running` steht er still und löst keine Neuzeichnung aus).
+export component LfxSpinner inherits Rectangle {
+    in property <length> size: 32px;
+    in property <bool> running: true;
+    in property <color> tint: Theme.design == Design.retro ? Theme.t.retro-amber : Theme.t.red;
+    width: root.size;
+    height: root.size;
+    Rectangle {
+        transform-rotation: root.running ? mod(animation-tick() / 900ms, 1.0) * 360deg : 0deg;
+    Path {
+        width: 100%;
+        height: 100%;
+        viewbox-width: 24;
+        viewbox-height: 24;
+        stroke: root.tint;
+        stroke-width: 2.6px;
+        stroke-line-cap: round;
+        fill: transparent;
+        commands: "M 12 2 A 10 10 0 0 1 22 12";
+    }
+    }
+}
+
+// Platzhalter für ladende Inhalte; `shimmer` lässt einen Glanzstreifen laufen (nur wenn aktiv, sonst statisch).
+export component LfxSkeleton inherits Rectangle {
+    in property <bool> shimmer: true;
+    in property <length> radius: Theme.t.card-radius;
+    border-radius: root.radius;
+    background: Theme.design == Design.retro ? #1d1208 : Theme.t.surface-2;
+    clip: true;
+    if root.shimmer: Rectangle {
+        width: parent.width * 0.5;
+        x: -self.width + (parent.width + self.width) * mod(animation-tick() / 1400ms, 1.0);
+        background: @linear-gradient(90deg, #ffffff00 0%, #ffffff12 50%, #ffffff00 100%);
+    }
+}
+
+// Kurzmeldung unten mittig. `shown` blendet ein/aus; `action` (optional) ergibt einen Textknopf.
+export component LfxToast inherits Rectangle {
+    in property <bool> shown: true;
+    in property <ToastKind> kind: ToastKind.info;
+    in property <string> text;
+    in property <string> action;
+    callback action-clicked();
+
+    property <color> accent: root.kind == ToastKind.success ? Theme.t.green
+        : (root.kind == ToastKind.error ? Theme.t.red : Theme.t.text-muted);
+    width: min(520px, max(240px, content.preferred-width + 40px));
+    height: 48px;
+    border-radius: Theme.design == Design.retro ? 2px : 8px;
+    background: Theme.design == Design.retro ? Theme.t.retro-panel : Theme.t.jf-snackbar-bg;
+    border-width: Theme.design == Design.retro ? 1px : 0px;
+    border-color: Theme.t.retro-amber-lo;
+    opacity: root.shown ? 1.0 : 0.0;
+    visible: self.opacity > 0.01;
+    drop-shadow-color: #00000099;
+    drop-shadow-blur: 16px;
+    drop-shadow-offset-y: 4px;
+    animate opacity { duration: Theme.t.dur; easing: Theme.t.ease; }
+
+    Rectangle {
+        x: 0px;
+        width: 4px;
+        border-radius: 2px;
+        background: root.accent;
+    }
+    content := HorizontalLayout {
+        padding-left: 20px;
+        padding-right: 12px;
+        spacing: 12px;
+        LfxText {
+            text: root.text;
+            vertical-alignment: center;
+            overflow: elide;
+            font-size: 15px;
+        }
+        if root.action != "": LfxText {
+            text: root.action;
+            color: Theme.design == Design.retro ? Theme.t.retro-amber : Theme.t.text;
+            font-weight: 700;
+            vertical-alignment: center;
+            TouchArea { clicked => { root.action-clicked(); } }
+        }
+    }
+}
+
+// Dialog (mittig) oder Sheet (unten, `sheet: true`) über einem Abdunkler. Muss das letzte Kind des Fensters sein,
+// füllt das Elternelement. Fokusfalle: solange `open`, liegt `trapping` an – lfx-nav beschränkt den Fokus dann auf
+// die Knöpfe des Dialogs (`focused-button` 0 = primär, 1 = sekundär, -1 = keiner).
+export component LfxDialog inherits Rectangle {
+    in property <bool> open: false;
+    in property <bool> sheet: false;
+    in property <string> title;
+    in property <string> body;
+    in property <string> primary-text: "OK";
+    in property <string> secondary-text;
+    in property <int> focused-button: -1;
+    out property <bool> trapping: root.open;
+    callback accepted();
+    callback dismissed();
+
+    visible: root.open;
+    background: #000000b3;
+    TouchArea { clicked => { root.dismissed(); } }
+
+    box := Rectangle {
+        width: root.sheet ? parent.width : min(520px, parent.width - 48px);
+        height: layout.preferred-height + 2 * 28px;
+        x: (parent.width - self.width) / 2;
+        y: root.sheet ? parent.height - self.height : (parent.height - self.height) / 2;
+        background: Theme.design == Design.retro ? Theme.t.retro-panel : Theme.t.surface;
+        border-radius: root.sheet ? 0px : Theme.t.modal-radius;
+        border-width: Theme.design == Design.retro ? 1px : 0px;
+        border-color: Theme.t.retro-amber-lo;
+        drop-shadow-color: Theme.t.shadow-modal.color;
+        drop-shadow-blur: Theme.t.shadow-modal.blur;
+        drop-shadow-offset-y: Theme.t.shadow-modal.y;
+        // verhindert, dass Klicks im Dialog den Abdunkler erreichen
+        TouchArea { }
+        layout := VerticalLayout {
+            x: 28px;
+            y: 28px;
+            width: parent.width - 56px;
+            height: parent.height - 56px;
+            alignment: start;
+            spacing: 14px;
+            LfxText {
+                text: root.title;
+                font-size: 22px;
+                font-weight: 700;
+                wrap: word-wrap;
+            }
+            LfxText {
+                text: root.body;
+                color: Theme.t.text-muted;
+                wrap: word-wrap;
+            }
+            HorizontalLayout {
+                alignment: end;
+                spacing: 12px;
+                if root.secondary-text != "": LfxButton {
+                    kind: ButtonKind.secondary;
+                    text: root.secondary-text;
+                    focused: root.focused-button == 1;
+                    clicked => { root.dismissed(); }
+                }
+                LfxButton {
+                    kind: ButtonKind.primary;
+                    text: root.primary-text;
+                    focused: root.focused-button == 0;
+                    clicked => { root.accepted(); }
+                }
+            }
+        }
+    }
+}

@@ -1,0 +1,47 @@
+// Gemeinsame Datentypen der Komponenten (Modelle füllt die Anwendung aus Rust).
+
+// Seitenverhältnis einer Karte: wide = 16:9 (Zeilen), poster = 2:3.
+export enum CardAspect { wide, poster }
+
+// Daten einer Karte. `image` bleibt leer, solange das Bild lädt oder fehlt (`has-image` false).
+export struct CardData {
+    title: string,
+    subtitle: string,
+    image: image,
+    has-image: bool,
+    // Fortschritt 0..1; Werte <= 0 blenden den Balken aus.
+    progress: float,
+    // Kurzmarke unten mittig, z. B. "Neu"; leer = keine.
+    badge: string,
+    // Trend-Platz (1..n), 0 = kein Trend-Badge.
+    trend-rank: int,
+}
+
+export enum ButtonKind { primary, secondary, round, icon }
+
+export enum ToastKind { info, success, error }
+
+// Rechteck in Fenster-Koordinaten (logische Pixel), für Hit-Tests der Titelleiste.
+export struct HitRect {
+    x: length,
+    y: length,
+    width: length,
+    height: length,
+}
+
+// Von der Titelleiste gemeldete Bereiche (für WM_NCHITTEST / Snap-Layouts in lfx-shell).
+export struct TitleBarHit {
+    bar: HitRect,
+    minimize: HitRect,
+    maximize: HitRect,
+    close: HitRect,
+}
+
+export struct AvatarData {
+    name: string,
+    // Anfangsbuchstabe(n) für die Platzhalter-Darstellung.
+    initial: string,
+    color: color,
+    image: image,
+    has-image: bool,
+}
