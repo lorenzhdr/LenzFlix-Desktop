@@ -58,6 +58,19 @@ impl Default for MockConfig {
     }
 }
 
+/// Verhalten der PlaybackInfo-Antwort (für Tests der Wiedergabe-Vorbereitung).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum PlaybackMode {
+    /// Direktwiedergabe, eingebettete Untertitel (Standard).
+    #[default]
+    Direct,
+    /// Wie `Direct`, zusätzlich ein externer Untertitel (Index 5, `DeliveryUrl`).
+    ExternalSubtitle,
+    /// Der Server kann nicht direkt liefern: ohne erlaubte Umwandlung `NoCompatibleStream`,
+    /// sonst eine HLS-`TranscodingUrl` (mit `api_key` und `StartTimeTicks`, wie ein echter Server).
+    ForceTranscode,
+}
+
 /// Aufgezeichnete Wiedergabe-Anfrage.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Recorded {
@@ -99,6 +112,8 @@ struct Dyn {
     branding: Option<String>,
     /// Charts-Worker-Nachbau unter `/cw/` eingeschaltet?
     charts_enabled: bool,
+    /// Verhalten von PlaybackInfo.
+    playback_mode: PlaybackMode,
 }
 
 struct Qc {
@@ -174,6 +189,10 @@ impl MockHandle {
     /// Charts-Worker-Nachbau (`/cw/charts`, `/cw/me/stats`) ein-/ausschalten (aus = 404).
     pub fn set_charts_enabled(&self, on: bool) {
         self.shared.lock().charts_enabled = on;
+    }
+    /// Verhalten der PlaybackInfo-Antwort umstellen.
+    pub fn set_playback_mode(&self, mode: PlaybackMode) {
+        self.shared.lock().playback_mode = mode;
     }
     /// Aufzeichnungen und Anfrageprotokoll leeren.
     pub fn clear_recorded(&self) {
@@ -277,6 +296,10 @@ fn router(shared: Arc<Shared>) -> Router {
         .route("/Items/{id}/PlaybackInfo", post(playback_info))
         .route("/Items/{id}/Images/{kind}", get(image))
         .route("/Videos/{id}/stream", get(stream))
+        .route(
+            "/Videos/{id}/{source}/Subtitles/{index}/0/{file}",
+            get(subtitle_file),
+        )
         .route("/UserItems/Resume", get(resume))
         .route("/Shows/NextUp", get(next_up))
         .route("/Shows/{id}/Seasons", get(seasons))
@@ -946,13 +969,67 @@ async fn playback_info(
     if !matches!(it.kind, "Movie" | "Episode") {
         return StatusCode::BAD_REQUEST.into_response();
     }
+    let mode = shared.lock().playback_mode;
+    let transcoding_allowed = body
+        .get("EnableTranscoding")
+        .and_then(Value::as_bool)
+        .unwrap_or(false);
     shared.lock().recorded.push(Recorded::PlaybackInfo {
         item_id: id.clone(),
         body,
     });
-    jv(
-        json!({ "MediaSources": [catalog::media_source(it)], "PlaySessionId": format!("play-{}", &id[24..]) }),
+    let session = format!("play-{}", &id[24..]);
+    let mut source = catalog::media_source(it);
+    let source_id = source["Id"].as_str().unwrap_or("").to_owned();
+    match mode {
+        PlaybackMode::Direct => {}
+        PlaybackMode::ExternalSubtitle => {
+            if let Some(streams) = source["MediaStreams"].as_array_mut() {
+                streams.push(json!({
+                    "Index": 5, "Type": "Subtitle", "Codec": "srt", "Language": "fra",
+                    "DisplayTitle": "Französisch (SRT, extern)", "IsTextSubtitleStream": true,
+                    "IsExternal": true,
+                    "DeliveryUrl": format!("/Videos/{id}/{source_id}/Subtitles/5/0/Stream.srt"),
+                }));
+            }
+        }
+        PlaybackMode::ForceTranscode => {
+            source["SupportsDirectPlay"] = json!(false);
+            source["SupportsDirectStream"] = json!(false);
+            if !transcoding_allowed {
+                // Die Quelle ist bekannt, aber nichts davon ist für dieses Gerät lieferbar.
+                source["SupportsTranscoding"] = json!(false);
+                return jv(json!({ "MediaSources": [source], "ErrorCode": "NoCompatibleStream" }));
+            }
+            source["SupportsDirectPlay"] = json!(false);
+            source["SupportsDirectStream"] = json!(false);
+            source["SupportsTranscoding"] = json!(true);
+            source["TranscodingSubProtocol"] = json!("hls");
+            source["TranscodingUrl"] = json!(format!(
+                "/videos/{id}/master.m3u8?MediaSourceId={source_id}&PlaySessionId={session}&api_key=mock-key&StartTimeTicks=0&VideoCodec=h264&AudioCodec=aac"
+            ));
+        }
+    }
+    jv(json!({ "MediaSources": [source], "PlaySessionId": session }))
+}
+
+/// Kleiner externer Untertitel (SRT) für den Modus [`PlaybackMode::ExternalSubtitle`].
+async fn subtitle_file(
+    State(shared): S,
+    Path((id, _source, _index, _file)): Path<(String, String, String, String)>,
+) -> Response {
+    if find(&shared, &id).is_none() {
+        return StatusCode::NOT_FOUND.into_response();
+    }
+    (
+        [(header::CONTENT_TYPE, "application/x-subrip")],
+        "1
+00:00:01,000 --> 00:00:02,000
+Beispieltext
+
+",
     )
+        .into_response()
 }
 
 /// Prüft, dass die Pflichtfelder einer Fortschrittsmeldung vorhanden sind.

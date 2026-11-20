@@ -1858,6 +1858,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "lfx-player"
+version = "0.1.0"
+dependencies = [
+ "lfx-api",
+ "lfx-mock-jellyfin",
+ "lfx-mpv-sys",
+ "serde_json",
+ "thiserror",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
 name = "lfx-tv-schedule"
 version = "0.1.0"
 dependencies = [
