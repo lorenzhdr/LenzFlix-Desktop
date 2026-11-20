@@ -1,0 +1,19 @@
+[package]
+name = "lfx-nav"
+description = "Fokus- und Eingabe-Fundament für LENZFLIX Desktop: Maus, Tastatur, Gamepad und Fernbedienung erzeugen dieselben Aktionen"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
+
+[features]
+default = []
+# Echte Gamepads über gilrs (die reine Abbildung in `gamepad` braucht das Feature nicht).
+gamepad = ["dep:gilrs"]
+
+[dependencies]
+gilrs = { version = "0.11", optional = true }
