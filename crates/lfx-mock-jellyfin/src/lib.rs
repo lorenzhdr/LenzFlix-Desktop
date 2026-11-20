@@ -28,6 +28,15 @@ pub const DEMO_USER: &str = "demo";
 /// Passwort des Testkontos.
 pub const DEMO_PASSWORD: &str = "demo-passwort";
 
+/// Standard-Branding-CSS des Mocks: zeigt mit `{BASE}/cw` auf den eingebauten Charts-Worker-Nachbau.
+pub const DEFAULT_BRANDING: &str = "/* Mock-Branding */
+:root {
+  --lfx-charts-url: \"{BASE}/cw\";
+  --lfx-stats-url: \"/stats\";
+  --lfx-tv-channels: \"5=Action;6=Komödie;99=Ungültig\";
+}
+";
+
 /// Anfangskonfiguration.
 #[derive(Debug, Clone)]
 pub struct MockConfig {
@@ -86,6 +95,10 @@ struct Dyn {
     recorded: Vec<Recorded>,
     requests: Vec<RequestLog>,
     last_auth: Option<String>,
+    /// Branding-CSS-Vorlage (`{BASE}` wird durch die Adresse aus dem Host-Header ersetzt); `None` = leer.
+    branding: Option<String>,
+    /// Charts-Worker-Nachbau unter `/cw/` eingeschaltet?
+    charts_enabled: bool,
 }
 
 struct Qc {
@@ -154,6 +167,14 @@ impl MockHandle {
             .map(|q| q.authorized = true)
             .count()
     }
+    /// Branding-CSS ersetzen (`{BASE}` = Adresse des Mocks); `None` = leere Antwort.
+    pub fn set_branding_css(&self, css: Option<&str>) {
+        self.shared.lock().branding = css.map(str::to_owned);
+    }
+    /// Charts-Worker-Nachbau (`/cw/charts`, `/cw/me/stats`) ein-/ausschalten (aus = 404).
+    pub fn set_charts_enabled(&self, on: bool) {
+        self.shared.lock().charts_enabled = on;
+    }
     /// Aufzeichnungen und Anfrageprotokoll leeren.
     pub fn clear_recorded(&self) {
         let mut d = self.shared.lock();
@@ -203,6 +224,8 @@ pub async fn start_with(config: MockConfig) -> (SocketAddr, MockHandle) {
         delay: config.delay,
         qc_enabled: config.quick_connect_enabled,
         qc_auto_after: config.quick_connect_auto_after_polls,
+        branding: Some(DEFAULT_BRANDING.to_owned()),
+        charts_enabled: true,
         ..Dyn::default()
     };
     let shared = Arc::new(Shared {
@@ -240,6 +263,10 @@ fn router(shared: Arc<Shared>) -> Router {
         .route("/QuickConnect/Initiate", post(qc_initiate))
         .route("/QuickConnect/Connect", get(qc_connect))
         .route("/QuickConnect/Authorize", post(qc_authorize))
+        .route("/Branding/Css", get(branding_css))
+        .route("/Branding/Css.css", get(branding_css))
+        .route("/cw/charts", get(cw_charts))
+        .route("/cw/me/stats", get(cw_me_stats))
         .route("/Sessions/Logout", post(logout))
         .route("/Users/Me", get(me))
         .route("/UserViews", get(views))
@@ -316,6 +343,11 @@ async fn gate(State(shared): S, req: Request, next: Next) -> Response {
     };
     if !delay.is_zero() {
         tokio::time::sleep(delay).await;
+    }
+    // Branding ist wie beim echten Server anonym (ohne Auth-Header); der Charts-Worker-Nachbau
+    // prüft selbst `X-Emby-Token`.
+    if path.starts_with("/cw/") || path.starts_with("/Branding/") {
+        return next.run(req).await;
     }
     {
         let mut d = shared.lock();
@@ -526,6 +558,56 @@ async fn logout(State(shared): S, headers: HeaderMap) -> Response {
         shared.lock().tokens.retain(|x| *x != t);
     }
     StatusCode::NO_CONTENT.into_response()
+}
+
+async fn branding_css(State(shared): S, headers: HeaderMap) -> Response {
+    let host = headers
+        .get(header::HOST)
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("127.0.0.1");
+    let css = shared
+        .lock()
+        .branding
+        .clone()
+        .unwrap_or_default()
+        .replace("{BASE}", &format!("http://{host}"));
+    ([(header::CONTENT_TYPE, "text/css; charset=utf-8")], css).into_response()
+}
+
+/// Prüft `X-Emby-Token` des Charts-Worker-Nachbaus gegen die ausgegebenen Tokens.
+fn cw_authorized(shared: &Shared, headers: &HeaderMap) -> bool {
+    let d = shared.lock();
+    d.charts_enabled
+        && headers
+            .get("x-emby-token")
+            .and_then(|v| v.to_str().ok())
+            .is_some_and(|t| d.tokens.iter().any(|x| x == t))
+}
+
+async fn cw_charts(State(shared): S, headers: HeaderMap) -> Response {
+    if !shared.lock().charts_enabled {
+        return StatusCode::NOT_FOUND.into_response();
+    }
+    if !cw_authorized(&shared, &headers) {
+        return StatusCode::UNAUTHORIZED.into_response();
+    }
+    let movies: Vec<Value> = (0..3)
+        .map(|n| json!({ "id": catalog::movie_id(n), "type": "Movie", "viewers": 3 - n, "plays": 4 - n }))
+        .collect();
+    jv(
+        json!({ "version": 1, "generatedAt": "2026-01-01T00:00:00Z", "windowDays": 30,
+               "metric": "viewers", "movies": movies, "series": [], "all": movies }),
+    )
+}
+
+async fn cw_me_stats(State(shared): S, headers: HeaderMap) -> Response {
+    if !shared.lock().charts_enabled {
+        return StatusCode::NOT_FOUND.into_response();
+    }
+    if !cw_authorized(&shared, &headers) {
+        return StatusCode::UNAUTHORIZED.into_response();
+    }
+    jv(json!({ "range": "30d", "totalSeconds": 3600, "plays": 2 }))
 }
 
 async fn me() -> Response {
