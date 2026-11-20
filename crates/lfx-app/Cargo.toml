@@ -98,3 +98,7 @@ required-features = ["dev-automation"]
 [[test]] # W3-picker
 name = "w3_picker"
 required-features = ["dev-automation"]
+
+[[test]] # W4-account
+name = "account_e2e"
+required-features = ["dev-automation"]

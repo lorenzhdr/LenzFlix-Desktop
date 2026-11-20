@@ -19,6 +19,7 @@ mod playback;
 mod query;
 mod redact;
 mod secret;
+mod w4_account; // W4-account
 
 pub use branding::{Branding, parse_branding};
 pub use charts::{

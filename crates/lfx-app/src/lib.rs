@@ -5,6 +5,12 @@
 //! (Wiedergabe) und `lfx-nav` (Fokus, Tastatur, Gamepad). Router und Zustand liegen in Rust ([`route`], [`app`]),
 //! die Seiten sind Slint-Komponenten in `lfx-ui`.
 
+pub mod account; // W4-account
+#[cfg(feature = "dev-automation")]
+pub mod account_automation; // W4-account
+pub mod account_logic; // W4-account
+pub mod account_net; // W4-account
+pub mod account_rows; // W4-account
 pub mod app;
 pub mod auth;
 #[cfg(feature = "dev-automation")]
@@ -29,16 +35,16 @@ mod library_impl; // W2-library
 pub mod library_np; // W2-library
 pub mod library_search; // W2-library
 pub mod logging;
-pub mod picker; // W3-picker
-#[cfg(feature = "dev-automation")]
-pub mod picker_automation; // W3-picker
-pub mod picker_couch; // W3-picker
 pub mod media; // W4-media
 pub mod media_audio; // W4-media
 #[cfg(feature = "dev-automation")]
 pub mod media_auto; // W4-media
 pub mod media_extra; // W4-media
 pub mod media_model; // W4-media
+pub mod picker; // W3-picker
+#[cfg(feature = "dev-automation")]
+pub mod picker_automation; // W3-picker
+pub mod picker_couch; // W3-picker
 pub mod play;
 #[cfg(feature = "dev-automation")]
 pub mod play_auto; // W2-player
@@ -154,6 +160,7 @@ pub fn run(opts: Options) -> Result<(), String> {
             picker: picker::PickerCtl::default(),     // W3-picker
             couch: picker_couch::CouchCtl::default(), // W3-picker
             media: media::MediaCtl::default(),        // W4-media
+            account: account::AccountCtl::default(),  // W4-account
         }),
         timers: Timers::default(),
         gamepad: RefCell::new(None),
@@ -292,6 +299,12 @@ fn wire(app: &Rc<App>, ui: &MainWindow, shell: &Shell) {
         m.on_event(move |k, x, y| a1.media_event(&k, x, y));
         let a2 = app.clone();
         m.on_event_f(move |k, v| a2.media_event_f(&k, v));
+    }
+    {
+        // W4-account
+        let a = app.clone();
+        ui.global::<lfx_ui::AccountState>()
+            .on_event(move |k, x, y| a.acc_event(&k, x, y));
     }
     // W2-home
     let a = app.clone();

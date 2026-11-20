@@ -17,7 +17,8 @@ pub mod w2_home;
 pub mod w2_player; // W2-player // W2-home
 pub mod w35_offline;
 mod w35_remote;
-mod w4_media; // W4-media
+mod w4_account;
+mod w4_media; // W4-media // W4-account
 
 pub use extra::{
     VIEW_BOOKS, VIEW_LIVETV, VIEW_MUSIC, VIEW_PHOTOS, album_id, artist_id, book_id, channel_id,
@@ -370,6 +371,7 @@ fn router(shared: Arc<Shared>) -> Router {
         .route("/Sessions/Playing/Stopped", post(stopped))
         .merge(extra::routes())
         .merge(w35_remote::routes())
+        .merge(w4_account::routes()) // W4-account
         .merge(w35_offline::routes())
         .layer(middleware::from_fn_with_state(shared.clone(), gate))
         .with_state(shared)
@@ -504,7 +506,9 @@ fn auth_result(shared: &Shared, guest: bool) -> Value {
     let token = format!("mock-token-{:04}-{}", d.next_token, "x7Kq9Zp2Lm4Rt8Vw");
     d.tokens.push(token.clone());
     d.token_guest.insert(token.clone(), guest);
-    let user = user_json_for(guest);
+    let mut user = user_json_for(guest);
+    drop(d);
+    extra::overlay_me(shared, &mut user, guest); // W4-account: Administratorflag auch bei der Anmeldung
     json!({ "User": user, "AccessToken": token, "ServerId": SERVER_ID,
             "SessionInfo": { "UserId": user["Id"], "UserName": user["Name"] } })
 }

@@ -13,6 +13,7 @@ import { LibraryPage } from "library.slint"; // W2-library
 import { PlayerView } from "player-types.slint"; // W2-player
 import { SoonPage, SettingsPage, AboutPage } from "misc.slint";
 import { RetroFxLayer } from "../components/retro-fx.slint"; // W3-retro
+import { AccountPage } from "account.slint"; // W4-account
 import { DetailPage, DetailOverlays } from "detail-layer.slint"; // W2-detail
 import { PlusHomePage } from "plus-home.slint"; // W3-plus
 import { PlusTitlePage } from "plus-title.slint"; // W3-plus
@@ -234,15 +235,7 @@ export component MainWindow inherits Window {
                 focus-slot: root.simple-slot;
                 back => { root.simple-back(); }
             }
-            if root.page == Page.settings: SettingsPage {
-                design: root.design;
-                focus-slot: root.simple-slot;
-                user-name: root.user-name;
-                design-chosen(i) => { root.design-chosen(i); }
-                about => { root.about(); }
-                sign-out => { root.sign-out(); }
-                back => { root.simple-back(); }
-            }
+            if root.page == Page.settings: AccountPage { } // W4-account (ersetzt SettingsPage, auch Verwaltung)
             if root.page == Page.detail && Theme.design != Design.plus: DetailPage { } // W2-detail
             if root.page == Page.detail && Theme.design == Design.plus: PlusTitlePage { } // W3-plus
             if root.page == Page.media: MediaPage { } // W4-media
