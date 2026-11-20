@@ -1,0 +1,23 @@
+import { Theme, Design } from "../theme/theme.slint";
+import { LfxText } from "text.slint";
+
+// Kleine Marke ("Neu", Trend-Platz): roter Kasten (flix/plus/prime) bzw. Bernstein (retro).
+export component LfxBadge inherits Rectangle {
+    in property <string> text;
+    in property <color> fill: Theme.design == Design.retro ? Theme.t.retro-amber : Theme.t.red;
+    in property <color> ink: Theme.design == Design.retro ? Theme.t.retro-ink : #ffffff;
+    height: Theme.t.badge-h;
+    preferred-width: label.preferred-width + 12px;
+    border-radius: Theme.design == Design.retro ? 0px : 3px;
+    background: root.fill;
+    label := LfxText {
+        width: 100%;
+        height: 100%;
+        text: root.text;
+        color: root.ink;
+        font-size: Theme.t.fs-badge;
+        font-weight: 700;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+    }
+}

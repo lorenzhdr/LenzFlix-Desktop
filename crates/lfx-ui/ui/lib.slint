@@ -1,20 +1,17 @@
-// Einstieg der LENZFLIX-Oberfläche: Design-Wahl (Theme) und Probe-Fenster für Tests.
+// Einstieg der LENZFLIX-Oberfläche: Design-Wahl (Theme), Datentypen, Galerie und Probe-Fenster.
+// Die Komponenten selbst (LfxButton, LfxCard, LfxRow, …) liegen in components/index.slint; Seiten anderer Crates
+// importieren sie von dort (Include-Pfad `lfx_ui::UI_DIR`). Hier wird bewusst nur exportiert, was Rust braucht,
+// weil Slint für exportierte Nicht-Window-Komponenten Warnungen ausgibt.
 import {
     Shadow, DesignTokens, TokensFlix, TokensPlus, TokensPrime, TokensRetro
-} from "theme/tokens.slint";
+} from "lfx-tokens.slint";
+import { Design, Theme } from "theme/theme.slint";
+import { CardAspect, CardData, ButtonKind, ToastKind, HitRect, TitleBarHit, AvatarData } from "components/types.slint";
+import { Gallery } from "gallery.slint";
 
-export { Shadow, DesignTokens, TokensFlix, TokensPlus, TokensPrime, TokensRetro }
-
-export enum Design { flix, plus, prime, retro }
-
-// Aktives Design: `design` setzt die Anwendung, `t` liefert die passenden Token.
-export global Theme {
-    in-out property <Design> design: Design.flix;
-    out property <DesignTokens> t:
-        design == Design.plus ? TokensPlus.v
-        : design == Design.prime ? TokensPrime.v
-        : design == Design.retro ? TokensRetro.v
-        : TokensFlix.v;
+export {
+    Shadow, DesignTokens, TokensFlix, TokensPlus, TokensPrime, TokensRetro, Design, Theme,
+    CardAspect, CardData, ButtonKind, ToastKind, HitRect, TitleBarHit, AvatarData, Gallery
 }
 
 // Minimales Fenster, das Theme-Werte sichtbar macht (Tests).

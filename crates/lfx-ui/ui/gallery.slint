@@ -1,0 +1,194 @@
+import { Theme, Design } from "theme/theme.slint";
+import { Icons } from "icons.slint";
+import {
+    CardAspect, CardData, ButtonKind, ToastKind, AvatarData, LfxText, LfxIcon, LfxButton, LfxBadge, LfxCard, LfxRow,
+    LfxTitleBar, LfxSpinner, LfxSkeleton, LfxToast, LfxDialog, LfxTabs, LfxSlider, LfxSearchField, LfxAvatar
+} from "components/index.slint";
+
+// Komponenten-Galerie: je `scene` eine Sammlung (Snapshot-Tests und examples/gallery.rs).
+// 0 Knöpfe und Badges · 1 Karten · 2 Zeilen · 3 Leisten und Eingaben · 4 Rückmeldungen und Dialog.
+// Inhalte (Karten, Profile) liefert Rust mit erfundenen Platzhalter-Daten.
+export component Gallery inherits Window {
+    // Szene (0..4); Tasten: Pfeil links/rechts blättert, 1..4 wählt das Design (LENZFLIX, LENZ+, LENZPRIME, LENZ//84)
+    in-out property <int> scene: 0;
+    in property <[CardData]> cards;
+    in property <[AvatarData]> avatars;
+    in property <bool> frozen: false;
+    in property <length> stage-width: 1280px;
+    in-out property <string> query: "";
+
+    width: root.stage-width;
+    height: 720px;
+    background: Theme.t.bg;
+    default-font-family: Theme.t.font-family;
+
+    LfxText {
+        x: 24px;
+        y: 8px;
+        text: "Design: " + (Theme.design == Design.plus ? "LENZ+" : (Theme.design == Design.prime ? "LENZPRIME"
+            : (Theme.design == Design.retro ? "LENZ//84" : "LENZFLIX"))) + "  |  Szene " + root.scene;
+        color: Theme.t.text-soft;
+        font-size: 12px;
+    }
+
+fs := FocusScope {        key-pressed(e) => {            if (e.text == Key.LeftArrow) { root.scene = max(0, root.scene - 1); }            else if (e.text == Key.RightArrow) { root.scene = min(4, root.scene + 1); }            else if (e.text == "1") { Theme.design = Design.flix; }            else if (e.text == "2") { Theme.design = Design.plus; }            else if (e.text == "3") { Theme.design = Design.prime; }            else if (e.text == "4") { Theme.design = Design.retro; }            else { return reject; }            accept        }    }    init => { fs.focus(); }
+    if root.scene == 0: Rectangle {
+        y: 40px;
+        VerticalLayout {
+            x: 40px;
+            y: 20px;
+            spacing: 24px;
+            width: 900px;
+            HorizontalLayout {
+                spacing: 16px;
+                alignment: start;
+                LfxButton { kind: ButtonKind.primary; text: "Abspielen"; icon: Icons.play; has-icon: true; }
+                LfxButton { kind: ButtonKind.secondary; text: "Mehr Infos"; icon: Icons.info; has-icon: true; }
+                LfxButton { kind: ButtonKind.primary; text: "Fokus"; focused: true; }
+                LfxButton { kind: ButtonKind.secondary; text: "Hover"; force-hot: true; }
+                LfxButton { kind: ButtonKind.primary; text: "Gesperrt"; enabled: false; }
+            }
+            HorizontalLayout {
+                spacing: 16px;
+                alignment: start;
+                LfxButton { kind: ButtonKind.round; icon: Icons.plus; has-icon: true; }
+                LfxButton { kind: ButtonKind.round; icon: Icons.like; has-icon: true; force-hot: true; }
+                LfxButton { kind: ButtonKind.round; icon: Icons.download; has-icon: true; focused: true; }
+                LfxButton { kind: ButtonKind.icon; icon: Icons.more; has-icon: true; }
+                LfxButton { kind: ButtonKind.icon; icon: Icons.search; has-icon: true; force-hot: true; }
+            }
+            HorizontalLayout {
+                spacing: 16px;
+                alignment: start;
+                LfxBadge { text: "Neu"; width: 44px; }
+                LfxBadge { text: "Trend 3"; width: 64px; fill: Theme.t.surface-3; ink: Theme.t.gold; }
+            }
+            // Icon-Auswahl
+            HorizontalLayout {
+                spacing: 18px;
+                alignment: start;
+                LfxIcon { source: Icons.play; }
+                LfxIcon { source: Icons.pause; }
+                LfxIcon { source: Icons.info; }
+                LfxIcon { source: Icons.check; }
+                LfxIcon { source: Icons.volume; }
+                LfxIcon { source: Icons.mute; }
+                LfxIcon { source: Icons.subtitles; }
+                LfxIcon { source: Icons.fullscreen; }
+                LfxIcon { source: Icons.back; }
+                LfxIcon { source: Icons.bell; }
+                LfxIcon { source: Icons.close; }
+                LfxIcon { source: Icons.settings; }
+                LfxIcon { source: Icons.like; }
+                LfxIcon { source: Icons.dislike; }
+                LfxIcon { source: Icons.eye-check; }
+                LfxIcon { source: Icons.tvmode; }
+                LfxIcon { source: Icons.home; }
+                LfxIcon { source: Icons.user; }
+                LfxIcon { source: Icons.chevron-up; }
+                LfxIcon { source: Icons.chevron-down; }
+            }
+        }
+    }
+
+    if root.scene == 1: Rectangle {
+        y: 40px;
+        HorizontalLayout {
+            x: 40px;
+            y: 20px;
+            width: 1200px;
+            height: 560px;
+            spacing: 28px;
+            alignment: start;
+            VerticalLayout {
+                spacing: 24px;
+                alignment: start;
+                LfxCard { width: 320px; height: 180px; data: root.cards[0]; }
+                LfxCard { width: 320px; height: 180px; data: root.cards[1]; force-hot: true; }
+                LfxCard { width: 320px; height: 180px; data: root.cards[2]; focused: true; }
+            }
+            VerticalLayout {
+                spacing: 24px;
+                alignment: start;
+                LfxCard { width: 320px; height: 180px; data: root.cards[3]; }
+                LfxCard { width: 320px; height: 180px; data: { title: "Ohne Bild", subtitle: "", has-image: false, progress: 0.0, badge: "", trend-rank: 0 }; }
+                LfxSkeleton { width: 320px; height: 180px; shimmer: !root.frozen; }
+            }
+            HorizontalLayout {
+                spacing: 20px;
+                alignment: start;
+                LfxCard { width: 160px; height: 240px; aspect: CardAspect.poster; data: root.cards[4]; }
+                LfxCard { width: 160px; height: 240px; aspect: CardAspect.poster; data: root.cards[5]; force-hot: true; }
+            }
+        }
+    }
+
+    if root.scene == 2: Rectangle {
+        y: 40px;
+        VerticalLayout {
+            spacing: 0px;
+            alignment: start;
+            LfxRow { title: "Weiterschauen"; items: root.cards; scroll-x: 0px; }
+            LfxRow { title: "Beliebte Filme"; items: root.cards; aspect: CardAspect.poster; focused-index: 2; scroll-x: 0px; }
+        }
+    }
+
+    if root.scene == 3: Rectangle {
+        y: 40px;
+        VerticalLayout {
+            spacing: 22px;
+            alignment: start;
+            LfxTitleBar { title: "Galerie"; force-hot: true; }
+            LfxTitleBar { title: "macOS"; mac: true; }
+            HorizontalLayout {
+                padding-left: 40px;
+                spacing: 40px;
+                alignment: start;
+                LfxTabs { labels: ["Alle", "Serien", "Filme", "Musik"]; current: 1; focused-index: 2; }
+                LfxSearchField { text: root.query; width: 320px; }
+            }
+            HorizontalLayout {
+                padding-left: 40px;
+                spacing: 40px;
+                alignment: start;
+                LfxSlider { width: 420px; value: 0.35; buffered: 0.6; force-hot: true; }
+                LfxSlider { width: 160px; value: 0.7; }
+            }
+            HorizontalLayout {
+                padding-left: 40px;
+                spacing: 24px;
+                alignment: start;
+                for a[i] in root.avatars: LfxAvatar { data: a; focused: i == 1; }
+            }
+        }
+    }
+
+    if root.scene == 4: Rectangle {
+        y: 40px;
+        HorizontalLayout {
+            x: 40px;
+            y: 20px;
+            spacing: 40px;
+            alignment: start;
+            LfxSpinner { size: 48px; running: !root.frozen; }
+            LfxSpinner { size: 24px; running: false; }
+        }
+        VerticalLayout {
+            x: 40px;
+            y: 110px;
+            spacing: 14px;
+            alignment: start;
+            LfxToast { text: "Zur Liste hinzugefügt"; action: "Rückgängig"; }
+            LfxToast { text: "Gespeichert"; kind: ToastKind.success; }
+            LfxToast { text: "Verbindung zum Server verloren"; kind: ToastKind.error; }
+        }
+        LfxDialog {
+            open: true;
+            title: "Profil wechseln?";
+            body: "Die laufende Wiedergabe wird beendet.";
+            primary-text: "Wechseln";
+            secondary-text: "Abbrechen";
+            focused-button: 0;
+        }
+    }
+}

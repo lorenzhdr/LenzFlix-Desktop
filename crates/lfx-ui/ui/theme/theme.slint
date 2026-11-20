@@ -1,0 +1,37 @@
+// Design-Wahl und aktive Token. Eigene Datei, damit Komponenten `Theme` importieren können,
+// ohne dass lib.slint (das die Komponenten wieder exportiert) zyklisch wird.
+// Schriften (alle OFL, Lizenztexte neben den Dateien in assets/fonts); Familienname je Design steht in den Tokens.
+// flix Inter, plus Figtree, prime Source Sans 3, retro Space Mono (Text) und VT323 (Pixel).
+import "../../../../assets/fonts/inter/Inter-Variable.ttf";
+import "../../../../assets/fonts/figtree/Figtree-Variable.ttf";
+import "../../../../assets/fonts/source-sans-3/SourceSans3-Variable.ttf";
+import "../../../../assets/fonts/space-mono/SpaceMono-Regular.ttf";
+import "../../../../assets/fonts/space-mono/SpaceMono-Bold.ttf";
+import "../../../../assets/fonts/vt323/VT323-Regular.ttf";
+import { DesignTokens, TokensFlix, TokensPlus, TokensPrime, TokensRetro } from "lfx-tokens.slint";
+
+export enum Design { flix, plus, prime, retro }
+
+// Aktives Design: `design` setzt die Anwendung, `t` liefert die passenden Token.
+export global Theme {
+    in-out property <Design> design: Design.flix;
+    out property <DesignTokens> t:
+        design == Design.plus ? TokensPlus.v
+        : design == Design.prime ? TokensPrime.v
+        : design == Design.retro ? TokensRetro.v
+        : TokensFlix.v;
+    out property <bool> is-retro: design == Design.retro;
+    // Breitenabhängige Maße (Breakpoints der Web-Media-Queries) je Design.
+    pure public function cards-visible-at(w: length) -> int {
+        return design == Design.plus ? TokensPlus.cards-visible-at(w)
+            : design == Design.prime ? TokensPrime.cards-visible-at(w)
+            : design == Design.retro ? TokensRetro.cards-visible-at(w)
+            : TokensFlix.cards-visible-at(w);
+    }
+    pure public function gutter-at(w: length) -> length {
+        return design == Design.plus ? TokensPlus.gutter-at(w)
+            : design == Design.prime ? TokensPrime.gutter-at(w)
+            : design == Design.retro ? TokensRetro.gutter-at(w)
+            : TokensFlix.gutter-at(w);
+    }
+}

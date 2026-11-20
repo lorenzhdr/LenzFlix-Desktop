@@ -1,0 +1,9 @@
+// Einfarbiges Icon aus dem Icon-Verzeichnis (`Icons.<name>`), per colorize eingefärbt.
+export component LfxIcon inherits Image {
+    in property <length> size: 24px;
+    in property <brush> tint: white;
+    width: root.size;
+    height: root.size;
+    colorize: root.tint;
+    image-fit: contain;
+}

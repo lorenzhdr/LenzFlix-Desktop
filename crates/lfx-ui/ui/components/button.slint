@@ -1,0 +1,71 @@
+import { Theme, Design } from "../theme/theme.slint";
+import { ButtonKind } from "types.slint";
+import { LfxText } from "text.slint";
+import { LfxIcon } from "icon.slint";
+import { LfxFocusRing } from "focus-ring.slint";
+
+// Schaltfläche: primary (Abspielen: weiß, retro Bernstein), secondary (Glas), round (runder Icon-Knopf mit Rand),
+// icon (nur Icon, ohne Fläche). `focused` kommt von lfx-nav.
+export component LfxButton inherits Rectangle {
+    in property <ButtonKind> kind: ButtonKind.primary;
+    in property <string> text;
+    in property <image> icon;
+    in property <bool> has-icon: false;
+    in property <bool> focused;
+    in property <bool> enabled: true;
+    // true: Hover-Darstellung erzwingen (Galerie, Tests)
+    in property <bool> force-hot: false;
+    callback clicked();
+
+    property <bool> hot: (ta.has-hover || root.force-hot) && root.enabled;
+    property <bool> is-round: root.kind == ButtonKind.round || root.kind == ButtonKind.icon;
+    property <bool> retro: Theme.design == Design.retro;
+    property <color> fg: root.kind == ButtonKind.primary
+        ? (root.retro ? Theme.t.retro-ink : (Theme.design == Design.prime ? Theme.t.prime-ink : #000000))
+        : (root.retro ? Theme.t.retro-amber : Theme.t.text);
+    property <color> bg: root.kind == ButtonKind.primary
+        ? (root.retro ? (root.hot ? Theme.t.retro-amber-hi : Theme.t.retro-amber) : (root.hot ? #ffffffbf : #ffffff))
+        : root.kind == ButtonKind.secondary
+            ? (root.retro ? (root.hot ? Theme.t.retro-amber-lo : Theme.t.retro-panel) : (root.hot ? Theme.t.glass-hover : Theme.t.glass))
+            : root.kind == ButtonKind.round
+                ? (root.hot ? #ffffff26 : Theme.t.icon-circle)
+                : (root.hot ? #ffffff1a : transparent);
+
+    min-width: root.is-round ? Theme.t.btn-h : 0px;
+    height: Theme.t.btn-h;
+    preferred-width: root.is-round ? Theme.t.btn-h : content.preferred-width + 2 * 22px;
+    border-radius: root.is-round ? self.height / 2 : Theme.t.btn-radius;
+    background: root.enabled ? root.bg : #ffffff22;
+    border-width: root.kind == ButtonKind.round ? 2px : (root.retro && root.kind == ButtonKind.secondary ? 1px : 0px);
+    border-color: root.kind == ButtonKind.round ? (root.hot ? #ffffff : Theme.t.icon-circle-border) : Theme.t.retro-amber-lo;
+    opacity: root.enabled ? 1.0 : 0.5;
+    animate background { duration: Theme.t.dur-fast; easing: Theme.t.ease; }
+
+    content := HorizontalLayout {
+        alignment: center;
+        spacing: Theme.t.btn-gap;
+        padding-left: root.is-round ? 0px : 4px;
+        padding-right: root.is-round ? 0px : 4px;
+        if root.has-icon: LfxIcon {
+            source: root.icon;
+            size: 22px;
+            tint: root.fg;
+            y: (parent.height - self.height) / 2;
+        }
+        if root.text != "": LfxText {
+            text: root.retro ? "[ " + root.text + " ]" : root.text;
+            color: root.fg;
+            font-size: Theme.t.fs-button;
+            font-weight: Theme.t.fw-button;
+            vertical-alignment: center;
+        }
+    }
+    ta := TouchArea {
+        enabled: root.enabled;
+        clicked => { root.clicked(); }
+    }
+    LfxFocusRing {
+        active: root.focused;
+        radius: root.is-round ? root.height / 2 : Theme.t.btn-radius;
+    }
+}

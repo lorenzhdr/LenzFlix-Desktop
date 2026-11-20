@@ -9,13 +9,16 @@ build = "build.rs"
 
 [dependencies]
 # Renderer und Backend wählt das Binary (Features dort); hier nur der Kern.
-slint = { version = "1.19", default-features = false, features = ["std", "compat-1-2"] }
+# backend-winit zieht die Bild-/SVG-Decoder ein, ohne die eingebettete Icons nicht laden; Renderer-Wahl bleibt beim Binary
+slint = { version = "1.19", default-features = false, features = ["std", "compat-1-2", "backend-winit", "renderer-software"] }
 
 [build-dependencies]
 slint-build = "1.19"
 
 [dev-dependencies]
 i-slint-backend-testing = "1.19"
+slint = { version = "1.19", default-features = false, features = ["std", "compat-1-2", "backend-winit", "renderer-software", "renderer-femtovg"] }
+png = "0.17"
 
 [lints]
 workspace = true
