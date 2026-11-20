@@ -1,0 +1,101 @@
+name: Release
+
+# Bei Tag v* bauen, paketieren, signieren und einen Entwurf-Release anlegen.
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    name: Paket ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-11-arm
+            target: aarch64-pc-windows-msvc
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+          - os: macos-15
+            target: aarch64-apple-darwin
+    steps:
+      - uses: actions/checkout@v4
+      - name: Version gegen Tag prüfen
+        shell: bash
+        run: |
+          ver=$(grep -m1 '^version' Cargo.toml | sed 's/.*"\(.*\)".*/\1/')
+          if [ "v$ver" != "${GITHUB_REF_NAME}" ]; then
+            echo "Tag ${GITHUB_REF_NAME} passt nicht zur Version $ver"; exit 1
+          fi
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: release-${{ matrix.target }}
+      - name: NSIS bereitstellen (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          if (-not (Get-Command makensis -ErrorAction SilentlyContinue)) {
+            choco install nsis -y --no-progress
+          }
+          $nsis = "C:\Program Files (x86)\NSIS"
+          if (Test-Path $nsis) { $nsis | Out-File -Append -Encoding utf8 $env:GITHUB_PATH }
+      - name: Paketieren
+        shell: bash
+        run: cargo run -p xtask --release -- package --target ${{ matrix.target }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: paket-${{ matrix.target }}
+          path: target/dist/*
+          if-no-files-found: error
+
+  release:
+    name: Entwurf-Release
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: release-xtask
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: paket-*
+          merge-multiple: true
+          path: dist
+      - name: Signieren (Minisign, übersprungen ohne Schlüssel)
+        env:
+          MINISIGN_SECRET_KEY: ${{ secrets.MINISIGN_SECRET_KEY }}
+          MINISIGN_PASSWORD: ${{ secrets.MINISIGN_PASSWORD }}
+        run: |
+          if [ -z "$MINISIGN_SECRET_KEY" ]; then
+            echo "MINISIGN_SECRET_KEY nicht gesetzt: Signaturen übersprungen"
+          else
+            cargo run -p xtask --release -- sign --dir dist
+          fi
+      - name: Release-Notizen
+        run: |
+          printf 'LENZFLIX Desktop %s\n' "${GITHUB_REF_NAME}" > notes.md
+      - name: SHA-256 und latest.json
+        run: |
+          cargo run -p xtask --release -- manifest --dir dist --tag "${GITHUB_REF_NAME}" \
+            --base-url "https://github.com/${GITHUB_REPOSITORY}/releases/download" \
+            --notes-file notes.md --pub-date "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+      - name: Entwurf anlegen
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${GITHUB_REF_NAME}" dist/* \
+            --draft --title "LENZFLIX Desktop ${GITHUB_REF_NAME}" --notes-file notes.md
