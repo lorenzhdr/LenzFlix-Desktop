@@ -7,6 +7,7 @@ import { AddServerPage, ProfilesPage, LoginPage } from "auth.slint";
 import { HomePage } from "home.slint";
 import { PlayerPage } from "player.slint";
 import { SoonPage, SettingsPage, AboutPage } from "misc.slint";
+import { DetailPage, DetailOverlays } from "detail-layer.slint"; // W2-detail
 
 // Hauptfenster von LENZFLIX Desktop. Rust (lfx-app) hält Router, Zustand und Fokus und setzt die Properties;
 // die Oberfläche meldet nur Ereignisse. Durchsichtiger Fensterhintergrund: das Video liegt in einer Ebene darunter.
@@ -198,12 +199,21 @@ export component MainWindow inherits Window {
                 sign-out => { root.sign-out(); }
                 back => { root.simple-back(); }
             }
+            if root.page == Page.detail: DetailPage { } // W2-detail
             if root.page == Page.about: AboutPage {
                 version: root.version;
                 notices: root.notices;
                 focus-slot: root.simple-slot;
                 back => { root.simple-back(); }
             }
+        }
+
+        // W2-detail: Hovercard, Detail-Modal, Kontextmenü (unter der Titelleiste)
+        DetailOverlays {
+            x: 0px;
+            y: 0px;
+            width: parent.width;
+            height: parent.height;
         }
 
         bar := LfxTitleBar {

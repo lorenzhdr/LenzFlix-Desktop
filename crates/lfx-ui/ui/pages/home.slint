@@ -7,6 +7,7 @@ import { LfxTabs } from "../components/controls.slint";
 import { LfxSkeleton, LfxSpinner } from "../components/feedback.slint";
 import { Icons } from "../icons.slint";
 import { HeroData, RowData, HomeGeometry } from "types.slint";
+import { DetailState } from "detail-state.slint"; // W2-detail
 
 // LENZFLIX-Startseite: Navigationsleiste, Billboard und Zeilen.
 // Fokus (von lfx-nav): focus-row -2 = Navigationsleiste, -1 = Billboard-Knöpfe (index 0 Abspielen, 1 Mehr Infos),
@@ -171,6 +172,8 @@ export component HomePage inherits Rectangle {
             aspect: row.aspect;
             focused-index: r == root.focus-row ? root.focus-index : -1;
             card-clicked(i) => { root.card-clicked(r, i); }
+            card-hover(i, h, x, y, w, ch) => { DetailState.card-hover(r, i, h, x, y, w, ch); } // W2-detail
+            card-context(i, x, y) => { DetailState.card-context(r, i, x, y); } // W2-detail
         }
 
         if root.rows.length == 0 && root.loading: Rectangle {

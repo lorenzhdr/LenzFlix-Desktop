@@ -1,0 +1,445 @@
+// W2-detail: Detailseite, Detail-Modal, Hovercard und Kontextmenü als Slint-Komponenten.
+// Hovercard nach src/css/js-ui/hovercard.css, Modal nach modal.css der Web-Vorlage.
+import { Theme, Design } from "../theme/theme.slint";
+import { LfxText } from "../components/text.slint";
+import { LfxIcon } from "../components/icon.slint";
+import { LfxFocusRing } from "../components/focus-ring.slint";
+import { Icons } from "../icons.slint";
+import { DetailState } from "detail-state.slint";
+import { DetailView, RoundBtn } from "detail-view.slint";
+
+// ---------------------------------------------------------------- Detailseite (Route Detail)
+export component DetailPage inherits Rectangle {
+    background: Theme.t.surface;
+    property <length> scroll-y: -flick.content-y;
+
+    pure function scroll-target(cur: length, fy: length, fh: length, view-h: length, flick-h: length) -> length {
+        if (DetailState.focus-sec <= 0) { return 0px; }
+        return max(-max(0px, view-h - flick-h),
+            fy < -cur + 60px ? min(0px, -(fy - 60px))
+            : (fy + fh > -cur + flick-h - 24px ? min(0px, -(fy + fh - flick-h + 24px)) : cur));
+    }
+    function scroll-to-focus() {
+        flick.content-y = root.scroll-target(flick.content-y, view.focus-y, view.focus-h, view.height, flick.height);
+    }
+    changed focus-sec-watch => { root.scroll-to-focus(); }
+    property <int> focus-sec-watch: DetailState.focus-sec * 10000 + DetailState.focus-idx;
+
+    flick := Flickable {
+        width: parent.width;
+        height: parent.height;
+        content-width: self.width;
+        content-height: view.height;
+        animate content-y { duration: Theme.t.dur * 2; easing: Theme.t.ease-out; }
+        view := DetailView {
+            x: 0px;
+            y: 0px;
+            width: parent.width;
+            page-mode: true;
+        }
+    }
+    // Zurück
+    RoundBtn {
+        x: 24px;
+        y: 20px;
+        size: 40px;
+        icon-size: 22px;
+        icon: Icons.back;
+        tip: "Zurück";
+        clicked => { DetailState.back(); }
+    }
+}
+
+// ---------------------------------------------------------------- Detail-Modal
+component DetailModal inherits Rectangle {
+    property <bool> shown: false;
+    init => { root.shown = true; }
+    opacity: root.shown ? 1.0 : 0.0;
+    animate opacity { duration: Theme.t.dur; easing: Theme.t.ease-out; }
+
+    pure function scroll-target(cur: length, fy: length, fh: length, view-h: length, flick-h: length) -> length {
+        if (DetailState.focus-sec <= 0) { return 0px; }
+        return max(-max(0px, view-h - flick-h),
+            fy < -cur + 60px ? min(0px, -(fy - 60px))
+            : (fy + fh > -cur + flick-h - 24px ? min(0px, -(fy + fh - flick-h + 24px)) : cur));
+    }
+    function scroll-to-focus() {
+        flick.content-y = root.scroll-target(flick.content-y, view.focus-y, view.focus-h, view.height, flick.height);
+    }
+    property <int> focus-watch: DetailState.focus-sec * 10000 + DetailState.focus-idx;
+    changed focus-watch => { root.scroll-to-focus(); }
+
+    Rectangle { background: #000000b3; }
+    TouchArea {
+        clicked => { DetailState.close(); }
+    }
+    card := Rectangle {
+        property <length> top: 44px;
+        x: (parent.width - self.width) / 2;
+        y: root.shown ? self.top : self.top + 24px;
+        width: min(850px, parent.width * 0.94);
+        height: parent.height - self.top - 24px;
+        background: Theme.t.surface;
+        border-radius: Theme.t.modal-radius;
+        clip: true;
+        drop-shadow-color: Theme.t.shadow-modal.color;
+        drop-shadow-blur: Theme.t.shadow-modal.blur;
+        drop-shadow-offset-y: 16px;
+        transform-scale: root.shown ? 1.0 : 0.95;
+        animate y { duration: Theme.t.dur; easing: Theme.t.ease-out; }
+        animate transform-scale { duration: Theme.t.dur; easing: Theme.t.ease-out; }
+        // Klicks im Fenster erreichen nicht den Hintergrund
+        TouchArea { }
+        flick := Flickable {
+            width: parent.width;
+            height: parent.height;
+            content-width: self.width;
+            content-height: view.height;
+            animate content-y { duration: Theme.t.dur * 2; easing: Theme.t.ease-out; }
+            view := DetailView {
+                x: 0px;
+                y: 0px;
+                width: parent.width;
+                page-mode: false;
+            }
+        }
+        // Schließen
+        Rectangle {
+            x: parent.width - self.width - 16px;
+            y: 16px;
+            width: 36px;
+            height: 36px;
+            border-radius: 18px;
+            background: cl-ta.has-hover ? Theme.t.surface-3 : Theme.t.surface;
+            LfxIcon {
+                x: (parent.width - self.width) / 2;
+                y: (parent.height - self.height) / 2;
+                source: Icons.close;
+                size: 22px;
+                tint: #ffffff;
+            }
+            cl-ta := TouchArea {
+                mouse-cursor: pointer;
+                clicked => { DetailState.close(); }
+            }
+        }
+    }
+}
+
+// ---------------------------------------------------------------- Hovercard
+component HoverCard inherits Rectangle {
+    property <length> w: DetailState.hc-open ? DetailState.hc-to-w : DetailState.hc-from-w;
+    property <bool> open: DetailState.hc-open;
+    x: DetailState.hc-open ? DetailState.hc-to-x : DetailState.hc-from-x;
+    y: DetailState.hc-open ? DetailState.hc-to-y : DetailState.hc-from-y;
+    width: root.w;
+    height: root.w * 9 / 16 + info.preferred-height;
+    background: Theme.t.surface;
+    border-radius: Theme.t.popup-radius;
+    drop-shadow-color: #000000bf;
+    drop-shadow-blur: 20px;
+    drop-shadow-offset-y: 3px;
+    // Beim Schließen blendet die Karte aus (200 ms), beim Öffnen wächst sie (300 ms).
+    opacity: 1.0;
+    animate x { duration: 300ms; easing: Theme.t.ease; }
+    animate y { duration: 300ms; easing: Theme.t.ease; }
+    animate width { duration: 300ms; easing: Theme.t.ease; }
+
+    // Die Karte hält sich offen, solange die Maus darüber ist. Liegt zuunterst; die Knöpfe melden ihren Hover
+    // zusätzlich selbst (die Rust-Seite wartet 150 ms, bevor sie schließt, der Wechsel ist also unkritisch).
+    hover-ta := TouchArea {
+        changed has-hover => { DetailState.hc-hovered(self.has-hover); }
+    }
+
+    // Bildteil 16:9
+    Rectangle {
+        x: 0px;
+        y: 0px;
+        width: parent.width;
+        height: root.w * 9 / 16;
+        background: Theme.t.surface-2;
+        border-radius: Theme.t.popup-radius;
+        clip: true;
+        if DetailState.hc.has-image: Image {
+            width: 100%;
+            height: 100%;
+            source: DetailState.hc.image;
+            image-fit: cover;
+        }
+        Rectangle {
+            y: parent.height * 0.45;
+            background: @linear-gradient(180deg, #00000000 0%, #000000b3 100%);
+        }
+        if DetailState.hc.has-logo: Image {
+            x: 16px;
+            y: parent.height - self.height - 16px;
+            source: DetailState.hc.logo;
+            width: parent.width * 0.55;
+            height: min(56px, parent.height * 0.3);
+            image-fit: contain;
+            horizontal-alignment: left;
+            vertical-alignment: bottom;
+        }
+        if !DetailState.hc.has-logo: LfxText {
+            x: 16px;
+            y: parent.height - self.height - 14px;
+            width: parent.width - 32px - 44px;
+            text: DetailState.hc.title;
+            font-size: 20px;
+            font-weight: 700;
+            wrap: word-wrap;
+            overflow: elide;
+            max-height: parent.height * 0.6;
+        }
+        TouchArea {
+            mouse-cursor: pointer;
+            clicked => { DetailState.hc-more(); }
+            changed has-hover => { DetailState.hc-hovered(self.has-hover); }
+        }
+        // Gesehen unten rechts im Bild
+        if DetailState.hc.can-played: Rectangle {
+            x: parent.width - self.width - 12px;
+            y: parent.height - self.height - 12px;
+            width: 34px;
+            height: 34px;
+            border-radius: 8px;
+            border-width: 2px;
+            border-color: DetailState.hc.played ? #ffffff : (pl-ta.has-hover ? #ffffff : #ffffff80);
+            background: DetailState.hc.played ? #ffffff : (pl-ta.has-hover ? #141414d9 : #141414a6);
+            LfxIcon {
+                x: (parent.width - self.width) / 2;
+                y: (parent.height - self.height) / 2;
+                source: DetailState.hc.played ? Icons.eye-check : Icons.eye;
+                size: 18px;
+                tint: DetailState.hc.played ? #141414 : #ffffff;
+            }
+            pl-ta := TouchArea {
+                mouse-cursor: pointer;
+                clicked => { DetailState.hc-played(); }
+                changed has-hover => { DetailState.hc-hovered(self.has-hover); }
+            }
+        }
+    }
+
+    // Infoteil: blendet nach 150 ms ein
+    info := VerticalLayout {
+        x: 0px;
+        width: parent.width;
+        y: root.w * 9 / 16;
+        padding: 16px;
+        spacing: 0px;
+        opacity: root.open ? 1.0 : 0.0;
+        animate opacity { duration: 150ms; delay: root.open ? 150ms : 0ms; easing: Theme.t.ease; }
+        HorizontalLayout {
+            height: 38px;
+            alignment: space-between;
+            HorizontalLayout {
+                spacing: 6px;
+                alignment: start;
+                RoundBtn {
+                    size: 38px;
+                    icon-size: 20px;
+                    solid: true;
+                    icon: Icons.play;
+                    tip: "Abspielen";
+                    clicked => { DetailState.hc-play(); }
+                    hover-changed(h) => { DetailState.hc-hovered(h); }
+                }
+                RoundBtn {
+                    size: 38px;
+                    icon-size: 20px;
+                    tone: 2;
+                    active: DetailState.hc.fav;
+                    icon: DetailState.hc.fav ? Icons.check : Icons.plus;
+                    tip: DetailState.hc.fav ? "Aus Meine Liste entfernen" : "Zu Meine Liste hinzufügen";
+                    clicked => { DetailState.hc-fav(); }
+                    hover-changed(h) => { DetailState.hc-hovered(h); }
+                }
+                if DetailState.hc.can-like: RoundBtn {
+                    size: 38px;
+                    icon-size: 20px;
+                    tone: 1;
+                    active: DetailState.hc.like;
+                    icon: DetailState.hc.like ? Icons.like : Icons.like-outline;
+                    tip: "Gefällt mir";
+                    clicked => { DetailState.hc-like(); }
+                    hover-changed(h) => { DetailState.hc-hovered(h); }
+                }
+                if DetailState.hc.can-download: RoundBtn {
+                    size: 38px;
+                    icon-size: 20px;
+                    icon: Icons.download;
+                    tip: "Herunterladen";
+                    clicked => { DetailState.hc-download(); }
+                    hover-changed(h) => { DetailState.hc-hovered(h); }
+                }
+            }
+            RoundBtn {
+                size: 38px;
+                icon-size: 20px;
+                icon: Icons.chevron-down;
+                tip: "Mehr Infos";
+                clicked => { DetailState.hc-more(); }
+                hover-changed(h) => { DetailState.hc-hovered(h); }
+            }
+        }
+        Rectangle { height: 12px; }
+        HorizontalLayout {
+            spacing: 8px;
+            alignment: start;
+            height: 22px;
+            if DetailState.hc.rating != "": Rectangle {
+                width: rt.preferred-width + 8px;
+                height: 20px;
+                border-width: 1px;
+                border-color: #ffffff66;
+                rt := LfxText {
+                    x: 4px;
+                    width: parent.width - 8px;
+                    height: parent.height;
+                    text: DetailState.hc.rating;
+                    font-size: 13px;
+                    vertical-alignment: center;
+                }
+            }
+            if DetailState.hc.year != "": LfxText {
+                text: DetailState.hc.year;
+                color: #bcbcbc;
+                font-size: 14px;
+                vertical-alignment: center;
+            }
+            if DetailState.hc.length != "": LfxText {
+                text: DetailState.hc.length;
+                font-size: 14px;
+                vertical-alignment: center;
+            }
+            if DetailState.hc.quality != "": Rectangle {
+                width: qt.preferred-width + 8px;
+                height: 18px;
+                y: 2px;
+                border-width: 1px;
+                border-color: #ffffff66;
+                border-radius: 3px;
+                qt := LfxText {
+                    x: 4px;
+                    width: parent.width - 8px;
+                    height: parent.height;
+                    text: DetailState.hc.quality;
+                    font-size: 11px;
+                    vertical-alignment: center;
+                }
+            }
+        }
+        if DetailState.hc.episode != "": LfxText {
+            text: DetailState.hc.episode;
+            font-size: 14px;
+            font-weight: 600;
+            overflow: elide;
+        }
+        if DetailState.hc.progress > 0: HorizontalLayout {
+            spacing: 10px;
+            height: 20px;
+            Rectangle {
+                horizontal-stretch: 1;
+                Rectangle {
+                    y: (parent.height - 2px) / 2;
+                    height: 2px;
+                    background: #5a5a5a;
+                    Rectangle {
+                        width: parent.width * min(1.0, DetailState.hc.progress);
+                        background: Theme.t.red;
+                    }
+                }
+            }
+            LfxText {
+                text: DetailState.hc.remain;
+                color: #bcbcbc;
+                font-size: 14px;
+                vertical-alignment: center;
+            }
+        }
+        if DetailState.hc.genres.length > 0: HorizontalLayout {
+            spacing: 0px;
+            alignment: start;
+            height: 20px;
+            for g[i] in DetailState.hc.genres: HorizontalLayout {
+                if i > 0: LfxText {
+                    text: " • ";
+                    color: #646464;
+                    font-size: 14px;
+                }
+                LfxText {
+                    text: g;
+                    font-size: 14px;
+                }
+            }
+        }
+    }
+
+}
+
+// ---------------------------------------------------------------- Kontextmenü
+component ContextMenu inherits Rectangle {
+    TouchArea {
+        clicked => { DetailState.menu-close(); }
+        pointer-event(e) => {
+            if (e.button == PointerEventButton.right && e.kind == PointerEventKind.up) {
+                DetailState.menu-close();
+            }
+        }
+    }
+    panel := Rectangle {
+        width: 260px;
+        height: DetailState.menu-entries.length * 40px + 16px;
+        x: max(8px, min(DetailState.menu-x, parent.width - self.width - 8px));
+        y: max(8px, min(DetailState.menu-y, parent.height - self.height - 8px));
+        background: #242424;
+        border-width: 1px;
+        border-color: #4d4d4d;
+        border-radius: 8px;
+        drop-shadow-color: #000000b3;
+        drop-shadow-blur: 24px;
+        drop-shadow-offset-y: 8px;
+        TouchArea { }
+        for e[i] in DetailState.menu-entries: Rectangle {
+            y: 8px + i * 40px;
+            height: 40px;
+            background: (DetailState.menu-focus == i || me-ta.has-hover) && e.enabled ? #333333 : transparent;
+            LfxText {
+                x: 16px;
+                width: parent.width - 52px;
+                height: parent.height;
+                text: e.label;
+                font-size: 15px;
+                color: e.enabled ? #ffffff : #808080;
+                overflow: elide;
+                vertical-alignment: center;
+            }
+            if e.checked: LfxIcon {
+                x: parent.width - self.width - 14px;
+                y: (parent.height - self.height) / 2;
+                source: Icons.check;
+                size: 18px;
+                tint: Theme.t.green;
+            }
+            me-ta := TouchArea {
+                enabled: e.enabled;
+                mouse-cursor: e.enabled ? pointer : default;
+                clicked => { DetailState.menu-picked(i); }
+            }
+        }
+    }
+}
+
+// Alle Überlagerungen auf einmal (in main.slint einmal eingehängt): Hovercard, Modal, Kontextmenü.
+export component DetailOverlays inherits Rectangle {
+    if DetailState.hc-visible && !DetailState.modal-open: HoverCard { }
+    if DetailState.modal-open: DetailModal {
+        width: parent.width;
+        height: parent.height;
+    }
+    if DetailState.menu-open: ContextMenu {
+        width: parent.width;
+        height: parent.height;
+    }
+}

@@ -69,7 +69,6 @@ impl Route {
     /// Titel der „Folgt“-Seite für noch nicht gebaute Routen; `None` = die Route hat eine echte Seite.
     pub fn soon_title(&self) -> Option<&'static str> {
         match self {
-            Self::Detail { .. } => Some("Details"),
             Self::Search => Some("Suche"),
             Self::Library {
                 kind: LibraryKind::Series,

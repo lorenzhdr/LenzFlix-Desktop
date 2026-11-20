@@ -86,9 +86,14 @@ impl App {
             .map_or(0.0, |u| u.playback_position_ticks as f64 / 10_000_000.0);
         let client = active.client.clone();
         let id = item.id.clone();
+        // W2-detail: Vorauswahl aus Detail/Menü (Ton, Untertitel, Version, von Anfang an)
+        let choice = self.take_play_choice().unwrap_or_default();
         self.rt.spawn(async move {
             let opts = PrepareOptions {
-                start_seconds: resume,
+                start_seconds: if choice.from_start { 0.0 } else { resume },
+                media_source_id: choice.source,
+                audio_stream_index: choice.audio,
+                subtitle_stream_index: choice.sub,
                 ..PrepareOptions::default()
             };
             match prepare(&client, &id, &opts).await {

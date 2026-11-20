@@ -51,6 +51,8 @@ pub struct State {
     pub geo: Option<focus::HomeGeo>,
     pub images: Option<ImageLoader>,
     pub toast_gen: u64,
+    /// W2-detail: Detail-Modal/-Seite, Kontextmenü, Hovercard.
+    pub detail: crate::detail::DetailCtl, // W2-detail
 }
 
 /// Zeitgeber, die leben müssen, solange die App läuft.
@@ -198,6 +200,7 @@ impl App {
 
     /// Aufräumen beim Verlassen einer Seite (Quick Connect abbrechen).
     fn leave_route_hooks(self: &Rc<Self>) {
+        self.detail_leave_route(); // W2-detail
         let task = self.st.borrow_mut().qc_task.take();
         if let Some(t) = task {
             t.abort();
@@ -257,6 +260,11 @@ impl App {
                 ui.set_page(Page::About);
                 self.set_graph(focus::column_graph(1), Some(0));
             }
+            Route::Detail { id } => {
+                // W2-detail
+                ui.set_page(Page::Detail);
+                self.enter_detail_page(id);
+            }
             other => {
                 ui.set_page(Page::Soon);
                 ui.set_soon_title(other.soon_title().unwrap_or("Folgt").into());
@@ -291,6 +299,11 @@ impl App {
 
     /// Schreibt den Fokus des Graphen in die Properties der aktuellen Seite.
     pub fn show_focus(self: &Rc<Self>) {
+        // W2-detail: Modal und Detailseite zeigen ihren Fokus selbst
+        if self.detail_owns_focus() {
+            self.show_detail_focus();
+            return;
+        }
         let ui = self.win();
         let st = self.st.borrow();
         let f = st.graph.focused();
@@ -320,6 +333,10 @@ impl App {
         let route = self.st.borrow().router.current().clone();
         if matches!(route, Route::Player { .. }) {
             self.player_action(action);
+            return;
+        }
+        // W2-detail: Kontextmenü, Modal, Detailseite, Info-/Menü-Taste auf Karten
+        if self.detail_handle_action(action) {
             return;
         }
         match action {

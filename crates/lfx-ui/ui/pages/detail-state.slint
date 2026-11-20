@@ -1,0 +1,176 @@
+// W2-detail: Zustand und Datentypen von Hovercard, Detail-Modal, Detailseite und Kontextmenü.
+// Rust (lfx-app/src/detail*.rs, hovercard.rs) setzt die Properties dieses Globals und hängt die Rückrufe ein;
+// die Slint-Komponenten lesen und melden nur. Ein Global statt vieler MainWindow-Properties hält die gemeinsamen
+// Dateien (main.slint) klein.
+import { CardData } from "../components/types.slint";
+
+// Alles, was Detail-Modal und Detailseite im Kopf und in der Seitenspalte zeigen.
+export struct DetailData {
+    id: string,
+    title: string,
+    // z. B. Serienname bei Folgen, Rolle bei Personen
+    subtitle: string,
+    backdrop: image,
+    has-backdrop: bool,
+    logo: image,
+    has-logo: bool,
+    year: string,
+    length: string,
+    quality: string,
+    rating: string,
+    rating-text: string,
+    tagline: string,
+    overview: string,
+    cast-line: string,
+    genres-line: string,
+    studios-line: string,
+    play-label: string,
+    can-play: bool,
+    can-played: bool,
+    can-like: bool,
+    can-download: bool,
+    fav: bool,
+    like: bool,
+    played: bool,
+    // 0..1, Fortschritt des Titels (Fortsetzen)
+    progress: float,
+    has-item: bool,
+}
+
+export struct EpisodeData {
+    number: string,
+    title: string,
+    runtime: string,
+    overview: string,
+    thumb: image,
+    has-thumb: bool,
+    progress: float,
+    played: bool,
+}
+
+// Karte im Raster „Ähnliche Titel“ bzw. „Titel der Sammlung“.
+export struct SimilarCard {
+    title: string,
+    year: string,
+    rating: string,
+    runtime: string,
+    overview: string,
+    image: image,
+    has-image: bool,
+    fav: bool,
+}
+
+// Person oder Informationszeile der Kategorie „Info zu …“.
+export struct PersonChip {
+    name: string,
+    role: string,
+    label: string,
+    initial: string,
+}
+
+export struct MenuEntry {
+    label: string,
+    enabled: bool,
+    checked: bool,
+}
+
+// Inhalt der Hovercard.
+export struct HoverData {
+    title: string,
+    image: image,
+    has-image: bool,
+    logo: image,
+    has-logo: bool,
+    rating: string,
+    year: string,
+    length: string,
+    quality: string,
+    genres: [string],
+    episode: string,
+    progress: float,
+    remain: string,
+    fav: bool,
+    like: bool,
+    played: bool,
+    can-like: bool,
+    can-download: bool,
+    can-played: bool,
+}
+
+export global DetailState {
+    // ---------------------------------------------------------------- Detail (Modal und Seite)
+    in property <bool> modal-open;
+    in property <bool> loading;
+    in property <string> error;
+    in property <DetailData> data;
+    in property <[EpisodeData]> episodes;
+    in property <[string]> seasons;
+    in property <int> season-index;
+    in property <bool> season-played;
+    in property <string> similar-title;
+    in property <[SimilarCard]> similar;
+    in property <string> info-title;
+    in property <[PersonChip]> people;
+    in property <string> info-rating;
+    // Ton- und Untertitelwahl vor dem Start (leer = ausgeblendet)
+    in property <string> version-text;
+    in property <string> audio-text;
+    in property <string> sub-text;
+    // Fokus: Abschnitt (0 Knöpfe, 1 Spuren, 2 Staffel, 3 Folgen, 4 Ähnliche, 5 Personen, 6 Link) und Eintrag.
+    // Bei Abschnitt 0 ist der Eintrag die Knopfart (0 Abspielen, 1 Liste, 2 Gefällt mir, 3 Gesehen, 4 Download, 5 Menü),
+    // bei Abschnitt 1 die Spurart (0 Version, 1 Ton, 2 Untertitel), bei Abschnitt 2 (0 Staffel gesehen, 1 Staffelwahl).
+    in property <int> focus-sec: -1;
+    in property <int> focus-idx;
+    in property <bool> season-list-open;
+    callback play();
+    callback toggle-fav();
+    callback toggle-like();
+    callback toggle-played();
+    callback download();
+    callback open-menu();
+    callback cycle-track(int);
+    callback toggle-season-played();
+    callback toggle-season-list();
+    callback pick-season(int);
+    callback episode-clicked(int);
+    callback episode-played(int);
+    callback episode-menu(int);
+    callback similar-clicked(int);
+    callback similar-fav(int);
+    callback person-clicked(int);
+    callback open-page();
+    callback close();
+    callback back();
+
+    // ---------------------------------------------------------------- Hovercard
+    in property <bool> hc-visible;
+    // false = Kartenrechteck (Start/Ende der Animation), true = Zielrechteck
+    in property <bool> hc-open;
+    in property <HoverData> hc;
+    in property <length> hc-from-x;
+    in property <length> hc-from-y;
+    in property <length> hc-from-w;
+    in property <length> hc-to-x;
+    in property <length> hc-to-y;
+    in property <length> hc-to-w;
+    // Eine Karte meldet Maus-Hover: Zeile, Index, ob die Maus darauf ist, Rechteck in Fensterkoordinaten.
+    callback card-hover(int, int, bool, length, length, length, length);
+    // Rechtsklick auf eine Karte: Zeile, Index, Position in Fensterkoordinaten.
+    callback card-context(int, int, length, length);
+    callback hc-hovered(bool);
+    callback hc-play();
+    callback hc-fav();
+    callback hc-like();
+    callback hc-played();
+    callback hc-download();
+    callback hc-more();
+
+    // ---------------------------------------------------------------- Kontextmenü
+    in property <bool> menu-open;
+    in property <[MenuEntry]> menu-entries;
+    in property <length> menu-x;
+    in property <length> menu-y;
+    in property <int> menu-focus: -1;
+    callback menu-picked(int);
+    callback menu-close();
+}

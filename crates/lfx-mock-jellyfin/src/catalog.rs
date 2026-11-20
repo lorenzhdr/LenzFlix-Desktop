@@ -271,6 +271,7 @@ pub fn render(catalog: &[Item], it: &Item, st: &UserState, fields: &str) -> Valu
             "ThumbnailCount": it.runtime_min * 6, "Interval": 10000, "Bandwidth": 120000
         } } });
     }
+    crate::w2_detail::decorate(&mut v, it, catalog, fields); // W2-detail
     v
 }
 

@@ -19,6 +19,9 @@ export component LfxRow inherits Rectangle {
     in property <bool> force-hot: false;
     in-out property <length> scroll-x: 0px;
     callback card-clicked(int);
+    // W2-detail: Hover (Index, Maus darauf, Rechteck in Fensterkoordinaten) und Rechtsklick (Index, Position)
+    callback card-hover(int, bool, length, length, length, length);
+    callback card-context(int, length, length);
 
     property <length> gutter: Theme.gutter-at(root.width);
     property <int> n: Theme.cards-visible-at(root.width);
@@ -81,7 +84,7 @@ export component LfxRow inherits Rectangle {
             }
         }
 
-        for slot in root.pool: Rectangle {
+        for slot in root.pool: cell := Rectangle {
             property <int> idx: root.first + slot;
             x: root.gutter + idx * root.pitch - root.scroll-x;
             y: root.pad-y;
@@ -95,6 +98,8 @@ export component LfxRow inherits Rectangle {
                 focused: idx == root.focused-index;
                 force-hot: root.force-hot && idx == 1;
                 clicked => { root.card-clicked(idx); }
+                hover-changed(h) => { root.card-hover(idx, h, cell.absolute-position.x, cell.absolute-position.y, cell.width, cell.height); } // W2-detail
+                context-requested(x, y) => { root.card-context(idx, x, y); } // W2-detail
             }
         }
 

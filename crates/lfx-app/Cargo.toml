@@ -57,3 +57,7 @@ tokio = { version = "1", features = ["rt-multi-thread", "sync", "time", "macros"
 [[test]]
 name = "e2e"
 required-features = ["dev-automation"]
+
+[[test]]
+name = "e2e_detail"
+required-features = ["dev-automation"]

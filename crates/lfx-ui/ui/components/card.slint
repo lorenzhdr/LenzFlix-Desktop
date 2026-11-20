@@ -14,6 +14,11 @@ export component LfxCard inherits Rectangle {
     // true: Zoom/Schatten ohne Maus-Hover erzwingen (Galerie, Tests)
     in property <bool> force-hot: false;
     callback clicked();
+    // W2-detail: Maus-Hover und Rechtsklick (Hovercard, Kontextmenü)
+    callback hover-changed(bool);
+    callback context-requested(length, length);
+    property <bool> hovered: ta.has-hover;
+    changed hovered => { root.hover-changed(root.hovered); }
 
     property <bool> hot: root.focused || ta.has-hover || root.force-hot;
     property <float> hot-scale: Theme.design == Design.flix ? 1.06
@@ -104,6 +109,11 @@ export component LfxCard inherits Rectangle {
     }
     ta := TouchArea {
         clicked => { root.clicked(); }
+        pointer-event(e) => {
+            if (e.button == PointerEventButton.right && e.kind == PointerEventKind.up) {
+                root.context-requested(self.absolute-position.x + self.mouse-x, self.absolute-position.y + self.mouse-y); // W2-detail
+            }
+        }
     }
     LfxFocusRing {
         active: root.focused;

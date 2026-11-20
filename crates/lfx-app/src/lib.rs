@@ -11,8 +11,13 @@ pub mod auth;
 pub mod automation;
 pub mod capture;
 pub mod cli;
+pub mod detail; // W2-detail
+#[cfg(feature = "dev-automation")]
+pub mod detail_automation; // W2-detail
+pub mod detail_logic; // W2-detail
 pub mod focus;
 pub mod home;
+pub mod hovercard; // W2-detail
 pub mod keys;
 pub mod logging;
 pub mod play;
@@ -108,6 +113,7 @@ pub fn run(opts: Options) -> Result<(), String> {
             geo: None,
             images: None,
             toast_gen: 0,
+            detail: detail::DetailCtl::default(), // W2-detail
         }),
         timers: Timers::default(),
         gamepad: RefCell::new(None),
@@ -219,6 +225,8 @@ fn wire(app: &Rc<App>, ui: &MainWindow, shell: &Shell) {
     ui.on_card_clicked(move |r, i| a.card_clicked(r, i));
     let a = app.clone();
     ui.on_home_geometry(move |g| a.on_home_geometry(g));
+
+    detail::wire(app, ui); // W2-detail
 
     let a = app.clone();
     ui.on_toggle_pause(move || a.toggle_pause());
