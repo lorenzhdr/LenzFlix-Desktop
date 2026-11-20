@@ -74,6 +74,11 @@ pub enum Act {
     OpenBrowser,
     Refresh,
     Back,
+    DlAuto,     // W5-downloads
+    DlParallel, // W5-downloads
+    DlQuality,  // W5-downloads
+    DlRoot,     // W5-downloads
+    DlOpenPage, // W5-downloads
 }
 
 impl Act {

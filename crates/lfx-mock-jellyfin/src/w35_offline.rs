@@ -209,14 +209,18 @@ pub(crate) async fn download(
     }
     record(&shared, format!("/Items/{id}/Download"), &headers, None);
     let ranges = !shared.lock().w35.no_range;
+    let real = crate::w5_downloads::real_video(); // W5-downloads
     serve(
         &shared,
         &Body {
             id: &id,
-            total: download_len(&id),
+            total: real
+                .as_ref()
+                .map_or_else(|| download_len(&id), |r| r.len() as u64),
             transcode: false,
             ranges,
             ctype: "video/x-matroska",
+            real,
         },
         &headers,
     )
@@ -241,6 +245,7 @@ pub(crate) async fn transcoded(
             transcode: true,
             ranges: false,
             ctype: "video/mp4",
+            real: None, // W5-downloads
         },
         &headers,
     )
@@ -253,6 +258,8 @@ struct Body<'a> {
     transcode: bool,
     ranges: bool,
     ctype: &'a str,
+    /// W5-downloads: echte Videodatei statt Mustererzeugung.
+    real: Option<Arc<Vec<u8>>>,
 }
 
 /// Zustand der Stromerzeugung.
@@ -265,6 +272,7 @@ struct Gen {
     abort: Option<u64>,
     hold: Option<u64>,
     release: Arc<Notify>,
+    real: Option<Arc<Vec<u8>>>, // W5-downloads
 }
 
 /// Baut die Antwort: optional mit `Range`, Inhalt in Teilstücken, Abbruch/Halten einmalig aus dem Zustand.
@@ -304,6 +312,7 @@ fn serve(shared: &Arc<Shared>, what: &Body<'_>, headers: &HeaderMap) -> Response
         abort,
         hold,
         release,
+        real: what.real.clone(), // W5-downloads
     };
     let body = axum::body::Body::from_stream(stream::unfold(gen_state, next_chunk));
     let mut resp = Response::new(body);
@@ -356,6 +365,9 @@ async fn next_chunk(mut g: Gen) -> Option<(Result<bytes::Bytes, io::Error>, Gen)
     }
     let data: Vec<u8> = (g.pos..g.pos + n)
         .map(|i| {
+            if let Some(real) = &g.real {
+                return real[i as usize]; // W5-downloads
+            }
             let b = byte_at(&g.id, i);
             if g.transcode { b ^ 0x5a } else { b }
         })

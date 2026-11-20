@@ -47,6 +47,8 @@ pub enum Route {
     /// W4-media: Musik, Bücher, Fotos, Live-TV.
     Media(crate::media_model::MediaRoute), // W4-media
     TvMode,
+    /// W5-downloads: Downloads und Offline-Bibliothek.
+    Downloads, // W5-downloads
     Settings,
     Admin,
     About,
@@ -69,6 +71,7 @@ impl Route {
             Self::Collection { .. } => "collection", // W2-library
             Self::Media(_) => "media",               // W4-media
             Self::TvMode => "tvmode",
+            Self::Downloads => "downloads", // W5-downloads
             Self::Settings => "settings",
             Self::Admin => "admin",
             Self::About => "about",
@@ -102,6 +105,7 @@ impl Route {
             "mylist" => Self::MyList,
             "newpopular" => Self::NewPopular,
             "tvmode" => Self::TvMode,
+            "downloads" => Self::Downloads, // W5-downloads
             "settings" => Self::Settings,
             "admin" => Self::Admin,
             "about" => Self::About,

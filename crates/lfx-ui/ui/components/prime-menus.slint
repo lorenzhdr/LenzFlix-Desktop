@@ -37,7 +37,7 @@ export component PrimeProfileMenu inherits Rectangle {
     in property <string> initial;
     callback pick(int);
     width: root.sheet ? root.sheet-w : 260px;
-    height: 76px + 5 * 44px + 20px;
+    height: 76px + 7 * 44px + 20px; // W5-downloads
     background: Theme.t.prime-glass.with-alpha(0.96);
     border-radius: root.sheet ? 16px : 12px;
     drop-shadow-color: #0000004d;
@@ -84,11 +84,13 @@ export component PrimeProfileMenu inherits Rectangle {
         x: 10px;
         y: 76px;
         width: parent.width - 20px;
-        height: 5 * 44px;
+        height: 7 * 44px;
         PrimeItem { text: "Profil wechseln"; hot: root.index == 0; clicked => { root.pick(0); } }
         PrimeItem { text: "Einstellungen"; hot: root.index == 1; clicked => { root.pick(1); } }
         PrimeItem { text: "Statistik"; ink: Theme.t.link; hot: root.index == 2; clicked => { root.pick(2); } }
         PrimeItem { text: "Über"; hot: root.index == 3; clicked => { root.pick(3); } }
         PrimeItem { text: "Abmelden"; hot: root.index == 4; clicked => { root.pick(4); } }
+        PrimeItem { text: "Design wählen"; hot: root.index == 5; clicked => { root.pick(5); } } // W5-downloads
+        PrimeItem { text: "Downloads"; hot: root.index == 6; clicked => { root.pick(6); } } // W5-downloads
     }
 }

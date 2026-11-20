@@ -62,6 +62,8 @@ pub struct State {
     pub couch: crate::picker_couch::CouchCtl, // W3-picker
     /// W4-account: Einstellungen, Konten/Server, Verwaltung.
     pub account: crate::account::AccountCtl, // W4-account
+    /// W5-downloads: Offline-Modus, Downloads-Seite, Dialog.
+    pub downloads: crate::downloads::DlCtl, // W5-downloads
 }
 
 /// Zeitgeber, die leben müssen, solange die App läuft.
@@ -283,6 +285,7 @@ impl App {
             // W2-library
             r if crate::library::is_library_route(r) => ctx = self.render_library_route(r),
             Route::Media(m) => self.render_media_route(m), // W4-media
+            Route::Downloads => ctx = self.dl_render_route(), // W5-downloads
             // W4-account: Einstellungen und Verwaltung teilen die Seite
             Route::Settings | Route::Admin => {
                 ui.set_page(Page::Settings);
@@ -370,6 +373,9 @@ impl App {
         self.player_activity();
         if self.picker_action(action) {
             return; // W3-picker: offener Design-Dialog nimmt die Taste
+        }
+        if self.dl_handle_action(action) {
+            return; // W5-downloads: Dialog oder Downloads-Seite
         }
         if self.home_menu_action(action) {
             return; // W2-home: offenes Menü der Startseite nimmt die Taste
@@ -651,6 +657,7 @@ impl App {
             self.win().set_user_name(a.user_name.as_str().into());
         }
         self.couch_load(&server_id, &user_id); // W3-picker
+        self.dl_session_ready(&server_id, &user_id); // W5-downloads
         self.session.start_heartbeat();
     }
 

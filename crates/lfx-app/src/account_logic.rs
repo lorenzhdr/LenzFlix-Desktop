@@ -36,6 +36,7 @@ pub enum SetSec {
     Playback,
     Subtitles,
     Controls,
+    Downloads, // W5-downloads
     Profile,
     QuickConnect,
     Servers,
@@ -52,6 +53,7 @@ impl SetSec {
             Self::Playback => "Wiedergabe",
             Self::Subtitles => "Untertitel",
             Self::Controls => "Steuerung",
+            Self::Downloads => "Downloads", // W5-downloads
             Self::Profile => "Profil",
             Self::QuickConnect => "Quick Connect",
             Self::Servers => "Konten und Server",
@@ -69,6 +71,7 @@ impl SetSec {
             Self::Playback,
             Self::Subtitles,
             Self::Controls,
+            Self::Downloads, // W5-downloads
             Self::Profile,
             Self::QuickConnect,
             Self::Servers,

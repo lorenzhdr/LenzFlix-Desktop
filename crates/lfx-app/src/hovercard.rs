@@ -454,10 +454,10 @@ pub fn wire(app: &Rc<App>, g: &Ui<'_>) {
     });
     let a = app.clone();
     g.on_hc_download(move || {
-        a.toast(
-            "Herunterladen folgt in einer späteren Version.",
-            lfx_ui::ToastKind::Info,
-        );
+        // W5-downloads
+        if let Some(item) = a.hover_item() {
+            a.dl_open_dialog(&item);
+        }
     });
     let a = app.clone();
     g.on_hc_more(move || {

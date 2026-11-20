@@ -277,18 +277,20 @@ export component PlusProfileMenu inherits Rectangle {
     in property <int> index: -1;
     callback pick(int);
     width: 240px;
-    height: 8px + 5 * 40px + 12px;
+    height: 8px + 7 * 40px + 12px; // W5-downloads: Design wählen + Downloads
     background: Theme.t.plus-menu-bg;
     border-width: 1px;
     border-color: Theme.t.plus-menu-border;
     border-radius: 4px;
     VerticalLayout {
         y: 8px;
-        height: 5 * 40px;
+        height: 7 * 40px;
         PlusMenuItem { text: "Profil wechseln"; hot: root.index == 0; clicked => { root.pick(0); } }
         PlusMenuItem { text: "Einstellungen"; hot: root.index == 1; clicked => { root.pick(1); } }
         PlusMenuItem { text: "Statistik"; ink: Theme.t.gold; hot: root.index == 2; clicked => { root.pick(2); } }
         PlusMenuItem { text: "Über"; hot: root.index == 3; clicked => { root.pick(3); } }
         PlusMenuItem { text: "Abmelden"; hot: root.index == 4; clicked => { root.pick(4); } }
+        PlusMenuItem { text: "Design wählen"; hot: root.index == 5; clicked => { root.pick(5); } } // W5-downloads
+        PlusMenuItem { text: "Downloads"; hot: root.index == 6; clicked => { root.pick(6); } } // W5-downloads
     }
 }

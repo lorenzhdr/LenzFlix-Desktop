@@ -394,8 +394,13 @@ pub fn menu_for(item: &BaseItem, can_download: bool) -> Vec<MenuItem> {
     if can_download
         && matches!(
             item.kind,
-            ItemKind::Movie | ItemKind::Episode | ItemKind::Video
+            ItemKind::Movie
+                | ItemKind::Episode
+                | ItemKind::Video
+                | ItemKind::Series
+                | ItemKind::Season
         )
+    // W5-downloads
     {
         out.push(entry(MenuAction::Download, "Herunterladen"));
     }

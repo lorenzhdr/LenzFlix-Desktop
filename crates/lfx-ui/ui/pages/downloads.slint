@@ -1,0 +1,351 @@
+// W5-downloads: Seite „Downloads“ (laufende Downloads, Offline-Bibliothek, Einstellungen) in allen Designs.
+// Fokus und Logik liegen in Rust (lfx-app/src/downloads_page.rs); hier nur Darstellung über `DlState`.
+import { Theme, Design } from "../theme/theme.slint";
+import { ButtonKind } from "../components/types.slint";
+import { LfxButton } from "../components/button.slint";
+import { LfxFocusRing } from "../components/focus-ring.slint";
+import { DlState, DlRow } from "downloads-state.slint";
+
+component DText inherits Text {
+    color: Theme.design == Design.retro ? Theme.t.retro-amber : Theme.t.text;
+    font-family: Theme.t.font-family;
+    font-size: Theme.t.fs-body;
+}
+
+component Pill inherits Rectangle {
+    in property <string> text;
+    in property <bool> focused;
+    in property <bool> danger;
+    callback clicked();
+    property <bool> retro: Theme.design == Design.retro;
+    height: 34px;
+    border-radius: root.retro ? 2px : 17px;
+    background: ta.has-hover ? (root.retro ? Theme.t.retro-amber-lo : Theme.t.glass-hover) : (root.retro ? Theme.t.retro-panel : Theme.t.glass);
+    border-width: root.retro ? 1px : 0px;
+    border-color: Theme.t.retro-amber-lo;
+    DText {
+        width: parent.width;
+        height: parent.height;
+        text: root.retro ? "[ " + root.text + " ]" : root.text;
+        font-size: 13px;
+        font-weight: 600;
+        color: root.danger ? (root.retro ? Theme.t.retro-hot : Theme.t.red) : (root.retro ? Theme.t.retro-amber : Theme.t.text);
+        horizontal-alignment: center;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+    LfxFocusRing { active: root.focused; radius: root.retro ? 2px : 17px; }
+    ta := TouchArea { clicked => { root.clicked(); } }
+}
+
+component Switch inherits Rectangle {
+    in property <bool> on;
+    width: 46px;
+    height: 26px;
+    border-radius: 13px;
+    background: root.on ? (Theme.design == Design.retro ? Theme.t.retro-amber : Theme.t.accent) : #ffffff30;
+    Rectangle {
+        x: root.on ? parent.width - self.width - 3px : 3px;
+        y: 3px;
+        width: 20px;
+        height: 20px;
+        border-radius: 10px;
+        background: Theme.design == Design.retro && root.on ? Theme.t.retro-ink : #ffffff;
+    }
+}
+
+component RowView inherits Rectangle {
+    in property <DlRow> rd;
+    in property <int> index;
+    callback clicked();
+    callback button(int);
+
+    property <bool> retro: Theme.design == Design.retro;
+    property <bool> row-focus: DlState.focus-row == root.index && !DlState.confirm-open;
+    property <bool> is-card: root.rd.kind >= 2;
+    property <bool> has-a: root.rd.a-label != "";
+    property <bool> has-b: root.rd.b-label != "";
+    property <length> btn-w: (root.has-a ? 112px : 0px) + (root.has-b ? 112px : 0px);
+    property <color> bar: root.rd.state == 4 ? (root.retro ? Theme.t.retro-hot : Theme.t.red)
+        : (root.rd.state == 2 ? Theme.t.text-soft : (root.retro ? Theme.t.retro-amber : Theme.t.accent));
+
+    y: root.rd.y;
+    height: root.rd.h;
+
+    if root.is-card: Rectangle {
+        y: 4px;
+        height: parent.height - 8px;
+        border-radius: root.retro ? 2px : 8px;
+        background: root.retro ? Theme.t.retro-panel : Theme.t.surface;
+        border-width: root.retro ? 1px : 0px;
+        border-color: Theme.t.retro-line;
+    }
+
+    if root.rd.kind == 0: DText {
+        x: 4px;
+        width: parent.width - 8px;
+        height: parent.height - 6px;
+        text: root.retro ? "> " + root.rd.title : root.rd.title;
+        font-size: 13px;
+        font-weight: 700;
+        color: Theme.t.text-muted;
+        vertical-alignment: bottom;
+        overflow: elide;
+    }
+    if root.rd.kind == 1: DText {
+        x: 4px;
+        width: parent.width - 8px;
+        height: parent.height;
+        text: root.rd.title;
+        font-size: 12px;
+        color: Theme.t.text-soft;
+        vertical-alignment: center;
+        wrap: word-wrap;
+        overflow: elide;
+    }
+
+    if root.rd.kind == 2 || root.rd.kind == 3: Rectangle {
+        Rectangle {
+            x: 14px;
+            y: (parent.height - self.height) / 2;
+            width: 96px;
+            height: 54px;
+            border-radius: root.retro ? 2px : 4px;
+            background: Theme.t.surface-2;
+            clip: true;
+            if root.rd.has-image: Image {
+                width: parent.width;
+                height: parent.height;
+                source: root.rd.image;
+                image-fit: cover;
+            }
+        }
+        DText {
+            x: 126px;
+            y: 10px;
+            width: parent.width - 126px - root.btn-w - 24px;
+            height: 22px;
+            text: root.rd.title;
+            font-weight: 600;
+            overflow: elide;
+        }
+        DText {
+            x: 126px;
+            y: 32px;
+            width: parent.width - 126px - root.btn-w - 24px;
+            height: 18px;
+            text: root.rd.sub;
+            font-size: 12px;
+            color: Theme.t.text-muted;
+            overflow: elide;
+        }
+        if root.rd.progress >= 0.0: Rectangle {
+            x: 126px;
+            y: 54px;
+            width: parent.width - 126px - root.btn-w - 24px;
+            height: 6px;
+            border-radius: 3px;
+            background: #ffffff26;
+            Rectangle {
+                width: parent.width * clamp(root.rd.progress, 0.0, 1.0);
+                border-radius: 3px;
+                background: root.bar;
+            }
+        }
+        DText {
+            x: 126px;
+            y: 62px;
+            width: parent.width - 126px - root.btn-w - 24px;
+            height: 16px;
+            text: root.rd.right;
+            font-size: 11px;
+            color: root.rd.state == 4 ? (root.retro ? Theme.t.retro-hot : Theme.t.red) : Theme.t.text-soft;
+            overflow: elide;
+        }
+        if root.has-a: Pill {
+            x: parent.width - root.btn-w - 14px;
+            y: (parent.height - self.height) / 2;
+            width: 104px;
+            text: root.rd.a-label;
+            focused: root.row-focus && DlState.focus-col == 0;
+            clicked => { root.button(0); }
+        }
+        if root.has-b: Pill {
+            x: parent.width - 118px;
+            y: (parent.height - self.height) / 2;
+            width: 104px;
+            text: root.rd.b-label;
+            danger: root.rd.danger;
+            focused: root.row-focus && DlState.focus-col == 1;
+            clicked => { root.button(1); }
+        }
+    }
+
+    if root.rd.kind == 4: Rectangle {
+        DText {
+            x: 16px;
+            width: parent.width - 100px;
+            height: parent.height;
+            text: root.rd.title;
+            vertical-alignment: center;
+            overflow: elide;
+        }
+        Switch {
+            x: parent.width - self.width - 16px;
+            y: (parent.height - self.height) / 2;
+            on: root.rd.on;
+        }
+        LfxFocusRing { y: 4px; height: parent.height - 8px; active: root.row-focus; radius: root.retro ? 2px : 8px; }
+        TouchArea { clicked => { root.clicked(); } }
+    }
+    if root.rd.kind == 5: Rectangle {
+        DText {
+            x: 16px;
+            width: parent.width * 0.4 - 16px;
+            height: parent.height;
+            text: root.rd.title;
+            color: Theme.t.text-muted;
+            vertical-alignment: center;
+            overflow: elide;
+        }
+        DText {
+            x: parent.width * 0.4;
+            width: parent.width * 0.6 - 16px;
+            height: parent.height;
+            text: root.rd.right;
+            horizontal-alignment: right;
+            vertical-alignment: center;
+            overflow: elide;
+        }
+    }
+    if root.rd.kind == 6: Rectangle {
+        DText {
+            width: parent.width;
+            height: parent.height;
+            text: root.retro ? "[ " + root.rd.title + " ]" : root.rd.title;
+            horizontal-alignment: center;
+            vertical-alignment: center;
+            font-weight: 600;
+            color: root.rd.danger ? (root.retro ? Theme.t.retro-hot : Theme.t.red) : (root.retro ? Theme.t.retro-amber : Theme.t.text);
+            overflow: elide;
+        }
+        LfxFocusRing { y: 4px; height: parent.height - 8px; active: root.row-focus; radius: root.retro ? 2px : 8px; }
+        TouchArea { clicked => { root.clicked(); } }
+    }
+}
+
+export component DownloadsPage inherits Rectangle {
+    property <length> gutter: root.width < 700px ? 16px : 40px;
+    property <length> head-h: 96px;
+    property <bool> retro: Theme.design == Design.retro;
+
+    DText {
+        x: root.gutter;
+        y: 18px;
+        width: parent.width - 2 * root.gutter;
+        height: 40px;
+        text: DlState.title;
+        font-size: 30px;
+        font-weight: 700;
+        overflow: elide;
+    }
+    DText {
+        x: root.gutter;
+        y: 58px;
+        width: parent.width - 2 * root.gutter;
+        height: 22px;
+        text: DlState.subtitle;
+        color: Theme.t.text-muted;
+        font-size: 14px;
+        overflow: elide;
+    }
+
+    Rectangle {
+        x: root.gutter;
+        y: root.head-h;
+        width: min(parent.width - 2 * root.gutter, 940px);
+        height: parent.height - root.head-h - 12px;
+        clip: true;
+
+        if DlState.status != "": DText {
+            width: parent.width;
+            height: 22px;
+            text: DlState.status;
+            color: DlState.status-error ? Theme.t.red : Theme.t.text-muted;
+            font-size: 13px;
+            overflow: elide;
+        }
+
+        flick := Flickable {
+            y: DlState.status != "" ? 26px : 0px;
+            width: parent.width;
+            height: parent.height - self.y;
+            content-height: DlState.content-h + 12px;
+            content-width: parent.width;
+
+            for r[i] in DlState.rows: RowView {
+                width: flick.width;
+                rd: r;
+                index: i;
+                clicked => { DlState.event("row", i, 0); }
+                button(c) => { DlState.event("btn", i, c); }
+            }
+        }
+    }
+
+    property <int> fr: DlState.focus-row;
+    changed fr => { root.keep-visible(); }
+    function keep-visible() {
+        if DlState.focus-row < 0 || DlState.focus-row >= DlState.rows.length {
+            return;
+        }
+        if DlState.rows[DlState.focus-row].y < -flick.content-y {
+            flick.content-y = -DlState.rows[DlState.focus-row].y;
+        }
+        if DlState.rows[DlState.focus-row].y + DlState.rows[DlState.focus-row].h > -flick.content-y + flick.height {
+            flick.content-y = -(DlState.rows[DlState.focus-row].y + DlState.rows[DlState.focus-row].h - flick.height + 6px);
+        }
+    }
+
+    if DlState.confirm-open: Rectangle {
+        background: #000000a0;
+        TouchArea { }
+        Rectangle {
+            width: min(460px, parent.width - 48px);
+            height: 190px;
+            x: (parent.width - self.width) / 2;
+            y: (parent.height - self.height) / 2 - 20px;
+            background: root.retro ? Theme.t.retro-bg : Theme.t.surface-2;
+            border-radius: root.retro ? 2px : Theme.t.modal-radius;
+            border-width: 1px;
+            border-color: root.retro ? Theme.t.retro-amber : Theme.t.border;
+            DText {
+                x: 24px;
+                y: 22px;
+                width: parent.width - 48px;
+                height: 80px;
+                text: DlState.confirm-text;
+                wrap: word-wrap;
+                font-size: 16px;
+            }
+            LfxButton {
+                x: 24px;
+                y: parent.height - self.height - 22px;
+                width: (parent.width - 60px) / 2;
+                kind: ButtonKind.secondary;
+                text: "Abbrechen";
+                focused: DlState.confirm-focus == 0;
+                clicked => { DlState.event("confirm", 0, 0); }
+            }
+            LfxButton {
+                x: 24px + (parent.width - 60px) / 2 + 12px;
+                y: parent.height - self.height - 22px;
+                width: (parent.width - 60px) / 2;
+                kind: ButtonKind.primary;
+                text: DlState.confirm-yes;
+                focused: DlState.confirm-focus == 1;
+                clicked => { DlState.event("confirm", 1, 0); }
+            }
+        }
+    }
+}

@@ -277,6 +277,11 @@ impl App {
                 Ok(v) => ok(v),
                 Err(e) => fail(&e),
             },
+            // W5-downloads
+            c if c.starts_with("dl_") => match self.dl_automation(c, msg) {
+                Ok(v) => ok(v),
+                Err(e) => fail(&e),
+            },
             c if c.starts_with("home_") => self.home_command(c, msg, reply), // W2-home
             // W2-library
             _ => match self.lib_automation(cmd, msg) {
@@ -367,6 +372,7 @@ impl App {
             "detail": self.detail_state_json(), // W2-detail
             "retro": self.retro_state_json(), // W3-retro
             "account": self.account_state_json(), // W4-account
+            "downloads": self.dl_state_json(), // W5-downloads
         })
     }
 }
