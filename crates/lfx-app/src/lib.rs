@@ -76,8 +76,8 @@ pub mod tvui; // W2-tvui
 pub mod tvui_host; // W2-tvui
 pub mod tvui_view; // W2-tvui
 pub mod updater; // W5-tray
-pub mod updater_logic;
-pub mod video; // W5-tray
+pub mod updater_logic; // W5-tray
+pub mod video;
 
 use std::cell::RefCell;
 use std::rc::Rc;
