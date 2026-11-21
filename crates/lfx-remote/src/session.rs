@@ -86,6 +86,8 @@ pub struct RemoteConfig {
     pub tick_interval: Duration,
     /// Lebenszeichen-Fenster bis zur ersten `ForceKeepAlive`-Nachricht.
     pub default_keepalive: Duration,
+    /// W5-remote: Play-, Playstate- und Allgemein-Befehle anderer Clients ausführen? SyncPlay läuft unabhängig davon.
+    pub allow_remote_control: bool,
 }
 
 impl RemoteConfig {
@@ -102,6 +104,7 @@ impl RemoteConfig {
             time_policy: TimeSyncPolicy::default(),
             tick_interval: Duration::from_millis(500),
             default_keepalive: Duration::from_secs(60),
+            allow_remote_control: true, // W5-remote
         }
     }
 }
@@ -187,6 +190,8 @@ pub enum RemoteEvent {
 struct Shared {
     connection: ConnectionState,
     group: Option<GroupInfo>,
+    /// W5-remote: letzte gemessene Abweichung zur Gruppe in Mikrosekunden.
+    drift_micros: Option<i64>,
 }
 
 /// Griff auf die laufende Fernsteuerung.
@@ -216,6 +221,11 @@ impl RemoteHandle {
 
     /// REST-Zugriff auf SyncPlay (Gruppen auflisten, beitreten, verlassen, Befehle senden).
     /// Zustandsänderungen kommen danach als [`RemoteEvent::SyncPlay`] über den WebSocket.
+    /// W5-remote: letzte gemessene Abweichung zur Gruppe (positiv = voraus), `None` ohne Messung oder Gruppe.
+    pub fn drift_micros(&self) -> Option<i64> {
+        self.shared.lock().unwrap().drift_micros
+    }
+
     pub fn syncplay(&self) -> SyncPlayApi {
         self.api.clone()
     }
@@ -247,6 +257,7 @@ impl RemoteSession {
         let shared = Arc::new(Mutex::new(Shared {
             connection: ConnectionState::Idle,
             group: None,
+            drift_micros: None,
         }));
         let stop = Arc::new(Notify::new());
         let api = SyncPlayApi::new(cfg.client.clone());
@@ -307,7 +318,11 @@ impl Runner {
     }
 
     fn set_group(&self, group: Option<GroupInfo>) {
-        self.shared.lock().unwrap().group = group;
+        let mut sh = self.shared.lock().unwrap();
+        if group.is_none() {
+            sh.drift_micros = None; // W5-remote
+        }
+        sh.group = group;
     }
 
     async fn run(mut self) {
@@ -440,13 +455,18 @@ impl Runner {
         let msg = inbound.message;
         let now = self.cfg.clock.now_micros();
         match &msg {
-            ServerMessage::Play(r) => self.apply(PlayerAction::from_play(r)),
-            ServerMessage::Playstate(r) => {
+            // W5-remote: nur mit erlaubter Fernsteuerung
+            ServerMessage::Play(r) if self.cfg.allow_remote_control => {
+                self.apply(PlayerAction::from_play(r));
+            }
+            ServerMessage::Playstate(r) if self.cfg.allow_remote_control => {
                 if let Some(a) = PlayerAction::from_playstate(r) {
                     self.apply(a);
                 }
             }
-            ServerMessage::GeneralCommand(g) => self.apply(PlayerAction::from_general(g)),
+            ServerMessage::GeneralCommand(g) if self.cfg.allow_remote_control => {
+                self.apply(PlayerAction::from_general(g));
+            }
             ServerMessage::ForceKeepAlive { seconds } => {
                 *keepalive = Duration::from_secs(u64::from((*seconds).max(2)) / 2)
                     .max(Duration::from_secs(1));
@@ -504,6 +524,7 @@ impl Runner {
         for a in self.core.tick(now, &snap) {
             self.apply(a);
         }
+        self.shared.lock().unwrap().drift_micros = self.core.last_drift_micros(); // W5-remote
         if let Some(report) = self.core.poll_report(now, &snap) {
             let api = SyncPlayApi::new(self.cfg.client.clone());
             tokio::spawn(async move {

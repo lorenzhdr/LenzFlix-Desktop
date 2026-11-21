@@ -6,6 +6,9 @@
 //! lesbar. Nur für den Vorab-Kanal wird die Release-API gefragt, um das neueste (auch Vorab-)Release
 //! zu finden.
 //!
+//! Das Schema gilt für beide Seiten: `xtask manifest` erzeugt `latest.json` mit genau diesem [`Manifest`]-Typ,
+//! der Update-Client liest es mit [`Manifest::parse`] (ein Test in `xtask` prüft die Verbindung).
+//!
 //! Schema (Beispiel mit Platzhalterwerten):
 //! ```json
 //! {
@@ -82,6 +85,16 @@ impl Manifest {
         self.assets
             .get(platform)
             .ok_or_else(|| UpdateError::NoAssetForPlatform(platform.to_string()))
+    }
+}
+
+/// Plattform-Schlüssel zu einem Rust-Ziel-Triple (Release-Werkzeug `xtask manifest`); `None` für unbekannte Ziele.
+pub fn platform_for_target(triple: &str) -> Option<&'static str> {
+    match triple {
+        "x86_64-pc-windows-msvc" => Some("windows-x86_64"),
+        "aarch64-pc-windows-msvc" => Some("windows-aarch64"),
+        "aarch64-apple-darwin" => Some("macos-aarch64"),
+        _ => None,
     }
 }
 

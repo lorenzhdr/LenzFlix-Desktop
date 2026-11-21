@@ -77,14 +77,41 @@ impl App {
                 self.choose_design(DesignId::from_index(n));
             }
             Act::DataSaver => self.ds_toggle_main(),
+            Act::Upd(u) => self.update_adjust(u, dir), // W5-tray
             Act::Local(key) => {
                 if let Some(def) = lg::local_def(key) {
                     let stored = self.local_get(key);
                     let v = lg::local_step(def, stored.as_ref(), dir);
                     self.save_setting(key, v);
+                    if key == lg::KEY_REMOTE {
+                        self.remote_settings_changed(); // W5-remote
+                    }
                     // Zugehörige Anzeige (Vorschau) mitführen
                     let _ = matches!(def.kind, LocalKind::Toggle(_));
                 }
+            }
+            // W5-downloads
+            Act::DlAuto => {
+                let on = !self.dl_library().is_some_and(|l| l.auto_delete());
+                self.save_setting(crate::downloads::KEY_AUTO_DELETE, serde_json::json!(on));
+                self.dl_setting_changed(crate::downloads::KEY_AUTO_DELETE);
+            }
+            Act::DlParallel => {
+                let cur = self
+                    .local_get(crate::downloads::KEY_PARALLEL)
+                    .and_then(|v| v.as_i64())
+                    .unwrap_or(2);
+                let n = (cur - 1 + i64::from(dir)).rem_euclid(4) + 1;
+                self.save_setting(crate::downloads::KEY_PARALLEL, serde_json::json!(n));
+                self.dl_setting_changed(crate::downloads::KEY_PARALLEL);
+            }
+            Act::DlQuality => {
+                let cur = self
+                    .local_get(crate::downloads::KEY_QUALITY)
+                    .and_then(|v| v.as_i64())
+                    .unwrap_or(0);
+                let n = (cur + i64::from(dir)).rem_euclid(3);
+                self.save_setting(crate::downloads::KEY_QUALITY, serde_json::json!(n));
             }
             Act::CfgToggle(t) => {
                 let new = {
@@ -191,7 +218,15 @@ impl App {
                 .unwrap_or_default()
         };
         match act {
+            Act::Upd(u) => self.update_adjust(u, 1), // W5-tray
             Act::None | Act::Design | Act::DataSaver | Act::Local(_) => {}
+            // W5-downloads
+            Act::DlAuto | Act::DlParallel | Act::DlQuality => {}
+            Act::DlOpenPage => self.go(Route::Downloads),
+            Act::DlRoot => {
+                let raw = field("dl_root");
+                self.dl_set_root(raw.trim());
+            }
             Act::CfgToggle(_) | Act::CfgChoice(_) | Act::Policy(..) | Act::Field(_) => {}
             Act::Back => self.acc_pop_view(),
             Act::Refresh => self.acc_reload(),
@@ -314,6 +349,7 @@ impl App {
             }
             Act::ServerRemove(id) => {
                 let was_active = active.as_ref().is_some_and(|a| a.server_id == id);
+                self.dl_purge(&id, None); // W5-downloads: Offline-Ordner mit entfernen
                 match self.session.remove_server(&id) {
                     Ok(()) => self.toast("Server entfernt.", ToastKind::Success),
                     Err(e) => self.toast(&e.to_string(), ToastKind::Error),
@@ -331,6 +367,7 @@ impl App {
             Act::UserSwitch => self.profile_item(0),
             Act::RemoveAccount => {
                 if let Some(a) = active {
+                    self.dl_purge(&a.server_id, Some(&a.user_id)); // W5-downloads
                     match self.session.remove_user(&a.server_id, &a.user_id) {
                         Ok(()) => self.toast("Konto entfernt.", ToastKind::Success),
                         Err(e) => self.toast(&e.to_string(), ToastKind::Error),

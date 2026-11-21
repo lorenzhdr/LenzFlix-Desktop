@@ -19,6 +19,8 @@ pub mod w35_offline;
 mod w35_remote;
 mod w4_account;
 mod w4_media; // W4-media // W4-account
+pub mod w5_downloads; // W5-downloads
+mod w5_stats; // W5-stats
 
 pub use extra::{
     VIEW_BOOKS, VIEW_LIVETV, VIEW_MUSIC, VIEW_PHOTOS, album_id, artist_id, book_id, channel_id,
@@ -137,6 +139,7 @@ struct Dyn {
     branding: Option<String>,
     /// Charts-Worker-Nachbau unter `/cw/` eingeschaltet?
     charts_enabled: bool,
+    rich_stats: bool, // W5-stats
     /// Verhalten von PlaybackInfo.
     playback_mode: PlaybackMode,
     /// Zustand der erweiterten Endpunkte (`extra.rs`).
@@ -227,6 +230,10 @@ impl MockHandle {
     pub fn set_charts_enabled(&self, on: bool) {
         self.shared.lock().charts_enabled = on;
     }
+    /// W5-stats: `/cw/me/stats` liefert die ausführlichen erfundenen Daten (Standard: kurzer Datensatz).
+    pub fn set_rich_stats(&self, on: bool) {
+        self.shared.lock().rich_stats = on;
+    }
     /// Verhalten der PlaybackInfo-Antwort umstellen.
     pub fn set_playback_mode(&self, mode: PlaybackMode) {
         self.shared.lock().playback_mode = mode;
@@ -282,6 +289,7 @@ pub async fn start_with(config: MockConfig) -> (SocketAddr, MockHandle) {
         qc_auto_after: config.quick_connect_auto_after_polls,
         branding: Some(DEFAULT_BRANDING.to_owned()),
         charts_enabled: true,
+        rich_stats: false, // W5-stats
         ..Dyn::default()
     };
     let catalog = catalog::build();
@@ -720,7 +728,13 @@ async fn cw_me_stats(State(shared): S, headers: HeaderMap, Query(params): Params
         return StatusCode::UNAUTHORIZED.into_response();
     }
     let range = params.get("range").map_or("30d", String::as_str);
-    match extra::stats_json(range) {
+    let rich = shared.lock().rich_stats; // W5-stats
+    let data = if rich {
+        w5_stats::stats_json(range)
+    } else {
+        extra::stats_json(range)
+    };
+    match data {
         Some(v) => jv(v),
         None => (
             StatusCode::BAD_REQUEST,

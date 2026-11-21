@@ -113,6 +113,17 @@ pub fn make_icns() -> Res<Vec<u8>> {
     Ok(out)
 }
 
+/// `icons`: schreibt `lenzflix.ico` (Windows-Ressource) und `lenzflix-tray.png` (Infobereich, 64 px) nach
+/// `assets/app/`. Die erzeugten Dateien liegen im Repo, damit `cargo build` ohne xtask auskommt.
+pub fn write_assets() -> Res<()> {
+    let dir = crate::mpv::workspace_root().join("assets").join("app");
+    std::fs::create_dir_all(&dir)?;
+    std::fs::write(dir.join("lenzflix.ico"), make_ico()?)?;
+    std::fs::write(dir.join("lenzflix-tray.png"), render_png(64)?)?;
+    eprintln!("App-Icons nach {} geschrieben", dir.display());
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

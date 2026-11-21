@@ -1,16 +1,20 @@
 //! Release-Hilfen: Minisign-Signaturen, SHA-256-Summen und `latest.json` für den Auto-Updater.
 //!
-//! Schema von `latest.json` (Vertrag mit dem Update-Client):
+//! Schema von `latest.json`: der Typ `lfx_update::Manifest` (ein gemeinsamer Vertrag mit dem Update-Client):
 //! ```json
 //! { "version": "0.1.0", "notes": "...", "pub_date": "2026-11-20T12:00:00Z",
-//!   "assets": [ { "target": "aarch64-pc-windows-msvc", "url": "...", "size": 123,
-//!                 "sha256": "<hex>", "signature": "<Inhalt der .minisig-Datei>" } ] }
+//!   "assets": { "windows-aarch64": { "url": "...", "size": 123, "sha256": "<hex>",
+//!                                    "signature": "<Inhalt der .minisig-Datei>" } } }
 //! ```
+//! Plattform-Schlüssel (`windows-x86_64`, `windows-aarch64`, `macos-aarch64`) kommen aus dem Ziel-Triple des
+//! Dateinamens über `lfx_update::platform_for_target`. Ohne Signaturen (kein Schlüssel in der Pipeline) schreibt
+//! `manifest` nur `SHA256SUMS.txt` und keine `latest.json`, weil der Update-Client unsignierte Manifeste ablehnt.
 
+use std::collections::BTreeMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use serde_json::json;
+use lfx_update::{Asset, Manifest};
 use sha2::{Digest, Sha256};
 
 type Res<T> = Result<T, Box<dyn std::error::Error>>;
@@ -68,10 +72,19 @@ pub fn manifest(args: &[String]) -> Res<()> {
     };
     let pub_date = opt(args, "--pub-date").unwrap_or_default();
     let doc = build_manifest(&dir, &tag, &base, &notes, &pub_date)?;
-    fs::write(
-        dir.join("latest.json"),
-        serde_json::to_string_pretty(&doc)? + "\n",
-    )?;
+    if doc.assets.values().any(|a| a.signature.trim().is_empty()) {
+        eprintln!(
+            "WARNUNG: Es fehlen Signaturen (.minisig). latest.json wird NICHT geschrieben,              der Update-Client lehnt unsignierte Manifeste ab. SHA256SUMS.txt liegt in {}",
+            dir.display()
+        );
+        return Ok(());
+    }
+    let json = serde_json::to_string_pretty(&doc)?
+        + "
+";
+    // Gegenprobe: genau das liest der Update-Client später.
+    Manifest::parse(json.as_bytes())?;
+    fs::write(dir.join("latest.json"), json)?;
     eprintln!(
         "latest.json und SHA256SUMS.txt in {} geschrieben",
         dir.display()
@@ -79,41 +92,50 @@ pub fn manifest(args: &[String]) -> Res<()> {
     Ok(())
 }
 
+/// Baut das Manifest aus den Release-Dateien im Ordner und schreibt `SHA256SUMS.txt`.
+/// Fehlende Signaturen bleiben leer (der Aufrufer entscheidet).
 pub fn build_manifest(
     dir: &Path,
     tag: &str,
     base_url: &str,
     notes: &str,
     pub_date: &str,
-) -> Res<serde_json::Value> {
+) -> Res<Manifest> {
     let version = tag.strip_prefix('v').unwrap_or(tag);
     let files = release_files(dir)?;
     if files.is_empty() {
         return Err("Keine Release-Dateien im Ordner".into());
     }
     let mut sums = String::new();
-    let mut assets = Vec::new();
+    let mut assets = BTreeMap::new();
     for (name, target) in &files {
         let path = dir.join(name);
         let sha = sha256_hex(&path)?;
-        sums.push_str(&format!("{sha}  {name}\n"));
+        sums.push_str(&format!(
+            "{sha}  {name}
+"
+        ));
         let sig_path = dir.join(format!("{name}.minisig"));
         let signature = fs::read_to_string(&sig_path).unwrap_or_default();
-        assets.push(json!({
-            "target": target,
-            "url": format!("{}/{tag}/{name}", base_url.trim_end_matches('/')),
-            "size": fs::metadata(&path)?.len(),
-            "sha256": sha,
-            "signature": signature,
-        }));
+        let key = lfx_update::platform_for_target(target)
+            .ok_or_else(|| format!("kein Plattform-Schlüssel für {target}"))?;
+        let asset = Asset {
+            url: format!("{}/{tag}/{name}", base_url.trim_end_matches('/')),
+            size: fs::metadata(&path)?.len(),
+            sha256: sha,
+            signature,
+        };
+        if assets.insert(key.to_owned(), asset).is_some() {
+            return Err(format!("mehrere Pakete für {key}").into());
+        }
     }
     fs::write(dir.join("SHA256SUMS.txt"), sums)?;
-    Ok(json!({
-        "version": version,
-        "notes": notes.trim(),
-        "pub_date": pub_date,
-        "assets": assets,
-    }))
+    Ok(Manifest {
+        version: version.to_owned(),
+        notes: notes.trim().to_owned(),
+        pub_date: (!pub_date.is_empty()).then(|| pub_date.to_owned()),
+        assets,
+    })
 }
 
 /// `sign --dir <ordner>`: signiert alle Release-Dateien mit dem Schlüssel aus `MINISIGN_SECRET_KEY`
@@ -199,21 +221,48 @@ mod tests {
 
         let doc =
             build_manifest(&dir, "v0.1.0", "https://example.invalid/dl/", "Notizen", "").unwrap();
-        assert_eq!(doc["version"], "0.1.0");
-        let a = &doc["assets"][0];
-        assert_eq!(a["target"], "x86_64-pc-windows-msvc");
-        assert_eq!(a["size"], 10);
+        assert_eq!(doc.version, "0.1.0");
+        let a = &doc.assets["windows-x86_64"];
+        assert_eq!(a.size, 10);
         assert_eq!(
-            a["url"],
+            a.url,
             "https://example.invalid/dl/v0.1.0/LENZFLIX_0.1.0_x64-setup.exe"
         );
-        assert_eq!(a["sha256"].as_str().unwrap().len(), 64);
-        assert!(
-            a["signature"]
-                .as_str()
-                .unwrap()
-                .contains("untrusted comment")
-        );
+        assert_eq!(a.sha256.len(), 64);
+        assert!(a.signature.contains("untrusted comment"));
+
+        // Vertrag mit dem Update-Client: das serialisierte Manifest parst dort und trägt eine Signatur,
+        // die dessen Prüfung (minisign-verify) mit dem öffentlichen Schlüssel besteht.
+        let json = serde_json::to_string_pretty(&doc).unwrap();
+        let parsed = lfx_update::Manifest::parse(json.as_bytes()).unwrap();
+        let asset = parsed.asset_for("windows-x86_64").unwrap();
+        assert_eq!(asset.sha256, a.sha256);
+        let pk_b64 = kp.pk.to_base64();
+        lfx_update::verify::verify_signature(&pk_b64, b"Testinhalt", &asset.signature).unwrap();
+        assert!(parsed.asset_for("macos-aarch64").is_err());
+        assert!(!json.contains("\"target\""));
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn ohne_signatur_kein_latest_json() {
+        let dir = std::env::temp_dir().join(format!("lfx-xtask-unsigned-{}", std::process::id()));
+        fs::create_dir_all(&dir).unwrap();
+        fs::write(dir.join("LENZFLIX_0.1.0_arm64-setup.exe"), b"Testinhalt").unwrap();
+        let args: Vec<String> = [
+            "--dir",
+            &dir.to_string_lossy(),
+            "--tag",
+            "v0.1.0",
+            "--base-url",
+            "https://example.invalid/dl",
+        ]
+        .iter()
+        .map(|s| (*s).to_owned())
+        .collect();
+        manifest(&args).unwrap();
+        assert!(dir.join("SHA256SUMS.txt").is_file());
+        assert!(!dir.join("latest.json").exists());
         let _ = fs::remove_dir_all(&dir);
     }
 }

@@ -21,6 +21,11 @@ pub mod detail; // W2-detail
 #[cfg(feature = "dev-automation")]
 pub mod detail_automation; // W2-detail
 pub mod detail_logic; // W2-detail
+pub mod downloads; // W5-downloads
+#[cfg(feature = "dev-automation")]
+pub mod downloads_automation; // W5-downloads
+pub mod downloads_dialog; // W5-downloads
+pub mod downloads_page; // W5-downloads
 pub mod focus;
 pub mod home;
 #[cfg(feature = "dev-automation")]
@@ -29,6 +34,7 @@ pub mod home_focus; // W2-home
 pub mod home_trailer; // W2-home
 pub mod home_ui; // W2-home
 pub mod hovercard; // W2-detail
+pub mod instance; // W5-tray
 pub mod keys;
 pub mod library; // W2-library
 mod library_impl; // W2-library
@@ -54,14 +60,23 @@ pub mod play_osd; // W2-player
 pub mod play_ui; // W2-player
 pub mod plus; // W3-plus
 pub mod prime_gate; // W3-prime
+pub mod remote; // W5-remote
 pub mod retro; // W3-retro
 #[cfg(feature = "dev-automation")]
 pub mod retro_automation; // W3-retro
 pub mod retro_term; // W3-retro
 pub mod route;
+pub mod stats; // W5-stats
+pub mod stats_logic; // W5-stats
+pub mod tray; // W5-tray
+#[cfg(feature = "dev-automation")]
+pub mod tray_automation; // W5-tray
+pub mod tray_logic; // W5-tray
 pub mod tvui; // W2-tvui
 pub mod tvui_host; // W2-tvui
 pub mod tvui_view; // W2-tvui
+pub mod updater; // W5-tray
+pub mod updater_logic; // W5-tray
 pub mod video;
 
 use std::cell::RefCell;
@@ -100,8 +115,6 @@ pub fn run(opts: Options) -> Result<(), String> {
     let dirs = resolve_dirs(&opts)?;
     dirs.create_all()
         .map_err(|e| format!("App-Ordner nicht anlegbar: {e}"))?;
-    logging::init(&dirs.data.join("logs").join("lenzflix.log"));
-    tracing::info!(version = env!("CARGO_PKG_VERSION"), "LENZFLIX startet");
 
     let runtime = tokio::runtime::Builder::new_multi_thread()
         .worker_threads(3)
@@ -110,6 +123,14 @@ pub fn run(opts: Options) -> Result<(), String> {
         .build()
         .map_err(|e| format!("Laufzeit nicht startbar: {e}"))?;
     let _enter = runtime.enter();
+
+    // W5-tray: Einzelinstanz. Vor Protokoll, Datenbank und Automation, damit ein zweiter Start nichts überschreibt.
+    let _instance = match single_instance(&dirs, runtime.handle())? {
+        Some(guard) => guard,
+        None => return Ok(()),
+    };
+    logging::init(&dirs.data.join("logs").join("lenzflix.log"));
+    tracing::info!(version = env!("CARGO_PKG_VERSION"), "LENZFLIX startet");
 
     // Mit isoliertem Ordner (Tests, Entwicklung) bleiben Tokens im Speicher und nie im Schlüsselbund.
     let secrets: Arc<dyn SecretStore> = if opts.home.is_some() && !opts.keyring {
@@ -161,6 +182,9 @@ pub fn run(opts: Options) -> Result<(), String> {
             couch: picker_couch::CouchCtl::default(), // W3-picker
             media: media::MediaCtl::default(),        // W4-media
             account: account::AccountCtl::default(),  // W4-account
+            downloads: downloads::DlCtl::default(),   // W5-downloads
+            remote: remote::RemoteCtl::default(),     // W5-remote
+            stats: stats::StatsCtl::default(),        // W5-stats
         }),
         timers: Timers::default(),
         gamepad: RefCell::new(None),
@@ -168,11 +192,15 @@ pub fn run(opts: Options) -> Result<(), String> {
     });
     app::install(app.clone());
     wire(&app, &ui, &shell);
+    app.dl_start(); // W5-downloads
     App::tv_wire(&app, &ui); // W2-tvui
     App::picker_wire(&app, &ui); // W3-picker
     app.start();
     app.start_gamepad();
     app.start_couch_watch(); // W3-picker
+    app.tray_start(); // W5-tray
+    app.update_start(); // W5-tray
+    start_wake_watch(&_instance); // W5-tray
     #[cfg(feature = "dev-automation")]
     if let Err(e) = automation::start(&dirs.data) {
         tracing::warn!("Automation nicht gestartet: {e}");
@@ -182,7 +210,9 @@ pub fn run(opts: Options) -> Result<(), String> {
     let result = shell.run().map_err(|e| e.to_string());
 
     // Aufräumen: Wiedergabe beenden (Stopped melden), Videoausgabe vor dem Player freigeben.
+    app.tray_shutdown(); // W5-tray
     app.tv_leave(); // W2-tvui
+    app.remote_stop(); // W5-remote
     app.stop_playback();
     app.audio_stop(); // W4-media
     {
@@ -200,6 +230,48 @@ pub fn run(opts: Options) -> Result<(), String> {
 }
 
 use std::sync::Arc;
+
+/// W5-tray: meldet sich als Einzelinstanz an. `Ok(None)`: es läuft schon eine App und wurde geweckt.
+fn single_instance(
+    dirs: &AppDirs,
+    rt: &tokio::runtime::Handle,
+) -> Result<Option<instance::Guard>, String> {
+    let key = instance::instance_key(&dirs.data);
+    #[cfg(windows)]
+    let role = instance::acquire_pipe(rt, &key, Arc::new(|| app::post(|a| a.tray_show())))?;
+    #[cfg(not(windows))]
+    let role = {
+        let _ = rt;
+        instance::acquire_file(&dirs.data, &key).map_err(|e| e.to_string())?
+    };
+    Ok(match role {
+        instance::Role::Primary(g) => Some(g),
+        instance::Role::Secondary => None,
+    })
+}
+
+/// W5-tray: ohne Pipe (macOS) fragt ein Zeitgeber die Weckdatei ab und zeigt dann das Fenster.
+fn start_wake_watch(guard: &instance::Guard) {
+    let Some(path) = guard.wake_file().map(std::path::Path::to_path_buf) else {
+        return;
+    };
+    let mut last = None;
+    let _ = instance::wake_requested(&path, &mut last);
+    let timer = slint::Timer::default();
+    timer.start(
+        slint::TimerMode::Repeated,
+        std::time::Duration::from_millis(1000),
+        move || {
+            if instance::wake_requested(&path, &mut last)
+                && let Some(a) = app::current()
+            {
+                a.tray_show();
+            }
+        },
+    );
+    // Der Zeitgeber lebt, solange die App läuft.
+    std::mem::forget(timer);
+}
 
 /// Verbindet die Rückrufe der Slint-Seiten mit der App.
 fn wire(app: &Rc<App>, ui: &MainWindow, shell: &Shell) {
@@ -220,7 +292,9 @@ fn wire(app: &Rc<App>, ui: &MainWindow, shell: &Shell) {
     }
     {
         let h = h.clone();
-        ui.on_close_window(move || h.close());
+        let _ = h;
+        let a = app.clone();
+        ui.on_close_window(move || a.request_close()); // W5-tray
     }
     {
         let h = h.clone();
@@ -291,6 +365,12 @@ fn wire(app: &Rc<App>, ui: &MainWindow, shell: &Shell) {
     }
 
     detail::wire(app, ui); // W2-detail
+    {
+        // W5-downloads
+        let a = app.clone();
+        ui.global::<lfx_ui::DlState>()
+            .on_event(move |k, x, y| a.dl_event(&k, x, y));
+    }
     retro::wire(app, ui); // W3-retro
     {
         // W4-media
@@ -299,6 +379,12 @@ fn wire(app: &Rc<App>, ui: &MainWindow, shell: &Shell) {
         m.on_event(move |k, x, y| a1.media_event(&k, x, y));
         let a2 = app.clone();
         m.on_event_f(move |k, v| a2.media_event_f(&k, v));
+    }
+    {
+        // W5-stats
+        let a = app.clone();
+        ui.global::<lfx_ui::StatsState>()
+            .on_event(move |k, v| a.stats_event(&k, v));
     }
     {
         // W4-account

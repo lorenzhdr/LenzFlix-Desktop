@@ -62,6 +62,10 @@ pub struct State {
     pub couch: crate::picker_couch::CouchCtl, // W3-picker
     /// W4-account: Einstellungen, Konten/Server, Verwaltung.
     pub account: crate::account::AccountCtl, // W4-account
+    /// W5-downloads: Offline-Modus, Downloads-Seite, Dialog.
+    pub downloads: crate::downloads::DlCtl, // W5-downloads
+    pub remote: crate::remote::RemoteCtl, // W5-remote
+    pub stats: crate::stats::StatsCtl, // W5-stats
 }
 
 /// Zeitgeber, die leben müssen, solange die App läuft.
@@ -222,6 +226,7 @@ impl App {
         self.tv_leave(); // W2-tvui
         self.detail_leave_route(); // W2-detail
         self.account_leave(); // W4-account
+        self.stats_leave(); // W5-stats
         self.stop_trailer(); // W2-home: Trailer endet bei jedem Seitenwechsel und beim Wiedergabe-Start
         let task = self.st.borrow_mut().qc_task.take();
         if let Some(t) = task {
@@ -283,6 +288,13 @@ impl App {
             // W2-library
             r if crate::library::is_library_route(r) => ctx = self.render_library_route(r),
             Route::Media(m) => self.render_media_route(m), // W4-media
+            Route::Downloads => ctx = self.dl_render_route(), // W5-downloads
+            Route::Stats => {
+                // W5-stats
+                ui.set_page(Page::Stats);
+                self.st.borrow_mut().graph = FocusGraph::new();
+                self.render_stats();
+            }
             // W4-account: Einstellungen und Verwaltung teilen die Seite
             Route::Settings | Route::Admin => {
                 ui.set_page(Page::Settings);
@@ -357,6 +369,7 @@ impl App {
                 ui.set_focus_index(idx);
             }
             Route::Settings | Route::Admin => self.acc_push(), // W4-account
+            Route::Stats => self.stats_push(),                 // W5-stats
             r if crate::library::is_library_route(r) => self.lib_show_focus(), // W2-library
             Route::Player { .. } => {} // W2-player: Fokus liegt im Player-Zustand
             _ => ui.set_simple_slot(focus::slot_of(f, 0)),
@@ -368,8 +381,14 @@ impl App {
     /// Eine Navigationsaktion (Tastatur, Gamepad, Automation).
     pub fn apply_action(self: &Rc<Self>, action: NavAction) {
         self.player_activity();
+        if self.update_action(action) {
+            return; // W5-tray: offener Update-Dialog nimmt die Taste
+        }
         if self.picker_action(action) {
             return; // W3-picker: offener Design-Dialog nimmt die Taste
+        }
+        if self.dl_handle_action(action) {
+            return; // W5-downloads: Dialog oder Downloads-Seite
         }
         if self.home_menu_action(action) {
             return; // W2-home: offenes Menü der Startseite nimmt die Taste
@@ -384,6 +403,9 @@ impl App {
         }
         if matches!(route, Route::Settings | Route::Admin) && self.account_handle_action(action) {
             return; // W4-account
+        }
+        if matches!(route, Route::Stats) && self.stats_handle_action(action) {
+            return; // W5-stats
         }
         if matches!(route, Route::TvMode) && self.tv_action(action) {
             return; // W2-tvui
@@ -651,10 +673,13 @@ impl App {
             self.win().set_user_name(a.user_name.as_str().into());
         }
         self.couch_load(&server_id, &user_id); // W3-picker
+        self.dl_session_ready(&server_id, &user_id); // W5-downloads
         self.session.start_heartbeat();
+        self.remote_start(); // W5-remote
     }
 
     pub fn sign_out(self: &Rc<Self>) {
+        self.remote_stop(); // W5-remote
         let session = self.session.clone();
         self.rt.spawn(async move {
             let _ = session.logout().await;

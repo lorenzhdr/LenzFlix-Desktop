@@ -1,0 +1,286 @@
+// W5-stats: Statistik-Seite („Meine Statistik“). Rust (lfx-app/src/stats*.rs) lädt GET /me/stats des Charts-Dienstes,
+// rechnet die Anzeigewerte aus und setzt `StatsState`; die Oberfläche meldet nur Ereignisse über
+// `StatsState.event(art, wert)`: "back", "range" (Index 0..3), "retry".
+// Fokus (Rust): 0 Zurück, 1..4 Zeiträume, 5 Aktion der Meldungsansicht.
+import { Theme, Design } from "../theme/theme.slint";
+import { ButtonKind } from "../components/types.slint";
+import { LfxText } from "../components/text.slint";
+import { LfxButton } from "../components/button.slint";
+import { LfxFocusRing } from "../components/focus-ring.slint";
+import { LfxSpinner } from "../components/feedback.slint";
+import { StBar, StShare, StKpi, StInk, StPanel, StKpiCard, StBars, StHeat, StShares } from "../components/stats-charts.slint";
+
+export global StatsState {
+    // 0 lädt, 1 bereit, 2 Dienst nicht eingerichtet, 3 Fehler
+    in property <int> status: 0;
+    in property <string> message;
+    in property <string> detail;
+    in property <[string]> range-labels: ["7 Tage", "30 Tage", "Dieses Jahr", "Gesamt"];
+    in property <int> range: 1;
+    in property <int> focus: 1;
+    in property <string> hero-value;
+    in property <string> hero-sub;
+    in property <[StKpi]> kpis;
+    in property <string> notice;
+    in property <[StShare]> top-series;
+    in property <[StShare]> top-movies;
+    in property <[StBar]> bars;
+    in property <string> line;
+    in property <string> range-title;
+    in property <[float]> heat;
+    in property <string> heat-best;
+    in property <bool> has-binge;
+    in property <string> binge-big;
+    in property <string> binge-sub;
+    in property <string> binge-line;
+    in property <[StShare]> devices;
+    in property <[StShare]> methods;
+    in-out property <length> scroll-y: 0px;
+    in-out property <length> max-scroll: 0px;
+    callback event(string, int);
+}
+
+component RangeTab inherits Rectangle {
+    in property <string> text;
+    in property <bool> active;
+    in property <bool> focused;
+    callback clicked();
+    height: 38px;
+    preferred-width: lbl.preferred-width + 32px;
+    border-radius: Theme.design == Design.retro ? 2px : self.height / 2;
+    background: root.active ? StInk.accent : (ta.has-hover ? Theme.t.glass-hover : Theme.t.glass);
+    border-width: Theme.design == Design.retro ? 1px : 0px;
+    border-color: Theme.t.retro-amber-lo;
+    lbl := LfxText {
+        text: Theme.design == Design.retro ? "[ " + root.text + " ]" : root.text;
+        color: root.active ? (Theme.design == Design.retro ? Theme.t.retro-ink : (Theme.design == Design.prime ? Theme.t.prime-ink : #ffffff)) : StInk.text;
+        font-size: Theme.t.fs-nav;
+        font-weight: 600;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+    }
+    ta := TouchArea { clicked => { root.clicked(); } }
+    LfxFocusRing { active: root.focused; radius: root.height / 2; }
+}
+
+export component StatsPage inherits Rectangle {
+    property <length> gutter: Theme.gutter-at(self.width);
+    property <length> tw: Theme.design == Design.retro ? 160px : 120px;
+    property <length> side: max(root.gutter, (root.width - 1100px) / 2);
+
+    VerticalLayout {
+        // Kopfzeile: Zurück, Titel, Zeiträume
+        Rectangle {
+            height: 76px;
+            back := LfxButton {
+                x: root.gutter;
+                y: (parent.height - self.height) / 2;
+                width: 110px;
+                kind: ButtonKind.secondary;
+                text: "Zurück";
+                focused: StatsState.focus == 0;
+                clicked => { StatsState.event("back", 0); }
+            }
+            LfxText {
+                x: root.gutter + 130px;
+                y: (parent.height - self.height) / 2;
+                height: 36px;
+                width: max(120px, parent.width - self.x - 4 * root.tw - root.gutter - 16px);
+                text: Theme.design == Design.retro ? "> MEINE STATISTIK" : "Meine Statistik";
+                font-size: Theme.t.fs-row-title + 8px;
+                font-weight: 800;
+                color: StInk.text;
+                vertical-alignment: center;
+                overflow: elide;
+            }
+            if StatsState.status <= 1: Rectangle {
+                x: parent.width - root.gutter - 4 * root.tw;
+                y: (parent.height - 38px) / 2;
+                width: 4 * root.tw;
+                height: 38px;
+                for l[i] in StatsState.range-labels: RangeTab {
+                    x: i * root.tw;
+                    width: root.tw - 8px;
+                    text: l;
+                    active: StatsState.range == i;
+                    focused: StatsState.focus == i + 1;
+                    clicked => { StatsState.event("range", i); }
+                }
+            }
+        }
+
+        Rectangle {
+            vertical-stretch: 1;
+
+            // Laden
+            if StatsState.status == 0: VerticalLayout {
+                alignment: center;
+                spacing: 14px;
+                Rectangle {
+                    height: 40px;
+                    LfxSpinner { x: (parent.width - self.width) / 2; size: 40px; }
+                }
+                LfxText {
+                    text: "Statistik wird berechnet …";
+                    color: StInk.muted;
+                    horizontal-alignment: center;
+                }
+            }
+
+            // Hinweis- oder Fehleransicht
+            if StatsState.status >= 2: VerticalLayout {
+                alignment: center;
+                spacing: 14px;
+                padding-left: root.gutter;
+                padding-right: root.gutter;
+                LfxText {
+                    text: StatsState.message;
+                    font-size: Theme.t.fs-row-title + 4px;
+                    font-weight: 700;
+                    color: StInk.text;
+                    horizontal-alignment: center;
+                    wrap: word-wrap;
+                }
+                LfxText {
+                    text: StatsState.detail;
+                    color: StInk.muted;
+                    horizontal-alignment: center;
+                    wrap: word-wrap;
+                }
+                if StatsState.status == 3: Rectangle {
+                    height: Theme.t.btn-h;
+                    LfxButton {
+                        x: (parent.width - self.width) / 2;
+                        kind: ButtonKind.primary;
+                        text: "Erneut versuchen";
+                        focused: StatsState.focus == 5;
+                        clicked => { StatsState.event("retry", 0); }
+                    }
+                }
+            }
+
+            // Inhalt
+            if StatsState.status == 1: Flickable {
+                content-width: self.width;
+                content-height: lay.preferred-height;
+                content-y <=> StatsState.scroll-y;
+                changed content-height => { StatsState.max-scroll = max(0px, self.content-height - self.height); }
+                changed height => { StatsState.max-scroll = max(0px, self.content-height - self.height); }
+                lay := VerticalLayout {
+                    x: root.side;
+                    width: parent.width - 2 * root.side;
+                    padding-bottom: 40px;
+                    spacing: 16px;
+
+                    if StatsState.notice != "": LfxText {
+                        text: StatsState.notice;
+                        color: Theme.t.gold;
+                        font-size: Theme.t.fs-meta;
+                        wrap: word-wrap;
+                    }
+
+                    // Hauptkennzahl und Vergleich
+                    Rectangle {
+                        height: 112px;
+                        background: StInk.panel-bg;
+                        border-radius: StInk.radius;
+                        border-width: 1px;
+                        border-color: StInk.panel-line;
+                        Rectangle {
+                            x: 0px;
+                            width: 6px;
+                            background: StInk.accent;
+                            border-radius: StInk.radius;
+                        }
+                        VerticalLayout {
+                            padding-left: 28px;
+                            padding-right: 16px;
+                            alignment: center;
+                            spacing: 4px;
+                            LfxText { text: "Watchtime"; color: StInk.muted; font-size: Theme.t.fs-meta; }
+                            LfxText {
+                                text: StatsState.hero-value;
+                                font-size: 40px;
+                                font-weight: 800;
+                                color: StInk.text;
+                                overflow: elide;
+                            }
+                            if StatsState.hero-sub != "": LfxText {
+                                text: StatsState.hero-sub;
+                                color: StInk.muted;
+                                font-size: Theme.t.fs-meta;
+                                overflow: elide;
+                            }
+                        }
+                    }
+
+                    HorizontalLayout {
+                        spacing: 12px;
+                        height: 84px;
+                        for k in StatsState.kpis: StKpiCard { kpi: k; }
+                    }
+
+                    StPanel {
+                        title: "Top-Serien";
+                        content-h: max(StatsState.top-series.length, 1) * 44px;
+                        StShares { items: StatsState.top-series; }
+                    }
+                    StPanel {
+                        title: "Top-Filme";
+                        content-h: max(StatsState.top-movies.length, 1) * 44px;
+                        StShares { items: StatsState.top-movies; }
+                    }
+                    StPanel {
+                        title: "Verlauf";
+                        sub: StatsState.range-title;
+                        content-h: 210px;
+                        StBars { bars: StatsState.bars; line: StatsState.line; }
+                    }
+                    StPanel {
+                        title: "Wann du schaust";
+                        sub: Theme.design == Design.flix ? "Je dunkler, desto weniger – je roter, desto mehr." : "Je kräftiger die Farbe, desto mehr Watchtime.";
+                        content-h: 200px;
+                        StHeat { cells: StatsState.heat; best: StatsState.heat-best; }
+                    }
+                    if StatsState.has-binge: StPanel {
+                        title: "Bester Binge";
+                        content-h: 96px;
+                        VerticalLayout {
+                            spacing: 4px;
+                            alignment: start;
+                            LfxText {
+                                text: StatsState.binge-big;
+                                font-size: 22px;
+                                font-weight: 700;
+                                color: StInk.text;
+                                overflow: elide;
+                            }
+                            LfxText { text: StatsState.binge-sub; color: StInk.muted; font-size: Theme.t.fs-meta; overflow: elide; }
+                            LfxText { text: StatsState.binge-line; color: StInk.text; overflow: elide; }
+                        }
+                    }
+                    HorizontalLayout {
+                        spacing: 16px;
+                        height: 38px + max(max(StatsState.devices.length, StatsState.methods.length), 1) * 44px + 32px;
+                        StPanel {
+                            title: "Geräte";
+                            content-h: max(StatsState.devices.length, 1) * 44px;
+                            StShares { items: StatsState.devices; }
+                        }
+                        StPanel {
+                            title: "Wiedergabeart";
+                            content-h: max(StatsState.methods.length, 1) * 44px;
+                            StShares { items: StatsState.methods; }
+                        }
+                    }
+                    LfxText {
+                        text: "Es werden nur deine eigenen Wiedergaben angezeigt.";
+                        color: StInk.muted;
+                        font-size: Theme.t.fs-meta;
+                        wrap: word-wrap;
+                    }
+                }
+            }
+        }
+    }
+}

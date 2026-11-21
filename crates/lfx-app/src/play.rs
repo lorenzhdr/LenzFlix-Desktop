@@ -175,7 +175,7 @@ impl App {
         self.start_item(item, mode, false);
     }
 
-    fn start_item(self: &Rc<Self>, item: &BaseItem, mode: ResumeMode, replace: bool) {
+    pub(crate) fn start_item(self: &Rc<Self>, item: &BaseItem, mode: ResumeMode, replace: bool) {
         let Some(active) = self.session.active() else {
             return;
         };
@@ -241,44 +241,55 @@ impl App {
                 app.refresh_view();
             });
         }
-        // Zusatzdaten parallel laden.
-        let client = active.client.clone();
-        let it = item.clone();
-        self.rt.spawn(async move {
-            let full = client
-                .item(&it.id, &["Chapters", "Trickplay", "MediaSources"])
-                .await
-                .ok();
-            let segments = fetch_segments(&client, &it.id).await.unwrap_or_default();
-            let next = if it.kind == ItemKind::Episode {
-                next_episode(&client, &it).await.ok().flatten()
-            } else {
-                None
+        // Zusatzdaten parallel laden (W5-downloads: bei lokaler Datei ohne Server)
+        if self.dl_use_local(&item.id) {
+            let ex = Extras {
+                full: None,
+                segments: Vec::new(),
+                next: None,
+                prefs: TrackPrefs::default(),
+                autoplay: true,
             };
-            let cfg = client.user_configuration().await.ok();
-            let prefs = cfg
-                .as_ref()
-                .map_or_else(TrackPrefs::default, |c| TrackPrefs {
-                    audio_lang: c
-                        .audio_language_preference
-                        .clone()
-                        .filter(|s| !s.is_empty()),
-                    sub_lang: c
-                        .subtitle_language_preference
-                        .clone()
-                        .filter(|s| !s.is_empty()),
-                    sub_mode: SubMode::parse(c.subtitle_mode.as_deref()),
-                });
-            let autoplay = cfg.as_ref().is_none_or(|c| c.enable_next_episode_auto_play);
-            let extras = Extras {
-                full,
-                segments,
-                next,
-                prefs,
-                autoplay,
-            };
-            post(move |app| app.extras_loaded(epoch, extras));
-        });
+            self.extras_loaded(epoch, ex);
+        } else {
+            let client = active.client.clone();
+            let it = item.clone();
+            self.rt.spawn(async move {
+                let full = client
+                    .item(&it.id, &["Chapters", "Trickplay", "MediaSources"])
+                    .await
+                    .ok();
+                let segments = fetch_segments(&client, &it.id).await.unwrap_or_default();
+                let next = if it.kind == ItemKind::Episode {
+                    next_episode(&client, &it).await.ok().flatten()
+                } else {
+                    None
+                };
+                let cfg = client.user_configuration().await.ok();
+                let prefs = cfg
+                    .as_ref()
+                    .map_or_else(TrackPrefs::default, |c| TrackPrefs {
+                        audio_lang: c
+                            .audio_language_preference
+                            .clone()
+                            .filter(|s| !s.is_empty()),
+                        sub_lang: c
+                            .subtitle_language_preference
+                            .clone()
+                            .filter(|s| !s.is_empty()),
+                        sub_mode: SubMode::parse(c.subtitle_mode.as_deref()),
+                    });
+                let autoplay = cfg.as_ref().is_none_or(|c| c.enable_next_episode_auto_play);
+                let extras = Extras {
+                    full,
+                    segments,
+                    next,
+                    prefs,
+                    autoplay,
+                };
+                post(move |app| app.extras_loaded(epoch, extras));
+            });
+        } // W5-downloads
         // Fortsetzen?
         let saved = saved_position(item);
         let offer = resume_offer(saved, runtime_secs(item));
@@ -323,6 +334,12 @@ impl App {
         let client = active.client.clone();
         // W2-detail: Vorauswahl aus Detail/Menü (Ton, Untertitel, Version, von Anfang an)
         let choice = self.take_play_choice().unwrap_or_default();
+        // W5-downloads: heruntergeladene Datei statt Server (Fortschritt geht in die Outbox)
+        if let Some(mut req) = self.dl_local_request(&item.id) {
+            req.start_seconds = if choice.from_start { 0.0 } else { start };
+            self.begin_playback(epoch, req);
+            return;
+        }
         self.rt.spawn(async move {
             let opts = PrepareOptions {
                 start_seconds: if choice.from_start { 0.0 } else { start },
@@ -466,7 +483,9 @@ impl App {
             ProgressReporter::spawn(
                 &player,
                 req.clone(),
-                Arc::new(ApiSink::new(active.client.clone())),
+                // W5-downloads: lokale Wiedergabe meldet in die Outbox
+                self.dl_report_sink(&req)
+                    .unwrap_or_else(|| Arc::new(ApiSink::new(active.client.clone()))),
                 ReporterConfig {
                     report_progress: true,
                     interval,
@@ -544,7 +563,7 @@ impl App {
     }
 
     /// Wie `stop_playback`, aber ohne die Oberfläche zu leeren (Folgewiedergabe, Qualitätswechsel).
-    fn stop_playback_keep_route(self: &Rc<Self>) {
+    pub(crate) fn stop_playback_keep_route(self: &Rc<Self>) {
         let (player, reporter, request) = {
             let mut st = self.st.borrow_mut();
             st.play.generation += 1;
@@ -574,7 +593,13 @@ impl App {
         }
         if let Some(r) = reporter {
             // „Stopped“ geht im Hintergrund hinaus; die Oberfläche wartet nicht darauf.
-            self.rt.spawn(async move { r.join().await });
+            let local = request.as_ref().is_some_and(App::dl_is_local_request); // W5-downloads
+            self.rt.spawn(async move {
+                r.join().await;
+                if local {
+                    post(|a| a.dl_sync_if_online());
+                }
+            });
         }
         if let Some(layer) = self.shell.video_layer() {
             layer.set_visible(false);

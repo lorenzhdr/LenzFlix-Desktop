@@ -21,7 +21,13 @@ import { PlusBrand } from "../components/plus-parts.slint"; // W3-plus
 import { PickerOverlay } from "picker.slint"; // W3-picker
 import { PickerState } from "picker-state.slint"; // W3-picker
 import { HomeChrome } from "../components/home-chrome.slint"; // W3-picker: Kopfleiste auch auf der Detailseite
+import { StatsPage } from "stats.slint"; // W5-stats
+import { UpdateOverlay } from "tray-update.slint"; // W5-tray
+import { TvState } from "tvui-types.slint"; // W5-polish
 import { MediaPage, MediaBar, MediaOverlays, MediaUi } from "media.slint"; // W4-media
+import { DownloadsPage } from "downloads.slint"; // W5-downloads
+import { DlState } from "downloads-state.slint"; // W5-downloads
+import { DlDialog, DlBanner } from "../components/downloads-dialog.slint"; // W5-downloads
 
 // Hauptfenster von LENZFLIX Desktop. Rust (lfx-app) hält Router, Zustand und Fokus und setzt die Properties;
 // die Oberfläche meldet nur Ereignisse. Durchsichtiger Fensterhintergrund: das Video liegt in einer Ebene darunter.
@@ -228,7 +234,7 @@ export component MainWindow inherits Window {
                 pv: root.pv; // W2-player
                 cmd(n, v) => { root.player-cmd(n, v); }
             }
-            if root.page == Page.tvmode: TvPage { }  // W2-tvui
+            if root.page == Page.tvmode: TvPage { head: TvState.fullscreen ? 0px : Theme.t.header-h; }  // W2-tvui W5-polish: Kopfleiste wie im Web
             if root.page == Page.library: LibraryPage { } // W2-library
             if root.page == Page.soon: SoonPage {
                 title: root.soon-title;
@@ -239,6 +245,8 @@ export component MainWindow inherits Window {
             if root.page == Page.detail && Theme.design != Design.plus: DetailPage { } // W2-detail
             if root.page == Page.detail && Theme.design == Design.plus: PlusTitlePage { } // W3-plus
             if root.page == Page.media: MediaPage { } // W4-media
+            if root.page == Page.downloads: DownloadsPage { } // W5-downloads
+            if root.page == Page.stats: StatsPage { } // W5-stats
             if root.page == Page.about: AboutPage {
                 version: root.version;
                 notices: root.notices;
@@ -271,6 +279,22 @@ export component MainWindow inherits Window {
             event(k, v) => { root.home-event(k, v); }
             event-f(k, v) => { root.home-event-f(k, v); }
         }
+        // W5-polish: Kopfleiste des Designs auch im TV-Modus (nicht im Vollbild)
+        if root.page == Page.tvmode && !TvState.fullscreen: HomeChrome {
+            x: 0px;
+            y: bar.height / root.zf;
+            width: parent.width;
+            height: parent.height - bar.height / root.zf;
+            ui: root.home-ui;
+            version: root.version;
+            gutter: Theme.gutter-at(self.width);
+            header-h: Theme.t.header-h;
+            scrolled: false;
+            current: -1;
+            focus-index: -1;
+            event(k, v) => { root.home-event(k, v); }
+            event-f(k, v) => { root.home-event-f(k, v); }
+        }
         // W4-media: Mini-Player-Leiste über allen Seiten (außer Player und TV) und Overlays der Medienseiten
         if MediaUi.np-active && root.page != Page.player && root.page != Page.tvmode && root.page != Page.add-server && root.page != Page.login && root.page != Page.profiles: MediaBar {
             x: 0px;
@@ -279,6 +303,17 @@ export component MainWindow inherits Window {
             visible: MediaUi.bar-visible;
         }
         if root.page == Page.media || MediaUi.np-full: MediaOverlays {
+            x: 0px;
+            y: bar.height / root.zf;
+            width: parent.width;
+            height: parent.height - bar.height / root.zf;
+        }
+        // W5-downloads: Offline-Hinweis (unten links) und Download-Dialog
+        if DlState.offline && root.page != Page.player && root.page != Page.tvmode && root.page != Page.add-server && root.page != Page.login && root.page != Page.profiles && root.page != Page.downloads: DlBanner {
+            x: 20px;
+            y: parent.height - self.height - 20px;
+        }
+        DlDialog {
             x: 0px;
             y: bar.height / root.zf;
             width: parent.width;
@@ -303,8 +338,16 @@ export component MainWindow inherits Window {
             height: parent.height - bar.height;
         }
 
+        // W5-tray: Update-Dialog über der Seite, unter der Titelleiste
+        UpdateOverlay {
+            x: 0px;
+            y: bar.height;
+            width: parent.width;
+            height: parent.height - bar.height;
+        }
+
         bar := LfxTitleBar {
-            show-logo: !(root.page == Page.home || root.page == Page.library || root.page == Page.detail); // W3-picker
+            show-logo: !(root.page == Page.home || root.page == Page.library || root.page == Page.detail || (root.page == Page.tvmode && !TvState.fullscreen)); // W3-picker
             x: 0px;
             y: 0px;
             width: parent.width;

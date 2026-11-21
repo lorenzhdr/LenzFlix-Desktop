@@ -325,7 +325,7 @@ fn build_data(ctl: &DetailCtl, can_download: bool) -> DetailData {
         can_play: playable && target.is_some(),
         can_played: logic::can_mark_played(item),
         can_like: playable || item.kind == ItemKind::BoxSet,
-        can_download: can_download && matches!(item.kind, ItemKind::Movie | ItemKind::Video),
+        can_download: can_download && crate::downloads_dialog::downloadable(item.kind), // W5-downloads
         fav: ud.is_favorite,
         like: ud.likes == Some(true),
         played: ud.played,
@@ -424,6 +424,9 @@ impl App {
 
     /// Karte angeklickt (Startseite, Bibliotheksseiten): öffnet das Detail-Modal.
     pub fn on_card_activate(self: &Rc<Self>, id: &str) {
+        if self.dl_card_offline(id) {
+            return; // W5-downloads: offline lokal abspielen
+        }
         if self.is_plus() {
             // W3-plus: Karten öffnen die Titelseite des Designs statt des Modals
             self.open_detail_page(id);
@@ -1301,11 +1304,11 @@ impl App {
     }
 
     fn download_placeholder(self: &Rc<Self>) {
-        // Der Download-Manager kommt mit W5; bis dahin nur die Rechteprüfung und diese Rückmeldung.
-        self.toast(
-            "Herunterladen folgt in einer späteren Version.",
-            ToastKind::Info,
-        );
+        // W5-downloads: öffnet den Download-Dialog für den gezeigten Titel
+        let item = self.st.borrow().detail.item.clone();
+        if let Some(item) = item {
+            self.dl_open_dialog(&item);
+        }
     }
 
     pub fn detail_toggle_fav(self: &Rc<Self>) {
@@ -1572,7 +1575,7 @@ impl App {
             MenuAction::FromStart => self.play_any(&item, true),
             MenuAction::ToggleFav => self.toggle_fav(&item.id),
             MenuAction::TogglePlayed => self.toggle_played(&item.id),
-            MenuAction::Download => self.download_placeholder(),
+            MenuAction::Download => self.dl_open_dialog(&item), // W5-downloads
             MenuAction::Details => self.open_detail_page(&item.id),
             MenuAction::GoSeries => {
                 if let Some(s) = item.series_id.clone() {

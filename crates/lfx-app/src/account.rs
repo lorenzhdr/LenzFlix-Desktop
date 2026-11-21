@@ -39,6 +39,7 @@ pub enum Act {
     Design,
     DataSaver,
     Local(&'static str),
+    Upd(crate::updater::UpdAct), // W5-tray
     CfgToggle(crate::account_logic::CfgToggle),
     CfgChoice(crate::account_logic::CfgChoice),
     Field(&'static str),
@@ -74,6 +75,11 @@ pub enum Act {
     OpenBrowser,
     Refresh,
     Back,
+    DlAuto,     // W5-downloads
+    DlParallel, // W5-downloads
+    DlQuality,  // W5-downloads
+    DlRoot,     // W5-downloads
+    DlOpenPage, // W5-downloads
 }
 
 impl Act {

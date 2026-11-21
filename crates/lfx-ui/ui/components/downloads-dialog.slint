@@ -1,0 +1,143 @@
+// W5-downloads: Download-Dialog (Qualität, Umfang) und Offline-Hinweis; beide lesen `DlState`.
+import { Theme, Design } from "../theme/theme.slint";
+import { ButtonKind } from "types.slint";
+import { LfxButton } from "button.slint";
+import { LfxFocusRing } from "focus-ring.slint";
+import { LfxIcon } from "icon.slint";
+import { Icons } from "../icons.slint";
+import { DlState } from "../pages/downloads-state.slint";
+
+component DText inherits Text {
+    color: Theme.design == Design.retro ? Theme.t.retro-amber : Theme.t.text;
+    font-family: Theme.t.font-family;
+    font-size: Theme.t.fs-body;
+}
+
+export component DlDialog inherits Rectangle {
+    property <bool> retro: Theme.design == Design.retro;
+    property <length> row-h: 52px;
+    visible: DlState.dlg-open;
+    background: #000000b0;
+    TouchArea { }
+    Rectangle {
+        width: min(520px, parent.width - 48px);
+        height: 86px + DlState.dlg-opts.length * root.row-h + 78px;
+        x: (parent.width - self.width) / 2;
+        y: max(20px, (parent.height - self.height) / 2 - 20px);
+        background: root.retro ? Theme.t.retro-bg : Theme.t.surface-2;
+        border-radius: root.retro ? 2px : Theme.t.modal-radius;
+        border-width: 1px;
+        border-color: root.retro ? Theme.t.retro-amber : Theme.t.border;
+        DText {
+            x: 24px;
+            y: 20px;
+            width: parent.width - 48px;
+            height: 28px;
+            text: root.retro ? "> " + DlState.dlg-title : DlState.dlg-title;
+            font-size: 20px;
+            font-weight: 700;
+            overflow: elide;
+        }
+        for o[i] in DlState.dlg-opts: Rectangle {
+            x: 16px;
+            y: 62px + i * root.row-h;
+            width: parent.width - 32px;
+            height: root.row-h - 6px;
+            border-radius: root.retro ? 2px : 8px;
+            background: o.kind == 2 ? transparent : (root.retro ? Theme.t.retro-panel : Theme.t.surface);
+            DText {
+                x: 14px;
+                width: parent.width * (o.kind == 2 ? 1.0 : 0.5) - 14px;
+                height: parent.height;
+                text: o.label;
+                font-size: o.kind == 2 ? 12px : Theme.t.fs-body;
+                color: o.kind == 2 ? Theme.t.text-soft : (root.retro ? Theme.t.retro-amber : Theme.t.text);
+                wrap: o.kind == 2 ? word-wrap : no-wrap;
+                vertical-alignment: center;
+                overflow: elide;
+            }
+            if o.kind == 0: DText {
+                x: parent.width * 0.5;
+                width: parent.width * 0.5 - 14px;
+                height: parent.height;
+                text: (DlState.dlg-focus == i ? "‹  " : "") + o.value + (DlState.dlg-focus == i ? "  ›" : "");
+                horizontal-alignment: right;
+                vertical-alignment: center;
+                font-weight: 600;
+                overflow: elide;
+            }
+            if o.kind == 1: Rectangle {
+                x: parent.width - 60px;
+                y: (parent.height - 26px) / 2;
+                width: 46px;
+                height: 26px;
+                border-radius: 13px;
+                background: o.on ? (root.retro ? Theme.t.retro-amber : Theme.t.accent) : #ffffff30;
+                Rectangle {
+                    x: o.on ? parent.width - self.width - 3px : 3px;
+                    y: 3px;
+                    width: 20px;
+                    height: 20px;
+                    border-radius: 10px;
+                    background: root.retro && o.on ? Theme.t.retro-ink : #ffffff;
+                }
+            }
+            if o.kind != 2: LfxFocusRing { active: DlState.dlg-focus == i; radius: root.retro ? 2px : 8px; }
+            if o.kind != 2: TouchArea {
+                clicked => { DlState.event("dlg-opt", i, 0); }
+            }
+        }
+        LfxButton {
+            x: 24px;
+            y: parent.height - self.height - 22px;
+            width: (parent.width - 60px) / 2;
+            kind: ButtonKind.secondary;
+            text: "Abbrechen";
+            focused: DlState.dlg-focus == DlState.dlg-opts.length;
+            clicked => { DlState.event("dlg-btn", 0, 0); }
+        }
+        LfxButton {
+            x: 24px + (parent.width - 60px) / 2 + 12px;
+            y: parent.height - self.height - 22px;
+            width: (parent.width - 60px) / 2;
+            kind: ButtonKind.primary;
+            text: DlState.dlg-busy ? "Einen Moment …" : DlState.dlg-yes;
+            enabled: !DlState.dlg-busy;
+            has-icon: true;
+            icon: Icons.download;
+            focused: DlState.dlg-focus == DlState.dlg-opts.length + 1;
+            clicked => { DlState.event("dlg-btn", 1, 0); }
+        }
+    }
+}
+
+// Offline-Hinweis unten links; Klick öffnet die Downloads.
+export component DlBanner inherits Rectangle {
+    property <bool> retro: Theme.design == Design.retro;
+    width: min(520px, lbl.preferred-width + 64px);
+    height: 40px;
+    border-radius: root.retro ? 2px : 20px;
+    background: root.retro ? Theme.t.retro-panel : Theme.t.jf-snackbar-bg;
+    border-width: 1px;
+    border-color: root.retro ? Theme.t.retro-amber-lo : Theme.t.border;
+    LfxIcon {
+        x: 14px;
+        y: (parent.height - self.height) / 2;
+        source: Icons.download;
+        size: 18px;
+        tint: root.retro ? Theme.t.retro-amber : Theme.t.gold;
+    }
+    lbl := DText {
+        x: 42px;
+        width: parent.width - 54px;
+        height: parent.height;
+        text: DlState.offline-text;
+        font-size: 13px;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+    TouchArea {
+        mouse-cursor: pointer;
+        clicked => { DlState.event("banner", 0, 0); }
+    }
+}

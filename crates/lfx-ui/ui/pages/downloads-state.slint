@@ -1,0 +1,65 @@
+// W5-downloads: Zustand der Seite „Downloads“, des Download-Dialogs und des Offline-Hinweises.
+// Rust (lfx-app/src/downloads*.rs) setzt die Properties und hängt `event` ein; die Oberfläche liest und meldet nur.
+//
+// Ereignisse `event(art, a, b)`:
+//   "row"      Zeile `a` angeklickt (allgemeine Zeile), "btn" Knopf `b` (0 links, 1 rechts) der Zeile `a`,
+//   "confirm"  Rückfrage: `a` 0 abbrechen, 1 bestätigen,
+//   "dlg-opt"  Dialog: Option `a` angeklickt,
+//   "dlg-btn"  Dialog: `a` 0 Abbrechen, 1 Herunterladen,
+//   "banner"   Offline-Hinweis angeklickt.
+
+// Zeilenarten (DlRow.kind): 0 Überschrift, 1 Hinweistext, 2 laufender Download, 3 fertiger Titel,
+// 4 Schalter, 5 Info (Name, Wert), 6 Knopf.
+export struct DlRow {
+    kind: int,
+    // Oberkante und Höhe in der Liste (Rust rechnet, damit das Scrollen zum Fokus eindeutig bleibt)
+    y: length,
+    h: length,
+    title: string,
+    sub: string,
+    right: string,
+    // 0..1, -1 = keine Leiste
+    progress: float,
+    // 0 wartet, 1 läuft, 2 pausiert, 3 fertig, 4 Fehler
+    state: int,
+    a-label: string,
+    b-label: string,
+    on: bool,
+    danger: bool,
+    image: image,
+    has-image: bool,
+}
+
+// Zeile des Download-Dialogs: 0 Auswahl, 1 Schalter, 2 Hinweis.
+export struct DlOpt {
+    kind: int,
+    label: string,
+    value: string,
+    on: bool,
+}
+
+export global DlState {
+    in property <string> title: "Downloads";
+    in property <string> subtitle;
+    in property <[DlRow]> rows;
+    in property <length> content-h: 0px;
+    in property <int> focus-row: -1;
+    in property <int> focus-col: 0;
+    in property <string> status;
+    in property <bool> status-error: false;
+    in property <bool> confirm-open: false;
+    in property <string> confirm-text;
+    in property <string> confirm-yes: "Bestätigen";
+    in property <int> confirm-focus: 0;
+    // Download-Dialog
+    in property <bool> dlg-open: false;
+    in property <string> dlg-title;
+    in property <[DlOpt]> dlg-opts;
+    in property <int> dlg-focus: 0;
+    in property <string> dlg-yes: "Herunterladen";
+    in property <bool> dlg-busy: false;
+    // Offline-Hinweis
+    in property <bool> offline: false;
+    in property <string> offline-text: "Offline";
+    callback event(string, int, int);
+}

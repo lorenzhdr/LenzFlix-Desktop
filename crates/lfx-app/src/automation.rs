@@ -248,7 +248,14 @@ impl App {
             }
             "quit" => {
                 ok(json!({}));
-                self.shell.close();
+                self.quit_app(); // W5-tray: am Verstecken im Infobereich vorbei
+            }
+            // W5-tray
+            c if c.starts_with("tray_") || c.starts_with("update_") => {
+                match self.tray_automation(c, msg) {
+                    Ok(v) => ok(v),
+                    Err(e) => fail(&e),
+                }
             }
             // W3-picker
             c if c.starts_with("picker_") || c == "couch" || c == "input" => {
@@ -262,6 +269,11 @@ impl App {
                 Ok(v) => ok(v),
                 Err(e) => fail(&e),
             },
+            c if c.starts_with("remote_") => match self.remote_automation(c, msg) {
+                // W5-remote
+                Ok(v) => ok(v),
+                Err(e) => fail(&e),
+            },
             c if c.starts_with("retro_") => match self.retro_automation(c, msg) {
                 Ok(v) => ok(v),
                 Err(e) => fail(&e),
@@ -271,9 +283,19 @@ impl App {
                 Ok(v) => ok(v),
                 Err(e) => fail(&e),
             },
+            // W5-stats
+            c if c.starts_with("stats_") => match self.stats_automation(c, msg) {
+                Ok(v) => ok(v),
+                Err(e) => fail(&e),
+            },
             c if c.starts_with("detail_") => self.detail_automation(c, msg, reply), // W2-detail
             c if c.starts_with("media") => match self.media_automation(c, msg) {
                 // W4-media
+                Ok(v) => ok(v),
+                Err(e) => fail(&e),
+            },
+            // W5-downloads
+            c if c.starts_with("dl_") => match self.dl_automation(c, msg) {
                 Ok(v) => ok(v),
                 Err(e) => fail(&e),
             },
@@ -367,6 +389,9 @@ impl App {
             "detail": self.detail_state_json(), // W2-detail
             "retro": self.retro_state_json(), // W3-retro
             "account": self.account_state_json(), // W4-account
+            "downloads": self.dl_state_json(), // W5-downloads
+            "remote": self.remote_state_json(), // W5-remote
+            "stats": self.stats_state_json(), // W5-stats
         })
     }
 }

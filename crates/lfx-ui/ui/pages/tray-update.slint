@@ -1,0 +1,120 @@
+import { Theme, Design } from "../theme/theme.slint";
+import { LfxText } from "../components/text.slint";
+import { LfxButton } from "../components/button.slint";
+import { ButtonKind } from "../components/types.slint";
+
+// W5-tray: Update-Dialog (Hinweis mit Versionshinweisen, Download-Fortschritt, Fehler). Rust füllt den Zustand und
+// nimmt Tastatur/Gamepad über `focus` (wie der Design-Dialog); Mausklicks melden `action(Knopfindex)`.
+export global UpdateUi {
+    in property <bool> open: false;
+    in property <string> title;
+    in property <string> subtitle;
+    in property <string> notes;
+    // Fehlertext (leer = kein Fehler)
+    in property <string> error;
+    // Fortschritt 0..1; progress-text leer = kein Fortschrittsbalken
+    in property <float> progress: 0;
+    in property <string> progress-text;
+    // Beschriftungen der Knöpfe in Anzeigereihenfolge (der erste ist die Hauptaktion)
+    in property <[string]> buttons;
+    in property <int> focus: 0;
+    callback action(int);
+}
+
+export component UpdateOverlay inherits Rectangle {
+    visible: UpdateUi.open;
+    property <bool> retro: Theme.design == Design.retro;
+
+    Rectangle {
+        background: #000000b8;
+        TouchArea { }
+    }
+
+    box := Rectangle {
+        width: min(root.retro ? 780px : 560px, parent.width - 48px);
+        height: col.preferred-height + 2 * 28px;
+        x: (parent.width - self.width) / 2;
+        y: (parent.height - self.height) / 2;
+        // Opaker Grund, damit die Seite dahinter bei durchscheinenden Panelfarben (LENZ//84) nicht durchschlägt
+        background: Theme.t.bg;
+        border-radius: Theme.t.modal-radius;
+        border-width: root.retro ? 1px : 0px;
+        border-color: Theme.t.retro-amber-lo;
+        drop-shadow-color: Theme.t.shadow-modal.color;
+        drop-shadow-blur: Theme.t.shadow-modal.blur;
+        drop-shadow-offset-y: Theme.t.shadow-modal.y;
+        Rectangle {
+            background: root.retro ? Theme.t.retro-panel : Theme.t.surface;
+            border-radius: Theme.t.modal-radius;
+        }
+        TouchArea { }
+
+        col := VerticalLayout {
+            x: 28px;
+            y: 28px;
+            width: parent.width - 56px;
+            height: parent.height - 56px;
+            alignment: start;
+            spacing: 14px;
+            LfxText {
+                text: UpdateUi.title;
+                font-size: 22px;
+                font-weight: 700;
+                wrap: word-wrap;
+            }
+            if UpdateUi.subtitle != "": LfxText {
+                text: UpdateUi.subtitle;
+                color: Theme.t.text-muted;
+                wrap: word-wrap;
+            }
+            if UpdateUi.error != "": LfxText {
+                text: UpdateUi.error;
+                color: Theme.t.red;
+                wrap: word-wrap;
+            }
+            if UpdateUi.notes != "": Rectangle {
+                height: min(notes-text.preferred-height + 24px, 200px);
+                background: #ffffff0d;
+                border-radius: 8px;
+                clip: true;
+                notes-text := LfxText {
+                    x: 12px;
+                    y: 12px;
+                    width: parent.width - 24px;
+                    text: UpdateUi.notes;
+                    font-size: Theme.t.fs-body;
+                    wrap: word-wrap;
+                }
+            }
+            if UpdateUi.progress-text != "": VerticalLayout {
+                spacing: 6px;
+                Rectangle {
+                    height: 6px;
+                    border-radius: 3px;
+                    background: #ffffff26;
+                    Rectangle {
+                        x: 0px;
+                        width: parent.width * min(1.0, max(0.0, UpdateUi.progress));
+                        background: Theme.t.progress;
+                        border-radius: 3px;
+                    }
+                }
+                LfxText {
+                    text: UpdateUi.progress-text;
+                    color: Theme.t.text-muted;
+                    font-size: Theme.t.fs-body;
+                }
+            }
+            HorizontalLayout {
+                alignment: end;
+                spacing: 12px;
+                for label[i] in UpdateUi.buttons: LfxButton {
+                    kind: i == 0 ? ButtonKind.primary : ButtonKind.secondary;
+                    text: label;
+                    focused: UpdateUi.focus == i;
+                    clicked => { UpdateUi.action(i); }
+                }
+            }
+        }
+    }
+}

@@ -314,6 +314,13 @@ impl App {
         let ui = self.win();
         ui.set_home_loading(self.st.borrow().home.rows.is_empty());
         ui.set_home_error("".into());
+        // W5-downloads: offline zeigt die Startseite die Offline-Bibliothek
+        if self.dl_offline()
+            && let Some(d) = self.dl_offline_home_data()
+        {
+            self.home_loaded(epoch, Ok(d));
+            return;
+        }
         self.rt.spawn(async move {
             let data = fetch_home(&client).await;
             post(move |app| app.home_loaded(epoch, data));
@@ -330,6 +337,12 @@ impl App {
         let data = match data {
             Ok(d) => d,
             Err(text) => {
+                // W5-downloads: Server weg, aber Downloads da -> Offline-Bibliothek statt Fehler
+                if let Some(d) = self.dl_offline_home_data() {
+                    self.home_loaded(epoch, Ok(d));
+                    self.dl_check_now();
+                    return;
+                }
                 tracing::warn!("Startseite: {text}");
                 ui.set_home_error(text.into());
                 return;
@@ -605,6 +618,21 @@ impl App {
         prio: Priority,
         apply: impl FnOnce(&Rc<App>, Image, [u8; 3]) + Send + 'static,
     ) {
+        // W5-downloads: offline kommen Bilder aus den heruntergeladenen Dateien
+        if let Some(path) = self.dl_local_image(&r.pick.id, r.pick.kind)
+            && let Ok(bytes) = std::fs::read(&path)
+            && let Ok(img) = lfx_images::decode_image(&bytes, Some(r.max_width), None, false)
+        {
+            let amb = ambient_of(&img);
+            let buf = to_buffer(&img);
+            let apply = apply;
+            slint::Timer::single_shot(Duration::from_millis(0), move || {
+                if let Some(app) = crate::app::current() {
+                    apply(&app, Image::from_rgba8(buf), amb);
+                }
+            });
+            return;
+        }
         let Some(loader) = self.images() else { return };
         let mut req = ImageRequest::new(&r.pick.id, r.pick.kind)
             .tag(&r.pick.tag)
